@@ -1,6 +1,111 @@
-@SerwisSystem.Api_HostAddress = http://localhost:5186
+@SerwisSystem_Api_HostAddress = http://localhost:5000
 
-GET {{SerwisSystem.Api_HostAddress}}/weatherforecast/
+### List of all repairs
+GET {{SerwisSystem_Api_HostAddress}}/api/repairs
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiSm9obiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODQ0MDI5OX0.9oLHgrvPKdNvBGbINlBU-Hg7CEros8c9u2neQ4EAQ44
+
+
+### Append new repair
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs
+Content-Type: application/json
+
+{
+    "serialNumber": 12345,
+    "status": 0,
+    "product": "iPhone 15",
+    "description": "Broken screen",
+    "name": "Jan",
+    "surname": "Kowalski",
+    "phoneNumber": "123456789",
+    "email": "jan@example.com",
+    "address": "Example 1",
+    "nip": 1234567890
+}
+
+### Update repair with id ... with user id ...
+
+POST http://localhost:5000/api/repairs/2/take?userId=6
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiSm9obiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODQ0MDI5OX0.9oLHgrvPKdNvBGbINlBU-Hg7CEros8c9u2neQ4EAQ44
+
+
+### Remove userId from repair with id ...\
+POST http://localhost:5000/api/repairs/2/removeUserId
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiSm9obiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODQ0MDI5OX0.9oLHgrvPKdNvBGbINlBU-Hg7CEros8c9u2neQ4EAQ44
+
+
+### Update repair with id ...
+PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/1
+Content-Type: application/json
+
+{
+    "serialNumber": 23456,
+    "status": 2,
+    "product": "iPhone 25",
+    "description": "Screen completely shattered",
+    "name": "Jan",
+    "surname": "Kowalski",
+    "phoneNumber": "123456789",
+    "email": "jan@example.com",
+    "address": "Example 2",
+    "nip": 1234567890
+}
+
+### Delete repair with id ...
+DELETE {{SerwisSystem_Api_HostAddress}}/api/repairs/3
 Accept: application/json
 
-###
+
+###-----------------------------------------------------------------list of user requests-------------------------------------------------------------
+
+### List of all users
+GET {{SerwisSystem_Api_HostAddress}}/api/users
+Accept: application/json
+
+
+
+### Create user - to be changed
+POST {{SerwisSystem_Api_HostAddress}}/api/users
+Content-Type: application/json
+
+{
+    "Username": "jan",
+    "PasswordHash": "xyzxyz",
+    "email": "jan@example.com"
+}
+
+### Update user - same
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/2
+Content-Type: application/json
+
+{
+    "Username": "naj",
+    "PasswordHash": "abcanc",
+    "email": "jan@example.com"
+}
+### Delete user - here for now
+DELETE {{SerwisSystem_Api_HostAddress}}/api/users/6
+Accept: application/json
+
+### -----------------------------------------------------------------Authorization-------------------------------------------------------------
+
+### register user
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+    "username": "John2",
+    "email": "john2@gmail.com",
+    "password": "password123"
+}
+
+### login user
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+    "UsernameOrEmail": "John",
+    "password": "password123"
+}
