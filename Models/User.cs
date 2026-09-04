@@ -19,4 +19,6 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Repair> Repairs { get; set; } = new List<Repair>();
+
+    public Permissions? Permissions { get; set; }
 }

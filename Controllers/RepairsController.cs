@@ -4,6 +4,8 @@ using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
+using SerwisSystem.Api.Models.Enums;
 
 namespace SerwisSystem.Api.Controllers;
 
@@ -20,20 +22,45 @@ public class RepairsController : ControllerBase
         _context = context;
     }
 
+    private async Task<User?> GetCurrentUserAsync()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!int.TryParse(userIdClaim, out int userId))
+            return null;
+
+        return await _context.Users
+            .Include(u => u.Permissions)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+    }
+
     [HttpGet]// GET api/repairs 
     public async Task<IActionResult> GetRepairs()
     {
+        var user = await GetCurrentUserAsync();
+        if (user == null)
+            return Unauthorized();
+
+        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.ReadRepairs))
+            return Forbid();
 
         var repairs = await _context.Repairs
-            .Include(r => r.User)// include user information in the repair list(probaly cuz of the relationship idk)
-            .ToListAsync();//ig it transfers to list
+            .Include(r => r.User)
+            .ToListAsync();
 
-        return Ok(repairs);// return the list of repairs with user information
+        return Ok(repairs);
     }
 
     [HttpGet("{id}")]// GET api/repairs/**id**
     public async Task<IActionResult> GetRepair(int id)
     {
+        var user = await GetCurrentUserAsync();
+        if (user == null)
+            return Unauthorized();
+
+        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.ReadRepairs))
+            return Forbid();
+
         var repair = await _context.Repairs
             .Include(r => r.User)
             .FirstOrDefaultAsync(r => r.Id == id);
@@ -47,6 +74,13 @@ public class RepairsController : ControllerBase
     [HttpPost]// POST api/repairs
     public async Task<IActionResult> CreateRepair(Repair repair)
     {
+        var user = await GetCurrentUserAsync();
+        if (user == null)
+            return Unauthorized();
+
+        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.EditRepair))
+            return Forbid();
+
         _context.Repairs.Add(repair);// add the repair to the database context
         await _context.SaveChangesAsync();// save the changes to the database
 
@@ -57,47 +91,50 @@ public class RepairsController : ControllerBase
         );
     }
 
+    [Authorize(Roles = "Worker,Admin")]
     [HttpPost("{id}/take")]// POST api/repairs/**id**/take
     public async Task<IActionResult> AssignUserId(int id)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);// takes the id in token
-
-        if (!int.TryParse(userIdClaim, out int userId))// baisically int.Parse(...) but it TRIES to change it cuz somehow it might not be a number (even tho we have "[Authorize]" at line 10 which allows this code to work only if someone has a token
+        var user = await GetCurrentUserAsync();
+        if (user == null)
             return Unauthorized();
 
+        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.TakeRepair))
+            return Forbid();
+
         var repair = await _context.Repairs.FindAsync(id);
-        var user = await _context.Users.FindAsync(userId);// some might say its useless but what if the admin deletes your account while ure still logged? u wont be allowed to do anything now
 
         if (repair == null)
             return NotFound();
 
-        else if (user == null)
-            return Unauthorized();
-
         if (repair.UserId != null)
             return BadRequest("Repair already assigned to a user");
 
-
-        repair.UserId = userId;
-        repair.Status = Models.Enums.RepairStatus.InProgress;
+        repair.UserId = user.Id;
+        repair.Status = RepairStatus.InProgress;
 
         await _context.SaveChangesAsync();
 
         return Ok(repair);
     }
 
-    [HttpPost("{id}/removeUserId")]// POST api/repairs/**id**/return?userId=**userId**
-    public async Task<IActionResult> DischargeUserId(int id, int userId)
+    [HttpPost("{id}/removeUserId")]// POST api/repairs/**id**/removeUserId
+    public async Task<IActionResult> DischargeUserId(int id)
     {
+        var user = await GetCurrentUserAsync();
+        if (user == null)
+            return Unauthorized();
+
+        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.EditRepair))
+            return Forbid();
+
         var repair = await _context.Repairs.FindAsync(id);
-        
 
         if (repair == null)
             return NotFound();
 
         repair.UserId = null;
-
-        repair.Status = Models.Enums.RepairStatus.Pending;
+        repair.Status = RepairStatus.Pending;
 
         await _context.SaveChangesAsync();
 
@@ -109,6 +146,13 @@ public class RepairsController : ControllerBase
     [HttpPut("{id}")]// PUT api/repairs/**id**
     public async Task<IActionResult> UpdateRepair(int id, Repair updatedRepair)
     {
+        var user = await GetCurrentUserAsync();
+        if (user == null)
+            return Unauthorized();
+
+        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.EditRepair))
+            return Forbid();
+
         var repair = await _context.Repairs.FindAsync(id);
 
         if (repair == null)
@@ -133,6 +177,13 @@ public class RepairsController : ControllerBase
     [HttpDelete("{id}")]// DELETE api/repairs/**id**
     public async Task<IActionResult> DeleteRepair(int id)
     {
+        var user = await GetCurrentUserAsync();
+        if (user == null)
+            return Unauthorized();
+
+        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.DeleteRepair))
+            return Forbid();
+
         var repair = await _context.Repairs.FindAsync(id);
 
         if (repair == null)

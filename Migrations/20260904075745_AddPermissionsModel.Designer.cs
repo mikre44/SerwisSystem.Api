@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SerwisSystem.Api.Data;
@@ -11,9 +12,11 @@ using SerwisSystem.Api.Data;
 namespace SerwisSystem.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260904075745_AddPermissionsModel")]
+    partial class AddPermissionsModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,16 +36,16 @@ namespace SerwisSystem.Api.Migrations
                     b.Property<bool>("DeleteRepair")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("DeleteUser")
+                    b.Property<bool>("DeleteUsers")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("EditRepair")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("EditUser")
+                    b.Property<bool>("EditUsers")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("GrantUser")
+                    b.Property<bool>("GrantUsers")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("ReadRepairs")

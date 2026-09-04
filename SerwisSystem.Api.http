@@ -1,14 +1,17 @@
 @SerwisSystem_Api_HostAddress = http://localhost:5000
 
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6IkpvaG40IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJleHAiOjE3ODg1MzU4ODl9.L9pYKS1-8h6DZ0Qr3kP_r0_l0uIiVwPWiHbrfAkV5kc
+
 ### List of all repairs
 GET {{SerwisSystem_Api_HostAddress}}/api/repairs
 Accept: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiSm9obiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODQ0MDI5OX0.9oLHgrvPKdNvBGbINlBU-Hg7CEros8c9u2neQ4EAQ44
+Authorization: Bearer {{token}}
 
 
 ### Append new repair
 POST {{SerwisSystem_Api_HostAddress}}/api/repairs
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "serialNumber": 12345,
@@ -25,20 +28,21 @@ Content-Type: application/json
 
 ### Update repair with id ... with user id ...
 
-POST http://localhost:5000/api/repairs/2/take?userId=6
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/9/take
 Accept: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiSm9obiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODQ0MDI5OX0.9oLHgrvPKdNvBGbINlBU-Hg7CEros8c9u2neQ4EAQ44
+Authorization: Bearer {{token}}
 
 
 ### Remove userId from repair with id ...\
-POST http://localhost:5000/api/repairs/2/removeUserId
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/2/removeUserId
 Accept: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiSm9obiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODQ0MDI5OX0.9oLHgrvPKdNvBGbINlBU-Hg7CEros8c9u2neQ4EAQ44
+Authorization: Bearer {{token}}
 
 
 ### Update repair with id ...
 PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/1
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "serialNumber": 23456,
@@ -56,6 +60,7 @@ Content-Type: application/json
 ### Delete repair with id ...
 DELETE {{SerwisSystem_Api_HostAddress}}/api/repairs/3
 Accept: application/json
+Authorization: Bearer {{token}}
 
 
 ###-----------------------------------------------------------------list of user requests-------------------------------------------------------------
@@ -63,12 +68,14 @@ Accept: application/json
 ### List of all users
 GET {{SerwisSystem_Api_HostAddress}}/api/users
 Accept: application/json
+Authorization: Bearer {{token}}
 
 
 
 ### Create user - to be changed
 POST {{SerwisSystem_Api_HostAddress}}/api/users
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "Username": "jan",
@@ -79,6 +86,7 @@ Content-Type: application/json
 ### Update user - same
 PUT {{SerwisSystem_Api_HostAddress}}/api/users/2
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "Username": "naj",
@@ -86,8 +94,25 @@ Content-Type: application/json
     "email": "jan@example.com"
 }
 ### Delete user - here for now
-DELETE {{SerwisSystem_Api_HostAddress}}/api/users/6
+DELETE {{SerwisSystem_Api_HostAddress}}/api/users/4
 Accept: application/json
+Authorization: Bearer {{token}}
+
+### Edit user permissions
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/grant/13
+Content-Type: application/json
+Authorization: Bearer {{token}}
+{
+    "permissionsGranted": [
+        "ReadRepairs",
+        "TakeRepair",
+        "EditRepair"
+    ],
+    "permissionsRevoked": [
+        "DeleteRepair",
+        "GrantUser"
+    ]
+}
 
 ### -----------------------------------------------------------------Authorization-------------------------------------------------------------
 
@@ -96,8 +121,8 @@ POST http://localhost:5000/api/auth/register
 Content-Type: application/json
 
 {
-    "username": "John2",
-    "email": "john2@gmail.com",
+    "username": "John8",
+    "email": "john8@gmail.com",
     "password": "password123"
 }
 
@@ -106,6 +131,16 @@ POST http://localhost:5000/api/auth/login
 Content-Type: application/json
 
 {
-    "UsernameOrEmail": "John",
+    "UsernameOrEmail": "John4",
+    "password": "password123"
+}
+
+### create admin
+POST http://localhost:5000/api/auth/createAdmin
+Content-Type: application/json
+
+{
+    "username": "John4",
+    "email": "john4@gmail.com",
     "password": "password123"
 }

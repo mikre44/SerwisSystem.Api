@@ -75,9 +75,18 @@ public class  AuthController : ControllerBase
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
 
+
+        var permissions = new Permissions
+        {
+            User = user
+        };
+
+        user.Permissions = permissions;
+
         _context.Users.Add(user);
 
         await _context.SaveChangesAsync();
+
 
         return Ok(new
         {
@@ -107,8 +116,42 @@ public class  AuthController : ControllerBase
         var token = GenerateToken(user);
         return Ok(new
         {
-           token
+           token,
+           user.Role
         });
     }
 
+    [HttpPost("createAdmin")]//temporarily
+    public async Task<IActionResult> CreateAdmin(RegisterDto dto)
+    {
+        var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
+        var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+        if (existingUsername != null)
+            return BadRequest("Username already exists");
+        else if (existingEmail != null)
+            return BadRequest("Email already exists");
+
+        var user = new User
+        {
+            Username = dto.Username,
+            Email = dto.Email
+        };
+        user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
+
+        _context.Users.Add(user);
+        user.Role = Models.Enums.UserRole.Admin;
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            user.Id,
+            user.Username,
+            user.Email,
+            user.Role
+        });
+    }
+
+
 }
+
