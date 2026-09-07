@@ -1,36 +1,35 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
+using SerwisSystem.Api.Models.DTOs;
 using SerwisSystem.Api.Models.Enums;
+using SerwisSystem.Api.Services;
+using System.Security.Claims;
+
+
 namespace SerwisSystem.Api.Controllers;
 
-
+[Authorize]
 [ApiController]// indicates that this class is an API controller
 [Route("api/[controller]")]// route for the controller so its api/repairs
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _context;// acces to database
+    private readonly PermissionService _permissionService; // acces to the permission service
+    private readonly UserService _userService;// pretty obvious tbh
 
-    public UsersController(AppDbContext context)
+
+    public UsersController(
+        AppDbContext context,
+        PermissionService permissionService,
+        UserService userService)
     {
         _context = context;
-    }
-
-    private async Task<User?> GetCurrentUserAsync()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (!int.TryParse(userIdClaim, out int userId))
-            return null;
-
-        return await _context.Users
-            .Include(u => u.Permissions)
-            .Include(u => u.Repairs)
-            .FirstOrDefaultAsync(u => u.Id == userId);
+        _permissionService = permissionService;
+        _userService = userService;
     }
 
 
@@ -38,12 +37,13 @@ public class UsersController : ControllerBase
     [HttpGet]// GET api/users
     public async Task<IActionResult> GetUsers()
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.ReadUsers))
-            return Unauthorized();
+        if (!_permissionService.HasPermission(user, "ReadUsers"))
+            return Forbid();
+
 
         var users = await _context.Users
             .Include (u => u.Permissions)
@@ -57,18 +57,21 @@ public class UsersController : ControllerBase
     [HttpGet("{id}")]// GET api/users/**id**
     public async Task<IActionResult> GetUserById(int id)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
 
         var targetUser = await _context.Users
             .Include(u => u.Permissions)
             .Include(u => u.Repairs)
             .FirstOrDefaultAsync(u => u.Id == id);
 
+        if (targetUser == null)
+            return NotFound();
 
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.ReadUsers) && user.Id != id)
+
+        if (!_permissionService.HasPermission(user, "ReadUsers") && user.Id != id)
             return Forbid();
 
         return Ok(targetUser);
@@ -77,9 +80,9 @@ public class UsersController : ControllerBase
 
 
     [HttpPut("{id}")]// PUT api/users/**id**]
-    public async Task<IActionResult> UpdateUser(int id, User updatedUser)
+    public async Task<IActionResult> UpdateUser(int id, UpdateUserDto updatedUser)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
 
         var targetUser = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == id);
@@ -91,8 +94,9 @@ public class UsersController : ControllerBase
         if (targetUser == null)
             return NotFound();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.EditUser) && user.Id != id)// the last one checks if ure editing yourself (its false if u do)
+        if (!_permissionService.HasPermission(user, "EditUsers") && user.Id != id)
             return Forbid();
+
 
         if (targetUser.Role == UserRole.Admin && (user.Role != UserRole.Admin || (user.Role == UserRole.Admin && user.Priority > targetUser.Priority)))
 
@@ -102,8 +106,10 @@ public class UsersController : ControllerBase
         }
 
 
-        var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == updatedUser.Username);
-        var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == updatedUser.Email);
+        var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == updatedUser.Username && u.Id != id);
+        //this checks if the new username is already used, and if it is checks if its ur username (u might want to only change the email)
+
+        var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == updatedUser.Email && u.Id != id);
 
 
         if (existingUsername != null)
@@ -111,18 +117,18 @@ public class UsersController : ControllerBase
         else if (existingEmail != null)
             return BadRequest("Email already exists");
 
-        user.Username = updatedUser.Username;
-        user.Email = updatedUser.Email;
+        targetUser.Username = updatedUser.Username;
+        targetUser.Email = updatedUser.Email;
 
         await _context.SaveChangesAsync();
-        return Ok(user);
+        return Ok(targetUser);
     }
 
 
     [HttpDelete("{id}")]// DELETE api/users/**id**
     public async Task<IActionResult> DeleteUser(int id)// this might stay but will be changed too 
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
 
         var targetUser = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == id);
@@ -134,8 +140,9 @@ public class UsersController : ControllerBase
         if (targetUser == null)
             return NotFound();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.DeleteUser))
+        if (!_permissionService.HasPermission(user, "DeleteUsers") || user.Id == id)
             return Forbid();
+
 
         if(targetUser.Role == UserRole.Admin && (user.Role != UserRole.Admin || (user.Role == UserRole.Admin && user.Priority > targetUser.Priority)))
 
@@ -154,19 +161,15 @@ public class UsersController : ControllerBase
     [HttpPut("grant/{id}")]// PUT api/users/grant/**id**]
     public async Task<IActionResult> GrantUser(int id, UpdatePermissionsDto dto)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        Console.WriteLine($"JWT USER ID: {userIdClaim}");
-
-
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
         {
-            Console.WriteLine("CURRENT USER IS NULL");
             return Unauthorized();
         }
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.GrantUser || user.Id == id))// user cant change his own 
+
+        if (!_permissionService.HasPermission(user, "GrantUsers") || user.Id == id)// user cant change his own 
             return Forbid();
 
         var targetUser = await _context.Users

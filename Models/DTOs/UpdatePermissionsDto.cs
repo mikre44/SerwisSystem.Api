@@ -1,4 +1,6 @@
-﻿public class UpdatePermissionsDto
+﻿namespace SerwisSystem.Api.Models.DTOs;
+
+public class UpdatePermissionsDto
 {
     public List<string> PermissionsGranted { get; set; } = new();
 

@@ -1,7 +1,10 @@
-using Microsoft.EntityFrameworkCore;
-using SerwisSystem.Api.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SerwisSystem.Api.Authorization;
+using SerwisSystem.Api.Data;
+using SerwisSystem.Api.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,7 +40,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>// options for database co
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
-
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
 builder.Services.AddOpenApi();//
 

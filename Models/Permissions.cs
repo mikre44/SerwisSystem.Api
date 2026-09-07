@@ -12,18 +12,20 @@ public class Permissions
 
     public bool ReadRepairs { get; set; } = false;
 
-    public bool TakeRepair { get; set; } = false;
+    public bool TakeRepairs { get; set; } = false;
 
-    public bool EditRepair { get; set; } = false;
+    public bool EditRepairs { get; set; } = false;
 
-    public bool DeleteRepair { get; set; } = false;
+    public bool DeleteRepairs { get; set; } = false;
 
     public bool ReadUsers { get; set; } = false;
 
-    public bool EditUser { get; set; } = false;
+    public bool EditUsers { get; set; } = false;
 
-    public bool DeleteUser { get; set; } = false;
+    public bool DeleteUsers { get; set; } = false;
 
-    public bool GrantUser { get; set; } = false;
+    public bool GrantUsers { get; set; } = false;
+
+    public bool DischargeUsers { get; set; } = false;
 
 }

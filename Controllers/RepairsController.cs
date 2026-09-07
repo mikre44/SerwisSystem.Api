@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using SerwisSystem.Api.Models.Enums;
+using SerwisSystem.Api.Models.DTOs;
+
+using SerwisSystem.Api.Services;
+
 
 namespace SerwisSystem.Api.Controllers;
 
@@ -16,32 +20,29 @@ namespace SerwisSystem.Api.Controllers;
 public class RepairsController : ControllerBase
 {
     private readonly AppDbContext _context;// acces to database
+    private readonly PermissionService _permissionService; // acces to the permission service
+    private readonly UserService _userService;// pretty obvious tbh
 
-    public RepairsController(AppDbContext context)
+
+    public RepairsController(
+        AppDbContext context,
+        PermissionService permissionService,
+        UserService userService)
     {
         _context = context;
+        _permissionService = permissionService;
+        _userService = userService;
     }
 
-    private async Task<User?> GetCurrentUserAsync()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (!int.TryParse(userIdClaim, out int userId))
-            return null;
-
-        return await _context.Users
-            .Include(u => u.Permissions)
-            .FirstOrDefaultAsync(u => u.Id == userId);
-    }
 
     [HttpGet]// GET api/repairs 
     public async Task<IActionResult> GetRepairs()
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.ReadRepairs))
+        if (!_permissionService.HasPermission(user, "ReadRepairs"))
             return Forbid();
 
         var repairs = await _context.Repairs
@@ -54,11 +55,11 @@ public class RepairsController : ControllerBase
     [HttpGet("{id}")]// GET api/repairs/**id**
     public async Task<IActionResult> GetRepair(int id)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.ReadRepairs))
+        if (!_permissionService.HasPermission(user, "ReadRepairs"))
             return Forbid();
 
         var repair = await _context.Repairs
@@ -68,18 +69,46 @@ public class RepairsController : ControllerBase
         if (repair == null)
             return NotFound();
 
-        return Ok(repair);
+        var repairDto = new RepairDto
+        {
+            Id = repair.Id,
+            SerialNumber = repair.SerialNumber,
+            Status = repair.Status,
+            Product = repair.Product,
+            Description = repair.Description,
+            Name = repair.Name,
+            Surname = repair.Surname,
+            PhoneNumber = repair.PhoneNumber,
+            Email = repair.Email,
+            Address = repair.Address,
+            NIP = repair.NIP,
+            UserId = repair.UserId
+        };
+
+        return Ok(repairDto);
     }
 
+
     [HttpPost]// POST api/repairs
-    public async Task<IActionResult> CreateRepair(Repair repair)
+    public async Task<IActionResult> CreateRepair(CreateRepairDto dto)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.EditRepair))
+        if (!_permissionService.HasPermission(user, "EditRepairs"))
             return Forbid();
+        var repair = new Repair
+        {
+            Product = dto.Product,
+            Description = dto.Description,
+            Name = dto.Name,
+            Surname = dto.Surname,
+            Email = dto.Email,
+            PhoneNumber = dto.PhoneNumber,
+            Address = dto.Address,
+            NIP = dto.NIP
+        };
 
         _context.Repairs.Add(repair);// add the repair to the database context
         await _context.SaveChangesAsync();// save the changes to the database
@@ -95,12 +124,13 @@ public class RepairsController : ControllerBase
     [HttpPost("{id}/take")]// POST api/repairs/**id**/take
     public async Task<IActionResult> AssignUserId(int id)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.TakeRepair))
+        if (!_permissionService.HasPermission(user, "TakeRepairs"))
             return Forbid();
+
 
         var repair = await _context.Repairs.FindAsync(id);
 
@@ -121,12 +151,13 @@ public class RepairsController : ControllerBase
     [HttpPost("{id}/removeUserId")]// POST api/repairs/**id**/removeUserId
     public async Task<IActionResult> DischargeUserId(int id)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.EditRepair))
+        if (!_permissionService.HasPermission(user, "DischargeUsers"))
             return Forbid();
+
 
         var repair = await _context.Repairs.FindAsync(id);
 
@@ -144,13 +175,13 @@ public class RepairsController : ControllerBase
 
 
     [HttpPut("{id}")]// PUT api/repairs/**id**
-    public async Task<IActionResult> UpdateRepair(int id, Repair updatedRepair)
+    public async Task<IActionResult> UpdateRepair(int id, UpdateRepairDto updatedRepair)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.EditRepair))
+        if (!_permissionService.HasPermission(user, "EditRepairs"))
             return Forbid();
 
         var repair = await _context.Repairs.FindAsync(id);
@@ -158,7 +189,6 @@ public class RepairsController : ControllerBase
         if (repair == null)
             return NotFound();
 
-        repair.SerialNumber = updatedRepair.SerialNumber;// there is a faster way but its too complicated for me to understand rn
         repair.Status = updatedRepair.Status;
         repair.Product = updatedRepair.Product;
         repair.Description = updatedRepair.Description;
@@ -177,11 +207,11 @@ public class RepairsController : ControllerBase
     [HttpDelete("{id}")]// DELETE api/repairs/**id**
     public async Task<IActionResult> DeleteRepair(int id)
     {
-        var user = await GetCurrentUserAsync();
+        var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
 
-        if (user.Role != UserRole.Admin && (user.Permissions == null || !user.Permissions.DeleteRepair))
+        if (!_permissionService.HasPermission(user, "DeleteRepairs"))
             return Forbid();
 
         var repair = await _context.Repairs.FindAsync(id);

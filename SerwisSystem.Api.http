@@ -1,6 +1,6 @@
 @SerwisSystem_Api_HostAddress = http://localhost:5000
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6IkpvaG40IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJleHAiOjE3ODg1MzU4ODl9.L9pYKS1-8h6DZ0Qr3kP_r0_l0uIiVwPWiHbrfAkV5kc
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6IkpvaG40IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJleHAiOjE3ODg3ODczNTd9.GIAOXHgIMabkrbv-ZFkEDfvYBr-ugiAhrPvj6KGv3Vk
 
 ### List of all repairs
 GET {{SerwisSystem_Api_HostAddress}}/api/repairs
@@ -34,7 +34,7 @@ Authorization: Bearer {{token}}
 
 
 ### Remove userId from repair with id ...\
-POST {{SerwisSystem_Api_HostAddress}}/api/repairs/2/removeUserId
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/13/removeUserId
 Accept: application/json
 Authorization: Bearer {{token}}
 
@@ -70,6 +70,10 @@ GET {{SerwisSystem_Api_HostAddress}}/api/users
 Accept: application/json
 Authorization: Bearer {{token}}
 
+### Selectd user
+GET {{SerwisSystem_Api_HostAddress}}/api/users/13
+Accept: application/json
+Authorization: Bearer {{token}}
 
 
 ### Create user - to be changed
@@ -84,17 +88,16 @@ Authorization: Bearer {{token}}
 }
 
 ### Update user - same
-PUT {{SerwisSystem_Api_HostAddress}}/api/users/2
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/13
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-    "Username": "naj",
-    "PasswordHash": "abcanc",
-    "email": "jan@example.com"
+    "Username": "jonh67",
+    "email": "jonh7@example.com"
 }
 ### Delete user - here for now
-DELETE {{SerwisSystem_Api_HostAddress}}/api/users/4
+DELETE {{SerwisSystem_Api_HostAddress}}/api/users/7
 Accept: application/json
 Authorization: Bearer {{token}}
 
