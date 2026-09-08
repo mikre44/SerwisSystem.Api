@@ -1,6 +1,8 @@
 @SerwisSystem_Api_HostAddress = http://localhost:5000
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEyIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6IkpvaG40IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJleHAiOjE3ODg3ODczNTd9.GIAOXHgIMabkrbv-ZFkEDfvYBr-ugiAhrPvj6KGv3Vk
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEzIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6Impvbmg2NyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODg3NDQ0OH0.HXILdr5648PSj79BDL2B9OKuUB2PQB_Bn0iybf3w8qE
+
+###=====================================List of Repair requests=====================================
 
 ### List of all repairs
 GET {{SerwisSystem_Api_HostAddress}}/api/repairs
@@ -28,19 +30,19 @@ Authorization: Bearer {{token}}
 
 ### Update repair with id ... with user id ...
 
-POST {{SerwisSystem_Api_HostAddress}}/api/repairs/9/take
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/11/take
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
 ### Remove userId from repair with id ...\
-POST {{SerwisSystem_Api_HostAddress}}/api/repairs/13/removeUserId
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/11/removeUserId
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
 ### Update repair with id ...
-PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/1
+PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/11
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -63,7 +65,7 @@ Accept: application/json
 Authorization: Bearer {{token}}
 
 
-###-----------------------------------------------------------------list of user requests-------------------------------------------------------------
+###=====================================List of User requests=====================================
 
 ### List of all users
 GET {{SerwisSystem_Api_HostAddress}}/api/users
@@ -71,7 +73,7 @@ Accept: application/json
 Authorization: Bearer {{token}}
 
 ### Selectd user
-GET {{SerwisSystem_Api_HostAddress}}/api/users/13
+GET {{SerwisSystem_Api_HostAddress}}/api/users/14
 Accept: application/json
 Authorization: Bearer {{token}}
 
@@ -87,37 +89,56 @@ Authorization: Bearer {{token}}
     "email": "jan@example.com"
 }
 
-### Update user - same
+### Update user
 PUT {{SerwisSystem_Api_HostAddress}}/api/users/13
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-    "Username": "jonh67",
-    "email": "jonh7@example.com"
+    "Username": "jonh76",
+    "email": "jonh67@example.com"
 }
+
 ### Delete user - here for now
 DELETE {{SerwisSystem_Api_HostAddress}}/api/users/7
 Accept: application/json
 Authorization: Bearer {{token}}
 
-### Edit user permissions
+
+### Edit user permissions 
+# ===========================
+# All of the permissions:
+#         "ReadRepairs",
+#         "TakeRepairs",
+#         "EditRepairs",
+#         "DeleteRepairs",
+#         "ReadUsers",
+#         "EditUsers",
+#         "DeleteUsers",
+#         "GrantUsers",
+#         "DischargeUsers"
+# ===========================
 PUT {{SerwisSystem_Api_HostAddress}}/api/users/grant/13
 Content-Type: application/json
 Authorization: Bearer {{token}}
 {
     "permissionsGranted": [
-        "ReadRepairs",
-        "TakeRepair",
-        "EditRepair"
+       "GrantUsers"
     ],
     "permissionsRevoked": [
-        "DeleteRepair",
-        "GrantUser"
+        "ReadRepairs",
+        "TakeRepairs",
+        "EditRepairs",
+        "DeleteRepairs",
+        "ReadUsers",
+        "EditUsers",
+        "DeleteUsers",
+        "DischargeUsers"
     ]
 }
+###
 
-### -----------------------------------------------------------------Authorization-------------------------------------------------------------
+###=====================================List of Authorization requests=====================================
 
 ### register user
 POST http://localhost:5000/api/auth/register
@@ -134,7 +155,7 @@ POST http://localhost:5000/api/auth/login
 Content-Type: application/json
 
 {
-    "UsernameOrEmail": "John4",
+    "UsernameOrEmail": "jonh67",
     "password": "password123"
 }
 

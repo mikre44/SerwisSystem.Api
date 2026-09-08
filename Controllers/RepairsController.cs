@@ -7,8 +7,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using SerwisSystem.Api.Models.Enums;
 using SerwisSystem.Api.Models.DTOs;
-
 using SerwisSystem.Api.Services;
+using SerwisSystem.Api.Authorization;
 
 
 namespace SerwisSystem.Api.Controllers;
@@ -34,17 +34,10 @@ public class RepairsController : ControllerBase
         _userService = userService;
     }
 
-
+    [RequirePermission("ReadRepairs")]
     [HttpGet]// GET api/repairs 
     public async Task<IActionResult> GetRepairs()
     {
-        var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-
-        if (!_permissionService.HasPermission(user, "ReadRepairs"))
-            return Forbid();
-
         var repairs = await _context.Repairs
             .Include(r => r.User)
             .ToListAsync();
@@ -52,16 +45,11 @@ public class RepairsController : ControllerBase
         return Ok(repairs);
     }
 
+
+    [RequirePermission("ReadRepairs")]
     [HttpGet("{id}")]// GET api/repairs/**id**
     public async Task<IActionResult> GetRepair(int id)
     {
-        var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-
-        if (!_permissionService.HasPermission(user, "ReadRepairs"))
-            return Forbid();
-
         var repair = await _context.Repairs
             .Include(r => r.User)
             .FirstOrDefaultAsync(r => r.Id == id);
@@ -89,15 +77,10 @@ public class RepairsController : ControllerBase
     }
 
 
+    [RequirePermission("EditRepairs")]
     [HttpPost]// POST api/repairs
     public async Task<IActionResult> CreateRepair(CreateRepairDto dto)
     {
-        var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-
-        if (!_permissionService.HasPermission(user, "EditRepairs"))
-            return Forbid();
         var repair = new Repair
         {
             Product = dto.Product,
@@ -120,17 +103,14 @@ public class RepairsController : ControllerBase
         );
     }
 
-    [Authorize(Roles = "Worker,Admin")]
+
+    [RequirePermission("TakeRepairs")]
     [HttpPost("{id}/take")]// POST api/repairs/**id**/take
     public async Task<IActionResult> AssignUserId(int id)
     {
         var user = await _userService.GetCurrentUser(User);
         if (user == null)
             return Unauthorized();
-
-        if (!_permissionService.HasPermission(user, "TakeRepairs"))
-            return Forbid();
-
 
         var repair = await _context.Repairs.FindAsync(id);
 
@@ -148,17 +128,11 @@ public class RepairsController : ControllerBase
         return Ok(repair);
     }
 
+
+    [RequirePermission("DischargeUsers")]
     [HttpPost("{id}/removeUserId")]// POST api/repairs/**id**/removeUserId
-    public async Task<IActionResult> DischargeUserId(int id)
+    public async Task<IActionResult> RemoveUserId(int id)
     {
-        var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-
-        if (!_permissionService.HasPermission(user, "DischargeUsers"))
-            return Forbid();
-
-
         var repair = await _context.Repairs.FindAsync(id);
 
         if (repair == null)
@@ -173,17 +147,10 @@ public class RepairsController : ControllerBase
     }
 
 
-
+    [RequirePermission("EditRepairs")]
     [HttpPut("{id}")]// PUT api/repairs/**id**
     public async Task<IActionResult> UpdateRepair(int id, UpdateRepairDto updatedRepair)
     {
-        var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-
-        if (!_permissionService.HasPermission(user, "EditRepairs"))
-            return Forbid();
-
         var repair = await _context.Repairs.FindAsync(id);
 
         if (repair == null)
@@ -204,6 +171,8 @@ public class RepairsController : ControllerBase
         return Ok(repair);
     }
 
+
+    [RequirePermission("DeleteRepairs")]
     [HttpDelete("{id}")]// DELETE api/repairs/**id**
     public async Task<IActionResult> DeleteRepair(int id)
     {

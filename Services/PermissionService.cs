@@ -21,4 +21,20 @@ public class PermissionService
 
         return (bool)property.GetValue(user.Permissions)!;
     }
+
+    public bool CanManageTargetUser(User currentUser, User targetUser)
+    {
+        if (currentUser.Id == targetUser.Id)
+            return true;
+
+        if (targetUser.Role == UserRole.Admin)
+        {
+            if (currentUser.Role != UserRole.Admin)
+                return false;
+
+            return currentUser.Priority <= targetUser.Priority;// "lower" priority number means higher priority, number 1 will be the highest(for now at least)
+
+        }
+        return true;
+    }
 }

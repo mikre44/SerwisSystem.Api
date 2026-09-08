@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Services;
 using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,16 +35,48 @@ builder.Services.AddControllers()//options for controllers
           System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;// this is to prevent the error of circular reference when serializing the data to json (loops) without it any relation breaks
   });
 
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.Value!.Errors
+                        .Select(e => e.ErrorMessage)
+                        .ToArray()
+                );
+
+            return new BadRequestObjectResult(new
+            {
+                status = 400,
+                message = "Validation failed.",
+                errors
+            });
+        };
+    });
+
+
 
 
 builder.Services.AddDbContext<AppDbContext>(options =>// options for database context
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddAuthorization();
+
+builder.Services.AddSingleton<
+    IAuthorizationPolicyProvider,
+    PermissionPolicyProvider>();
 
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails(); 
 
 builder.Services.AddOpenApi();//
 
@@ -50,7 +84,10 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
+
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
@@ -64,6 +101,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.UseExceptionHandler();
 
 app.MapGet("/", () =>
 {

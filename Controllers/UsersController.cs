@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
@@ -32,19 +33,69 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
+    private UserResponseDto ToDto(User user, UserResponse? option)// converts 
+    {
+        var respone =  new UserResponseDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            Email = user.Email,
+            Role = user.Role,
+            Priority = user.Priority,
+            CreatedAt = user.CreatedAt
+        };
+
+        if (option == null || option == UserResponse.OnlyUser)
+            return respone;
+
+        if (option == UserResponse.Permissions || option == UserResponse.All)
+        {
+            var permissions = user.Permissions == null ? null : new PermissionsResponseDto
+            {
+                ReadRepairs = user.Permissions.ReadRepairs,
+                TakeRepairs = user.Permissions.TakeRepairs,
+                EditRepairs = user.Permissions.EditRepairs,
+                DeleteRepairs = user.Permissions.DeleteRepairs,
+
+                ReadUsers = user.Permissions.ReadUsers,
+                EditUsers = user.Permissions.EditUsers,
+                DeleteUsers = user.Permissions.DeleteUsers,
+                GrantUsers = user.Permissions.GrantUsers,
+                DischargeUsers = user.Permissions.DischargeUsers
+            };
+            respone.Permissions = permissions;
+        }
+
+        if (option == UserResponse.Repairs || option == UserResponse.All)
+        {
+            var repairs = user.Repairs
+            .Select(r => new RepairResponseDto
+            {
+                Id = r.Id,
+                SerialNumber = r.SerialNumber,
+                Status = r.Status,
+                Product = r.Product,
+                Description = r.Description,
+                Name = r.Name,
+                Surname = r.Surname,
+                PhoneNumber = r.PhoneNumber,
+                Address = r.Address,
+                Email = r.Email,
+                NIP = r.NIP,
+                CreatedAt = r.CreatedAt
+            })
+            .ToList();
+            respone.Repairs = repairs;//    to compleate < ------------------------------------------------------------------------------------ <3 fuck nah
+        }
+    }
 
 
+
+
+    [RequirePermission("ReadUsers")]
     [HttpGet]// GET api/users
     public async Task<IActionResult> GetUsers()
     {
-        var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-
-        if (!_permissionService.HasPermission(user, "ReadUsers"))
-            return Forbid();
-
-
         var users = await _context.Users
             .Include (u => u.Permissions)
             .Include (u => u.Repairs)
@@ -53,11 +104,16 @@ public class UsersController : ControllerBase
     }
 
 
-
     [HttpGet("{id}")]// GET api/users/**id**
     public async Task<IActionResult> GetUserById(int id)
     {
         var user = await _userService.GetCurrentUser(User);
+
+        if (user == null)
+            return Unauthorized();
+
+        if (!_permissionService.HasPermission(user, "ReadUsers") && user.Id != id)
+            return Forbid();
 
         var targetUser = await _context.Users
             .Include(u => u.Permissions)
@@ -66,13 +122,6 @@ public class UsersController : ControllerBase
 
         if (targetUser == null)
             return NotFound();
-
-        if (user == null)
-            return Unauthorized();
-
-
-        if (!_permissionService.HasPermission(user, "ReadUsers") && user.Id != id)
-            return Forbid();
 
         return Ok(targetUser);
     }
@@ -98,12 +147,8 @@ public class UsersController : ControllerBase
             return Forbid();
 
 
-        if (targetUser.Role == UserRole.Admin && (user.Role != UserRole.Admin || (user.Role == UserRole.Admin && user.Priority > targetUser.Priority)))
-
-        // "higher" priority number means lower priority, number 1 will be the highest(for now at least)
-        {
+        if (!_permissionService.CanManageTargetUser(user, targetUser))
             return Forbid();
-        }
 
 
         var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == updatedUser.Username && u.Id != id);
@@ -125,6 +170,7 @@ public class UsersController : ControllerBase
     }
 
 
+    [RequirePermission("DeleteUsers")]
     [HttpDelete("{id}")]// DELETE api/users/**id**
     public async Task<IActionResult> DeleteUser(int id)// this might stay but will be changed too 
     {
@@ -136,21 +182,12 @@ public class UsersController : ControllerBase
 
         if (user == null)
             return Unauthorized();
-
         if (targetUser == null)
             return NotFound();
 
-        if (!_permissionService.HasPermission(user, "DeleteUsers") || user.Id == id)
-            return Forbid();
-
-
         if(targetUser.Role == UserRole.Admin && (user.Role != UserRole.Admin || (user.Role == UserRole.Admin && user.Priority > targetUser.Priority)))
-
             // "higher" priority number means lower priority, number 1 will be the highest(for now at least)
-        {
             return Forbid();
-        }
-
 
         _context.Users.Remove(targetUser);
 
@@ -158,18 +195,20 @@ public class UsersController : ControllerBase
         return Ok(targetUser);
     }
 
+
+    [RequirePermission("GrantUsers")]
     [HttpPut("grant/{id}")]// PUT api/users/grant/**id**]
     public async Task<IActionResult> GrantUser(int id, UpdatePermissionsDto dto)
     {
 
         var user = await _userService.GetCurrentUser(User);
         if (user == null)
-        {
             return Unauthorized();
-        }
+        
+        if (user.Permissions == null && user.Role != UserRole.Admin)
+            return BadRequest("Current user has no permissions.");
 
-
-        if (!_permissionService.HasPermission(user, "GrantUsers") || user.Id == id)// user cant change his own 
+        if (user.Id == id)// user cant change his own 
             return Forbid();
 
         var targetUser = await _context.Users
@@ -185,23 +224,31 @@ public class UsersController : ControllerBase
 
         foreach (var permission in dto.PermissionsGranted)
         {
+
+            if (!_permissionService.HasPermission(user, permission))
+                return Forbid();
+
             var property = typeof(Permissions).GetProperty(permission);// converts string to actual property in Permissions.cs
 
             if (property == null || property.PropertyType != typeof(bool))// checking if its actually bool not some user id or smth
                 return BadRequest($"Invalid permission: {permission}");
 
-           property.SetValue(targetUser.Permissions, true );// the guy who thought about it is insane or genius
+            property.SetValue(targetUser.Permissions, true );// the guy who thought about it is insane or genius
         }
 
         foreach (var permission in dto.PermissionsRevoked)
         {
-            var property = typeof(Permissions).GetProperty(permission);// converts string to actual property in Permissions.cs
+            if (!_permissionService.HasPermission(user, permission))
+                return Forbid();
 
-            if (property == null || property.PropertyType != typeof(bool))// checking if its actually bool not some user id or smth
+            var property = typeof(Permissions).GetProperty(permission);
+
+            if (property == null || property.PropertyType != typeof(bool))
                 return BadRequest($"Invalid permission: {permission}");
 
-            property.SetValue(targetUser.Permissions, false);// the guy who thought about it is insane or genius
+            property.SetValue(targetUser.Permissions, false);
         }
+
 
         await _context.SaveChangesAsync();
 
