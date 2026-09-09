@@ -33,10 +33,8 @@ builder.Services.AddControllers()//options for controllers
   {
       options.JsonSerializerOptions.ReferenceHandler =
           System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;// this is to prevent the error of circular reference when serializing the data to json (loops) without it any relation breaks
-  });
-
-builder.Services.AddControllers()
-    .ConfigureApiBehaviorOptions(options =>
+  })
+  .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
         {
@@ -78,10 +76,6 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(); 
 
-builder.Services.AddOpenApi();//
-
-builder.Services.AddControllers();
-
 builder.Services.AddOpenApi();
 
 
@@ -100,8 +94,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.UseExceptionHandler();
 
 app.MapGet("/", () =>
 {

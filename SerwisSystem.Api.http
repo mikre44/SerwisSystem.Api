@@ -1,6 +1,7 @@
 @SerwisSystem_Api_HostAddress = http://localhost:5000
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEzIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6Impvbmg2NyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODg3NDQ0OH0.HXILdr5648PSj79BDL2B9OKuUB2PQB_Bn0iybf3w8qE
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjEzIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6Impvbmg2NyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IldvcmtlciIsImV4cCI6MTc4ODk2Mzc4OX0.KU0VWXgOQhGu2pCsVoXSjY68DwrctI8vEx88j74XtMA
+
 
 ###=====================================List of Repair requests=====================================
 
@@ -28,15 +29,28 @@ Authorization: Bearer {{token}}
     "nip": 1234567890
 }
 
-### Update repair with id ... with user id ...
 
-POST {{SerwisSystem_Api_HostAddress}}/api/repairs/11/take
+### assign the user to repair with id ...
+
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/9/take
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### Remove userId from repair with id ...\
-POST {{SerwisSystem_Api_HostAddress}}/api/repairs/11/removeUserId
+### complete the repair with id ...
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/9/complete
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### cancel the repair with id ...
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/9/cancel
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### return the repair with id ...
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/9/return
 Accept: application/json
 Authorization: Bearer {{token}}
 
@@ -73,7 +87,7 @@ Accept: application/json
 Authorization: Bearer {{token}}
 
 ### Selectd user
-GET {{SerwisSystem_Api_HostAddress}}/api/users/14
+GET {{SerwisSystem_Api_HostAddress}}/api/users/12
 Accept: application/json
 Authorization: Bearer {{token}}
 

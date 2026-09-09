@@ -5,9 +5,9 @@ public class RepairResponseDto
     public int Id { get; set; }
     public int SerialNumber { get; set; }
     public RepairStatus Status { get; set; }
+    public string? WorkerUsername { get; set; }
     public string Product { get; set; } = "";
     public string Description { get; set; } = "";
-
     public string Name { get; set; } = "";
     public string Surname { get; set; } = "";
     public string PhoneNumber { get; set; } = "";

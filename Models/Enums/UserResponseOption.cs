@@ -1,6 +1,6 @@
 ﻿namespace SerwisSystem.Api.Models.Enums;
 
-public enum UserResponse
+public enum UserResponseOption
 {
     OnlyUser,
     Permissions,

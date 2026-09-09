@@ -33,7 +33,7 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
-    private UserResponseDto ToDto(User user, UserResponse? option)// converts 
+    private UserResponseDto ToDto(User user, UserResponseOption option)
     {
         var respone =  new UserResponseDto
         {
@@ -45,10 +45,7 @@ public class UsersController : ControllerBase
             CreatedAt = user.CreatedAt
         };
 
-        if (option == null || option == UserResponse.OnlyUser)
-            return respone;
-
-        if (option == UserResponse.Permissions || option == UserResponse.All)
+        if (option == UserResponseOption.Permissions || option == UserResponseOption.All)
         {
             var permissions = user.Permissions == null ? null : new PermissionsResponseDto
             {
@@ -66,7 +63,7 @@ public class UsersController : ControllerBase
             respone.Permissions = permissions;
         }
 
-        if (option == UserResponse.Repairs || option == UserResponse.All)
+        if (option == UserResponseOption.Repairs || option == UserResponseOption.All)
         {
             var repairs = user.Repairs
             .Select(r => new RepairResponseDto
@@ -85,8 +82,9 @@ public class UsersController : ControllerBase
                 CreatedAt = r.CreatedAt
             })
             .ToList();
-            respone.Repairs = repairs;//    to compleate < ------------------------------------------------------------------------------------ <3 fuck nah
+            respone.Repairs = repairs;
         }
+        return respone;
     }
 
 
@@ -100,7 +98,8 @@ public class UsersController : ControllerBase
             .Include (u => u.Permissions)
             .Include (u => u.Repairs)
             .ToListAsync();
-        return Ok(users);
+        return Ok(users.Select(u =>
+        ToDto(u, UserResponseOption.Permissions)));
     }
 
 
@@ -123,7 +122,7 @@ public class UsersController : ControllerBase
         if (targetUser == null)
             return NotFound();
 
-        return Ok(targetUser);
+        return Ok(ToDto(user, UserResponseOption.All));
     }
 
 
@@ -166,7 +165,7 @@ public class UsersController : ControllerBase
         targetUser.Email = updatedUser.Email;
 
         await _context.SaveChangesAsync();
-        return Ok(targetUser);
+        return Ok(ToDto(user, UserResponseOption.OnlyUser));
     }
 
 
@@ -192,7 +191,7 @@ public class UsersController : ControllerBase
         _context.Users.Remove(targetUser);
 
         await _context.SaveChangesAsync();
-        return Ok(targetUser);
+        return NoContent();
     }
 
 
@@ -252,6 +251,6 @@ public class UsersController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(targetUser);
+        return Ok(ToDto(user, UserResponseOption.Permissions));
     }
 }
