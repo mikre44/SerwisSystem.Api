@@ -17,18 +17,37 @@ namespace SerwisSystem.Api.Controllers;
 
 public class  AuthController : ControllerBase  
 {
+    private readonly AppDbContext _context;// access to database
+    private readonly PasswordHasher<User> _passwordHasher;
+    private readonly IConfiguration _configuration;
+
+
+    public AuthController(AppDbContext context, IConfiguration configuration)
+    {
+        _context = context;
+        _passwordHasher = new PasswordHasher<User>();
+        _configuration = configuration;
+    }
+
 
     private string GenerateToken(User user)
     {
         var claims = new[]// what will be stored in tokens (id,username,role)
         {
-        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new Claim(ClaimTypes.Name, user.Username),
-        new Claim(ClaimTypes.Role, user.Role.ToString())
-    };
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, user.Role.ToString())
+        };
+
+        var jwtKey = _configuration["Jwt:Key"];
+
+        if (string.IsNullOrEmpty(jwtKey))
+        {
+            throw new InvalidOperationException("JWT key is not configured.");
+        }
 
         var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes("THIS_IS_MY_SUPER_SECRET_KEY_123456789")// this will be the key that encodes it
+            Encoding.UTF8.GetBytes(jwtKey)
         );
 
         var credentials = new SigningCredentials(//yo im using this ^ key with this algorithm ig 
@@ -46,16 +65,6 @@ public class  AuthController : ControllerBase
     }
 
 
-
-    private readonly AppDbContext _context;// access to database
-    private readonly PasswordHasher<User> _passwordHasher;
-    
-
-    public AuthController(AppDbContext context)
-    {
-        _context = context;
-        _passwordHasher = new PasswordHasher<User>();
-    }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
@@ -111,8 +120,6 @@ public class  AuthController : ControllerBase
         if (result == PasswordVerificationResult.Failed)
             return BadRequest("Invalid password");
 
-        _context.Users.Add(user);
-
         var token = GenerateToken(user);
         return Ok(new
         {
@@ -121,36 +128,46 @@ public class  AuthController : ControllerBase
         });
     }
 
-    [HttpPost("createAdmin")]//temporarily
-    public async Task<IActionResult> CreateAdmin(RegisterDto dto)
-    {
-        var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
-        var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+    // idk what i should do with it for now
 
-        if (existingUsername != null)
-            return BadRequest("Username already exists");
-        else if (existingEmail != null)
-            return BadRequest("Email already exists");
 
-        var user = new User
-        {
-            Username = dto.Username,
-            Email = dto.Email
-        };
-        user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
+    //[HttpPost("createAdmin")]//temporarily
+    //public async Task<IActionResult> CreateAdmin(RegisterDto dto)
+    //{
+    //    var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
+    //    var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-        _context.Users.Add(user);
-        user.Role = Models.Enums.UserRole.Admin;
-        await _context.SaveChangesAsync();
+    //    if (existingUsername != null)
+    //        return BadRequest("Username already exists");
+    //    else if (existingEmail != null)
+    //        return BadRequest("Email already exists");
 
-        return Ok(new
-        {
-            user.Id,
-            user.Username,
-            user.Email,
-            user.Role
-        });
-    }
+    //    var user = new User
+    //    {
+    //        Username = dto.Username,
+    //        Email = dto.Email
+    //    };
+    //    user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
+    //    user.Role = Models.Enums.UserRole.Admin;
+
+    //    var permissions = new Permissions
+    //    {
+    //        User = user
+    //    };
+
+    //    user.Permissions = permissions;
+    //    _context.Users.Add(user);
+
+    //    await _context.SaveChangesAsync();
+
+    //    return Ok(new
+    //    {
+    //        user.Id,
+    //        user.Username,
+    //        user.Email,
+    //        user.Role
+    //    });
+    //}
 
 
 }

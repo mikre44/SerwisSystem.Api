@@ -6,7 +6,7 @@ namespace SerwisSystem.Api.Models.DTOs;
 public class UpdateRepairDto
 {
 
-    public RepairStatus Status {  get; set; }
+    public RepairStatus? Status {  get; set; }
 
     [Required]
     [MaxLength(100)]
@@ -16,12 +16,10 @@ public class UpdateRepairDto
     [MaxLength(1000)]
     public string Description { get; set; } = "";
 
-    [Required]
-    [MaxLength(50)]
+
     public string Name { get; set; } = "";
 
-    [Required]
-    [MaxLength(50)]
+
     public string Surname { get; set; } = "";
 
     [Required]
@@ -36,6 +34,6 @@ public class UpdateRepairDto
     [MaxLength(200)]
     public string Address { get; set; } = "";
 
-    [Range(1000000000, 9999999999)]
-    public int NIP { get; set; } = 0;
+    [Range(0, 9999999999)]
+    public long NIP { get; set; } = 0;
 }

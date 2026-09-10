@@ -122,9 +122,20 @@ public class UsersController : ControllerBase
         if (targetUser == null)
             return NotFound();
 
-        return Ok(ToDto(user, UserResponseOption.All));
+        return Ok(ToDto(targetUser, UserResponseOption.All));
     }
 
+
+    [HttpGet("logged")]//api/logged
+    public async Task<IActionResult> GetLoggedUser()
+    {
+        var user = await _userService.GetCurrentUser(User);
+
+        if (user == null)
+            return Unauthorized();
+
+        return Ok(ToDto(user, UserResponseOption.All));
+    }
 
 
     [HttpPut("{id}")]// PUT api/users/**id**]
@@ -165,7 +176,7 @@ public class UsersController : ControllerBase
         targetUser.Email = updatedUser.Email;
 
         await _context.SaveChangesAsync();
-        return Ok(ToDto(user, UserResponseOption.OnlyUser));
+        return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
 
@@ -184,8 +195,7 @@ public class UsersController : ControllerBase
         if (targetUser == null)
             return NotFound();
 
-        if(targetUser.Role == UserRole.Admin && (user.Role != UserRole.Admin || (user.Role == UserRole.Admin && user.Priority > targetUser.Priority)))
-            // "higher" priority number means lower priority, number 1 will be the highest(for now at least)
+        if (!_permissionService.CanManageTargetUser(user, targetUser))
             return Forbid();
 
         _context.Users.Remove(targetUser);
@@ -251,6 +261,6 @@ public class UsersController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(user, UserResponseOption.Permissions));
+        return Ok(ToDto(targetUser, UserResponseOption.Permissions));
     }
 }

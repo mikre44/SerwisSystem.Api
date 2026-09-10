@@ -1,4 +1,5 @@
 ﻿using SerwisSystem.Api.Models.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace SerwisSystem.Api.Models;
 
@@ -6,7 +7,7 @@ public class Repair
 {
     public int Id { get; set; }
 
-    public int SerialNumber { get; set; } = 0;
+    public string SerialNumber { get; set; } = "";
 
     public RepairStatus Status { get; set; } = RepairStatus.Pending;
 
@@ -28,7 +29,8 @@ public class Repair
 
     public string Address { get; set; } = "";
 
-    public int NIP { get; set; } = 0;
+    
+    public long NIP { get; set; } = 0;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

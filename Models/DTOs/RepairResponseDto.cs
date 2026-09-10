@@ -3,7 +3,7 @@
 public class RepairResponseDto
 {
     public int Id { get; set; }
-    public int SerialNumber { get; set; }
+    public string SerialNumber { get; set; }
     public RepairStatus Status { get; set; }
     public string? WorkerUsername { get; set; }
     public string Product { get; set; } = "";

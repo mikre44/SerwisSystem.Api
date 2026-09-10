@@ -58,7 +58,9 @@ public class RepairsController : ControllerBase
         return repairResponse;
     }
 
-        [RequirePermission("ReadRepairs")]
+
+
+    [RequirePermission("ReadRepairs")]
     [HttpGet]// GET api/repairs 
     public async Task<IActionResult> GetRepairs()
     {
@@ -68,6 +70,8 @@ public class RepairsController : ControllerBase
 
         return Ok(repairs.Select(r => ToDto(r)));
     }
+
+
 
 
     [RequirePermission("ReadRepairs")]
@@ -83,6 +87,8 @@ public class RepairsController : ControllerBase
 
         return Ok(ToDto(repair));
     }
+
+
 
 
     [RequirePermission("EditRepairs")]
@@ -112,6 +118,58 @@ public class RepairsController : ControllerBase
     }
 
 
+
+
+    [RequirePermission("EditRepairs")]
+    [HttpPut("{id}")]// PUT api/repairs/**id**
+    public async Task<IActionResult> UpdateRepair(int id, UpdateRepairDto updatedRepair)
+    {
+        var repair = await _context.Repairs.FindAsync(id);
+
+        if (repair == null)
+            return NotFound();
+
+        repair.Status = updatedRepair.Status == null ? repair.Status : (RepairStatus)updatedRepair.Status;
+        repair.Product = updatedRepair.Product;
+        repair.Description = updatedRepair.Description;
+        repair.Name = updatedRepair.Name;
+        repair.Surname = updatedRepair.Surname;
+        repair.PhoneNumber = updatedRepair.PhoneNumber;
+        repair.Email = updatedRepair.Email;
+        repair.Address = updatedRepair.Address;
+        repair.NIP = updatedRepair.NIP;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ToDto(repair));
+
+    }
+
+
+
+
+    [RequirePermission("DeleteRepairs")]
+    [HttpDelete("{id}")]// DELETE api/repairs/**id**
+    public async Task<IActionResult> DeleteRepair(int id)
+    {
+        var user = await _userService.GetCurrentUser(User);
+        if (user == null)
+            return Unauthorized();
+
+        var repair = await _context.Repairs.FindAsync(id);
+
+        if (repair == null)
+            return NotFound();
+
+        _context.Repairs.Remove(repair);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+
+
+
     [RequirePermission("TakeRepairs")]
     [HttpPost("{id}/take")]// POST api/repairs/**id**/take
     public async Task<IActionResult> TakeRepair(int id)
@@ -129,6 +187,8 @@ public class RepairsController : ControllerBase
 
         if (repair.UserId != null)
             return BadRequest("Repair already assigned to a user");
+        if (repair.Status != RepairStatus.Pending)
+            return BadRequest("Repait must be pending");
 
         repair.UserId = user.Id;
         repair.User = user;
@@ -139,6 +199,9 @@ public class RepairsController : ControllerBase
         return Ok(ToDto(repair));
 
     }
+
+
+
 
     [HttpPost("{id}/complete")]// POST api/repairs/**id**/complete
     public async Task<IActionResult> CompleteRepair(int id)
@@ -154,8 +217,11 @@ public class RepairsController : ControllerBase
         if (repair == null)
             return NotFound();
 
+        if (repair.UserId == null)
+            return BadRequest("Repair has not been assigned to any user");
+
         if (user.Role != UserRole.Admin && user.Id != repair.UserId)
-            return Forbid();
+            return BadRequest("Repair is assigned to a different user");
 
         if (repair.Status != RepairStatus.InProgress)
             return BadRequest("Only repairs in progress can be completed");
@@ -169,10 +235,15 @@ public class RepairsController : ControllerBase
     }
 
 
+
+
     [RequirePermission("EditRepairs")]
     [HttpPost("{id}/cancel")]// POST api/repairs/**id**/cancel
     public async Task<IActionResult> CancelRepair(int id)
     {
+        var user = await _userService.GetCurrentUser(User);
+        if (user == null)
+            return Unauthorized();
 
         var repair = await _context.Repairs
         .Include(r => r.User)
@@ -187,6 +258,9 @@ public class RepairsController : ControllerBase
         if (repair.Status == RepairStatus.Cancelled)
             return BadRequest("Repair has already been cancelled.");
 
+        if (user.Role != UserRole.Admin && user.Id != repair.UserId)
+            return BadRequest("Repair is assigned to a different user");
+
         repair.Status = RepairStatus.Cancelled;
 
         await _context.SaveChangesAsync();
@@ -194,7 +268,6 @@ public class RepairsController : ControllerBase
         return Ok(ToDto(repair));
 
     }
-
 
 
 
@@ -229,51 +302,4 @@ public class RepairsController : ControllerBase
         return Ok(ToDto(repair));
 
     }
-
-
-    [RequirePermission("EditRepairs")]
-    [HttpPut("{id}")]// PUT api/repairs/**id**
-    public async Task<IActionResult> UpdateRepair(int id, UpdateRepairDto updatedRepair)
-    {
-        var repair = await _context.Repairs.FindAsync(id);
-
-        if (repair == null)
-            return NotFound();
-
-        repair.Status = updatedRepair.Status;
-        repair.Product = updatedRepair.Product;
-        repair.Description = updatedRepair.Description;
-        repair.Name = updatedRepair.Name;
-        repair.Surname = updatedRepair.Surname;
-        repair.PhoneNumber = updatedRepair.PhoneNumber;
-        repair.Email = updatedRepair.Email;
-        repair.Address = updatedRepair.Address;
-        repair.NIP = updatedRepair.NIP;
-
-        await _context.SaveChangesAsync();
-
-        return Ok(ToDto(repair));
-
-    }
-
-
-    [RequirePermission("DeleteRepairs")]
-    [HttpDelete("{id}")]// DELETE api/repairs/**id**
-    public async Task<IActionResult> DeleteRepair(int id)
-    {
-        var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-
-        var repair = await _context.Repairs.FindAsync(id);
-
-        if (repair == null)
-            return NotFound();
-
-        _context.Repairs.Remove(repair);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
 }
