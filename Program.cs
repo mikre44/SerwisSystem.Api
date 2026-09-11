@@ -18,6 +18,16 @@ if (string.IsNullOrEmpty(jwtKey))
     throw new InvalidOperationException("JWT key is not configured.");
 }
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactClient", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -97,6 +107,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("ReactClient");
 
 app.UseAuthentication();
 app.UseAuthorization();
