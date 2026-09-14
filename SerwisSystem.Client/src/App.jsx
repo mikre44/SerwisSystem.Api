@@ -1,16 +1,40 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+
 import Login from "./pages/Login";
+import Home from "./pages/Home";
+import Repairs from "./pages/Repairs";
+import Users from "./pages/Users";
+import LoggedUser from "./pages/LoggedUser";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoutes";
+import Navbar from "./components/Navbar";
 
 function App() {
+  const { loading, user } = useAuth();
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
 
-        <Route
-          path="/"
-          element={<h1>SerwisSystem</h1>}
-        />
+      {user && <Navbar />}
+
+      <Routes>
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<Login />} />
+        </Route>
+
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/repairs" element={<Repairs />} />
+          <Route path="/users" element={<Users />} />
+          <Route path="/user" element={<LoggedUser />} />
+        </Route>
+
       </Routes>
     </BrowserRouter>
   );
