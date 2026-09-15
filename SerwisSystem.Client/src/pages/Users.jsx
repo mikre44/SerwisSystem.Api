@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { getUsers } from "../api/api";
+import { Link } from "react-router-dom";
 
 function Users() {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
 
+  
   useEffect(() => {
     async function loadUsers() {
       try {
@@ -24,37 +26,22 @@ function Users() {
 
       {error && <p>Error: {error}</p>}
 
-      {repairs.map((repair) => (
-        <div key={repair.id}>
+      {users.map((user) => (
+        <div key={user.id}>
           <hr />
 
-          <p>ID: {repair.id}</p>
-          <p>Serial number: {repair.serialNumber}</p>
-          <p>Product: {repair.product}</p>
-          <p>Status: {repair.status}</p>
-          <p>Worker: {repair.workerUsername ?? "Nobody"}</p>
+          <p>ID: {user.id}</p>
 
-          {repair.status === "Pending" && (
-            <button onClick={() => handleTake(repair.id)}>
-              Take
-            </button>
-          )}
+          <p>
+            Username:{" "}
+            <Link to={`/user/${user.id}`}>
+              {user.username}
+            </Link>
+          </p>
 
-          {repair.status === "InProgress" && (
-            <>
-              <button onClick={() => handleComplete(repair.id)}>
-                Complete
-              </button>
-
-              <button onClick={() => handleCancel(repair.id)}>
-                Cancel
-              </button>
-
-              <button onClick={() => handleReturn(repair.id)}>
-                Return
-              </button>
-            </>
-          )}
+          <p>Email: {user.email}</p>
+          <p>Role: {user.role}</p>
+          <p>Priority: {user.priority}</p>
         </div>
       ))}
     </div>

@@ -2,59 +2,25 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { updateUser } from "../api/api";
 
+import UserInfo from "../components/UserInfoComponents/UserInfo";
+import UserPermissions from "../components/UserInfoComponents/UserPermissions";
+import UserRepairs from "../components/UserInfoComponents/UserRepairs";
+import EditUserForm from "../components/EditFormComponents/EditUserForm";
+
+
 function LoggedUser() {
   const { user, reloadUser } = useAuth();
-
-  const [username, setUsername] = useState(user.username);
-  const [email, setEmail] = useState(user.email);
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    try {
-      await updateUser(user.id, username, email);
-
-      await reloadUser();
-
-      alert("User updated!");
-    } catch (error) {
-      alert(error.message);
-    }
-  }
 
   return (
     <div>
       <h1>My profile</h1>
 
-      <p>ID: {user.id}</p>
-      <p>Role: {user.role}</p>
-      <p>Priority: {user.priority}</p>
+      <UserInfo user={user} />
+      <EditUserForm user={user} onUpdated={reloadUser}/>
 
-      <h2>Edit user</h2>
+      <UserPermissions permissions={user.permissions} />
+      <UserRepairs repairs={user.repairs} />
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username:</label>
-
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Email:</label>
-
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-
-        <button type="submit">
-          Save
-        </button>
-      </form>
     </div>
   );
 }

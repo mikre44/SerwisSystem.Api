@@ -6,15 +6,16 @@ function Navbar() {
 
   return (
     <nav>
-      <Link to="/">Home</Link>{" | "}
+      <Link to="/"> Home </Link>{" | "}
+            
+      {(user.role === "Admin" || user.permissions?.readUsers) && (
+        <Link to="/users"> Users </Link>
+      )}
+      {(user.role === "Admin" || user.permissions?.readRepairs) && (
+        <Link to="/repairs"> Repairs </Link>
+      )}
       
-      <Link to="/repairs">Repairs</Link>{" | "}
-      
-      <Link to="/users">Users</Link>{" | "}
-      
-      <Link to="/repairs">Repairs</Link>{" | "}
-      
-      <Link to="/user">My profile</Link>{" | "}
+      <Link to="/user"> Your profile </Link>{" | "}
 
       <button onClick={logout}>
         Logout

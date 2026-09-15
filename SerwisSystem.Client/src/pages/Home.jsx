@@ -1,22 +1,24 @@
 import { useAuth } from "../context/AuthContext";
 
+
 function Home() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
-  if (!user) {
-    return <p>Not logged in.</p>;
-  }
-
-  return (
+  return  (
     <div>
       <h1>SerwisSystem</h1>
 
       <p>Welcome, {user.username}!</p>
       <p>Role: {user.role}</p>
 
-      <button onClick={logout}>
-        Logout
-      </button>
+      {user.role !== "Admin" &&
+        !user.permissions?.readRepairs &&
+        !user.permissions?.readUsers && (
+          <p>
+            Your account does not have any permissions yet.
+            An administrator must grant them.
+          </p>
+        )}
     </div>
   );
 }

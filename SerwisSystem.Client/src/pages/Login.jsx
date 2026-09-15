@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { login } from "../api/api";
+import { Link } from "react-router-dom";
 
 function Login() {
   const { reloadUser } = useAuth();
@@ -52,6 +53,10 @@ function Login() {
           Login
         </button>
       </form>
+        <p>
+          Don't have an account?{" "}
+          <Link to="/register">Register</Link>
+        </p>
     </div>
   );
 }

@@ -90,8 +90,7 @@ public class RepairsController : ControllerBase
 
 
 
-
-    [RequirePermission("EditRepairs")]
+    [AllowAnonymous]
     [HttpPost]// POST api/repairs
     public async Task<IActionResult> CreateRepair(CreateRepairDto dto)
     {

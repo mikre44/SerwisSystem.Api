@@ -51,6 +51,27 @@ export function updateUser(id, username, email) {
   });
 }
 
+export function updatePermissions(id, permissionsGranted, permissionsreovked){
+  return apiFetch(`/users/grant/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      permissionsGranted,
+      permissionsreovked,
+    })
+  })
+}
+
+export function register(username, email, password) {
+  return apiFetch("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      username,
+      email,
+      password,
+    }),
+  });
+}
+
 export function getLoggedUser() {
   return apiFetch("/users/logged");
 }
