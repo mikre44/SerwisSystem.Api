@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getUser } from "../api/api";
+import { getUser, deleteUser} from "../api/api";
 import { useAuth } from "../context/AuthContext";
 
 import UserInfo from "../components/UserInfoComponents/UserInfo";
@@ -8,6 +8,8 @@ import UserPermissions from "../components/UserInfoComponents/UserPermissions";
 import UserRepairs from "../components/UserInfoComponents/UserRepairs";
 import EditUserForm from "../components/EditFormComponents/EditUserForm";
 import EditPermissionsForm from "../components/EditFormComponents/EditPermissionsForm";
+import DeleteUserButton from "../components/EditFormComponents/DeleteUserButton";
+
 
 function User() {
   const { id } = useParams();
@@ -61,6 +63,8 @@ function User() {
           />
         )}
         <UserRepairs repairs={user.repairs} />
+
+        <DeleteUserButton user={user} />
     </div>
   );
 }

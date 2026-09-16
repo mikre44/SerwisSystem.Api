@@ -51,12 +51,12 @@ export function updateUser(id, username, email) {
   });
 }
 
-export function updatePermissions(id, permissionsGranted, permissionsreovked){
+export function updatePermissions(id, permissionsGranted, permissionsRevoked){
   return apiFetch(`/users/grant/${id}`, {
     method: "PUT",
     body: JSON.stringify({
       permissionsGranted,
-      permissionsreovked,
+      permissionsRevoked,
     })
   })
 }
@@ -69,6 +69,19 @@ export function register(username, email, password) {
       email,
       password,
     }),
+  });
+}
+
+export function deleteUser(id) {
+  return apiFetch(`/users/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export function updateRepair(id, repair) {
+  return apiFetch(`/repairs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(repair),
   });
 }
 

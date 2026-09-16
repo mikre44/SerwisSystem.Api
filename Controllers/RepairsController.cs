@@ -53,6 +53,7 @@ public class RepairsController : ControllerBase
         };
         if (repair.User != null)
         {
+            repairResponse.WorkerId = repair.UserId;
             repairResponse.WorkerUsername = repair.User.Username;
         }
         return repairResponse;
@@ -114,6 +115,28 @@ public class RepairsController : ControllerBase
             new { id = repair.Id },
             ToDto(repair)
         );
+    }
+
+
+    [AllowAnonymous]
+    [HttpPost("check")]
+    public async Task<IActionResult> CheckRepair(CheckRepairDto dto)
+    {
+        var repair = await _context.Repairs
+            .FirstOrDefaultAsync(r =>
+                r.SerialNumber == dto.SerialNumber &&
+                r.Email == dto.Email);
+
+        if (repair == null)
+            return NotFound("Repair not found.");
+
+        return Ok(new PublicRepairResponseDto
+        {
+            SerialNumber = repair.SerialNumber,
+            Product = repair.Product,
+            Status = repair.Status.ToString(),
+            CreatedAt = repair.CreatedAt
+        });
     }
 
 

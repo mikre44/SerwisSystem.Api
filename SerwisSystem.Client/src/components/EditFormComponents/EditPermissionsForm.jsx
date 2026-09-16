@@ -48,16 +48,13 @@ function EditPermissionsForm({ user, onUpdated }) {
         permissionsRevoked.push(permission);
       }
     }
-
-    console.log("granted:", permissionsGranted);
-    console.log("revoked:", permissionsRevoked);  
+    
     try {
       await updatePermissions(
         user.id,
         permissionsGranted,
         permissionsRevoked
       );
-      console.log("updatePermissions finished");
       setError("");
       await onUpdated();
     } catch (error) {

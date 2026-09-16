@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getRepairs } from "../api/api";
+import { Link } from "react-router-dom";
 
 function Repairs() {
   const [repairs, setRepairs] = useState([]);
@@ -28,33 +29,22 @@ function Repairs() {
         <div key={repair.id}>
           <hr />
 
-          <p>ID: {repair.id}</p>
+          <p>
+            ID:{" "}
+            <Link to={`/repair/${repair.id}`}>
+              {repair.id}
+            </Link>
+          </p>
+
           <p>Serial number: {repair.serialNumber}</p>
           <p>Product: {repair.product}</p>
           <p>Status: {repair.status}</p>
           <p>Worker: {repair.workerUsername ?? "Nobody"}</p>
 
-          {repair.status === "Pending" && (
-            <button onClick={() => handleTake(repair.id)}>
-              Take
-            </button>
-          )}
-
-          {repair.status === "InProgress" && (
-            <>
-              <button onClick={() => handleComplete(repair.id)}>
-                Complete
-              </button>
-
-              <button onClick={() => handleCancel(repair.id)}>
-                Cancel
-              </button>
-
-              <button onClick={() => handleReturn(repair.id)}>
-                Return
-              </button>
-            </>
-          )}
+          <EditRepairStatus
+            repair={repair}
+            onUpdated={loadRepairs}
+          />
         </div>
       ))}
     </div>
