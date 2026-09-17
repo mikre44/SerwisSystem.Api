@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateRepair } from "../api/api";
+import { updateRepair } from "../../api/api";
 
 function EditRepairForm({ repair, onUpdated }) {
   const [status, setStatus] = useState(repair.status);

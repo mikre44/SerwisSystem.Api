@@ -13,6 +13,10 @@ public class UpdateRepairDto
     public string Product { get; set; } = "";
 
     [Required]
+    [MaxLength(100)]
+    public string SerialNumber { get; set; } = "";
+
+    [Required]
     [MaxLength(1000)]
     public string Description { get; set; } = "";
 

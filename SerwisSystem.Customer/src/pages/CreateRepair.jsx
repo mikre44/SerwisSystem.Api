@@ -9,6 +9,7 @@ function CreateRepair() {
   const [surname, setSurname] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [address, setAddress] = useState("");
   const [nip, setNip] = useState("");
 
@@ -17,6 +18,11 @@ function CreateRepair() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (email !== confirmEmail) {
+      setError("Emails do not match.");
+      return;
+    }
 
     try {
       const repair = await createRepair({
@@ -54,15 +60,16 @@ function CreateRepair() {
         <div>
           <label>Product: </label>
           <input
+            required
             value={product}
             onChange={(event) => setProduct(event.target.value)}
           />
         </div>
-        
+
         <div>
           <label>Device serial number: </label>
-
           <input
+            required
             type="text"
             value={serialNumber}
             onChange={(event) => setSerialNumber(event.target.value)}
@@ -72,6 +79,7 @@ function CreateRepair() {
         <div>
           <label>Description: </label>
           <textarea
+            required
             value={description}
             onChange={(event) => setDescription(event.target.value)}
           />
@@ -80,6 +88,7 @@ function CreateRepair() {
         <div>
           <label>Name: </label>
           <input
+            required
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -88,6 +97,7 @@ function CreateRepair() {
         <div>
           <label>Surname: </label>
           <input
+            required
             value={surname}
             onChange={(event) => setSurname(event.target.value)}
           />
@@ -96,6 +106,7 @@ function CreateRepair() {
         <div>
           <label>Phone: </label>
           <input
+            required
             value={phoneNumber}
             onChange={(event) => setPhoneNumber(event.target.value)}
           />
@@ -104,6 +115,7 @@ function CreateRepair() {
         <div>
           <label>Email: </label>
           <input
+            required
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -111,8 +123,19 @@ function CreateRepair() {
         </div>
 
         <div>
+          <label>Confirm email: </label>
+          <input
+            required
+            type="email"
+            value={confirmEmail}
+            onChange={(event) => setConfirmEmail(event.target.value)}
+          />
+        </div>
+
+        <div>
           <label>Address: </label>
           <input
+            required
             value={address}
             onChange={(event) => setAddress(event.target.value)}
           />
@@ -121,6 +144,7 @@ function CreateRepair() {
         <div>
           <label>NIP: </label>
           <input
+            required
             value={nip}
             onChange={(event) => setNip(event.target.value)}
           />

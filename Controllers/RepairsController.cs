@@ -61,17 +61,86 @@ public class RepairsController : ControllerBase
 
 
 
-    [RequirePermission("ReadRepairs")]
-    [HttpGet]// GET api/repairs 
-    public async Task<IActionResult> GetRepairs()
+    [RequirePermission("ReadRepairs")]// GET api/repairs
+    [HttpGet]
+    public async Task<IActionResult> GetRepairs(
+        string? search,
+        string sortBy = "createdAt",
+        bool descending = true,
+        int page = 1,
+        int pageSize = 10)
     {
-        var repairs = await _context.Repairs
+        page = Math.Max(page, 1);// page cannot be lower than 1
+
+        pageSize = Math.Clamp(pageSize, 1, 100);// if size is not between those numbers it returns the min or max
+
+        var query = _context.Repairs
             .Include(r => r.User)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.ToLower();
+
+            query = query.Where(r =>
+                r.SerialNumber.ToLower().Contains(search) ||
+                r.Product.ToLower().Contains(search) ||
+                r.Name.ToLower().Contains(search) ||
+                r.Surname.ToLower().Contains(search) ||
+                r.PhoneNumber.ToLower().Contains(search) ||
+                r.Email.ToLower().Contains(search) ||
+                r.Address.ToLower().Contains(search) ||
+                r.NIP.ToString().Contains(search) ||
+                (r.User != null &&
+                 r.User.Username.ToLower().Contains(search))
+            );
+        }
+
+        query = sortBy.ToLower() switch
+        {
+            "serialnumber" => descending
+                ? query.OrderByDescending(r => r.SerialNumber)
+                : query.OrderBy(r => r.SerialNumber),
+
+            "product" => descending
+                ? query.OrderByDescending(r => r.Product)
+                : query.OrderBy(r => r.Product),
+
+            "name" => descending
+                ? query.OrderByDescending(r => r.Name)
+                : query.OrderBy(r => r.Name),
+
+            "surname" => descending
+                ? query.OrderByDescending(r => r.Surname)
+                : query.OrderBy(r => r.Surname),
+
+            "status" => descending
+                ? query.OrderBy(r => r.Status)// Pending has the value of 0 so when u sort by status for the first time pending will be the first to show
+                : query.OrderByDescending(r => r.Status),
+
+            _ => descending
+                ? query.OrderByDescending(r => r.CreatedAt)
+                : query.OrderBy(r => r.CreatedAt)
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var repairs = await query
+            .Skip((page - 1) * pageSize)// returns the first repair that it should return
+            .Take(pageSize)// returns the amount of repairs it must take
             .ToListAsync();
 
-        return Ok(repairs.Select(r => ToDto(r)));
+        return Ok(new
+        {
+            Items = repairs.Select(ToDto),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(
+                totalCount / (double)pageSize
+            )
+        });
     }
-
 
 
 
@@ -98,6 +167,7 @@ public class RepairsController : ControllerBase
         var repair = new Repair
         {
             Product = dto.Product,
+            SerialNumber = dto.SerialNumber,
             Description = dto.Description,
             Name = dto.Name,
             Surname = dto.Surname,
@@ -146,12 +216,24 @@ public class RepairsController : ControllerBase
     [HttpPut("{id}")]// PUT api/repairs/**id**
     public async Task<IActionResult> UpdateRepair(int id, UpdateRepairDto updatedRepair)
     {
+        var user = await _userService.GetCurrentUser(User);
+        if (user == null)
+            return Unauthorized();
+
         var repair = await _context.Repairs.FindAsync(id);
 
         if (repair == null)
             return NotFound();
 
+        if (updatedRepair.Status == RepairStatus.Completed 
+            || updatedRepair.Status == RepairStatus.Cancelled 
+            || updatedRepair.Status == RepairStatus.InProgress)
+        {
+            repair.UserId = repair.UserId ?? user.Id;
+        }
+
         repair.Status = updatedRepair.Status == null ? repair.Status : (RepairStatus)updatedRepair.Status;
+        repair.SerialNumber = updatedRepair.SerialNumber;
         repair.Product = updatedRepair.Product;
         repair.Description = updatedRepair.Description;
         repair.Name = updatedRepair.Name;
@@ -160,6 +242,10 @@ public class RepairsController : ControllerBase
         repair.Email = updatedRepair.Email;
         repair.Address = updatedRepair.Address;
         repair.NIP = updatedRepair.NIP;
+
+        if (repair.Status == RepairStatus.Pending)
+            repair.UserId = null;
+
 
         await _context.SaveChangesAsync();
 

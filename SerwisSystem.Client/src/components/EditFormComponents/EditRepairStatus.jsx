@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 import {
   takeRepair,
   completeRepair,
   cancelRepair,
   returnRepair,
-} from "../api/api";
+} from "../../api/api";
 
 function EditRepairStatus({ repair, onUpdated }) {
   const { user } = useAuth();

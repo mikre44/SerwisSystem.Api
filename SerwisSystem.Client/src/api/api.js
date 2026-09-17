@@ -89,8 +89,22 @@ export function getLoggedUser() {
   return apiFetch("/users/logged");
 }
 
-export function getRepairs() {
-  return apiFetch("/repairs");
+export function getRepairs({
+  page = 1,
+  pageSize = 10,
+  search = "",
+  sortBy = "createdAt",
+  descending = true,
+} = {}) {
+  const params = new URLSearchParams({
+    page,
+    pageSize,
+    search,
+    sortBy,
+    descending,
+  });
+
+  return apiFetch(`/repairs?${params}`);
 }
 
 export function getRepair(id) {

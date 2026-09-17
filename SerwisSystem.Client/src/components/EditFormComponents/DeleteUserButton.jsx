@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { deleteUser } from "../api/api";
-import { useAuth } from "../context/AuthContext";
+import { deleteUser } from "../../api/api";
+import { useAuth } from "../../context/AuthContext";
 
 function DeleteUserButton({ user }) {
   const { user: loggedUser } = useAuth();

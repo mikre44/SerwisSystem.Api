@@ -7,6 +7,7 @@ using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Services;
 using System.Text;
+using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -72,7 +73,16 @@ builder.Services.AddControllers()//options for controllers
                 errors
             });
         };
-    });
+    })
+   .AddJsonOptions(options =>
+   {
+       options.JsonSerializerOptions.Converters.Add(
+           new JsonStringEnumConverter()
+       );
+
+       options.JsonSerializerOptions.ReferenceHandler =
+           ReferenceHandler.IgnoreCycles;
+   });
 
 
 
