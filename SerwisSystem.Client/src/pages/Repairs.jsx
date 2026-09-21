@@ -8,6 +8,8 @@ function Repairs() {
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
+  const [statuses, setStatuses] = useState([]);
+  const [mine, setMine] = useState(false);  
   const [sortBy, setSortBy] = useState("createdAt");
   const [descending, setDescending] = useState(true);
 
@@ -22,6 +24,8 @@ function Repairs() {
         page,
         pageSize,
         search,
+        statuses,
+        mine,
         sortBy,
         descending,
       });
@@ -34,6 +38,15 @@ function Repairs() {
       setError(error.message);
     }
   }
+
+
+  function handleSearch(event) {
+    event.preventDefault();
+
+    setPage(1);
+    loadRepairs();
+  }
+
 
   function handleSort(column) {
     if (sortBy === column) {
@@ -46,6 +59,7 @@ function Repairs() {
     setPage(1);
   }
 
+
   function getSortIndicator(column) {
     if (sortBy !== column) {
       return "";
@@ -54,31 +68,21 @@ function Repairs() {
     return descending ? " ▼" : " ▲";
   }
 
+
+  function handleStatusChange(status){
+    setStatuses(statuses => statuses.includes(status) // checks if changed status was on, yes - removes it, no - adds it
+    ? statuses.filter(item => item !== status) 
+    : [...statuses, status]);
+
+    setPage(1);
+  }
+
+
   useEffect(() => {
     loadRepairs();
-  }, [page, sortBy, descending]);
+  }, [page, sortBy, descending, statuses, mine]);
 
-  async function handleSearch(event) {
-    event.preventDefault();
 
-    try {
-      const data = await getRepairs({
-        page: 1,
-        pageSize,
-        search,
-        sortBy,
-        descending,
-      });
-
-      setRepairs(data.items);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.totalCount);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-    
-  }
 
   return (
     <div>
@@ -98,6 +102,39 @@ function Repairs() {
           Search
         </button>
       </form>
+      
+
+      <div>
+        <p>Status:</p>
+
+        {["Pending", "InProgress", "Completed", "Cancelled"].map((status) => (
+          <label key={status}>
+            <input
+              type="checkbox"
+              checked={statuses.includes(status)}
+              onChange={() => handleStatusChange(status)}
+            />
+
+            {status}
+          </label>
+        ))}
+      </div>
+
+
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={mine}
+            onChange={(event) => {
+              setMine(event.target.checked);
+              setPage(1);
+            }}
+          />
+
+          My repairs only
+        </label>
+      </div>
 
       <p>
         Showing {repairs.length} of {totalCount} repairs
@@ -118,7 +155,7 @@ function Repairs() {
             <th onClick={() => handleSort("surname")}>
               Customer{getSortIndicator("surname")}
             </th>
-            <th onClick={() => handleSort("status")}>
+            <th descending="false" onClick={() => handleSort("status")}>
               Status{getSortIndicator("status")}
             </th>
             <th>

@@ -92,14 +92,83 @@ public class UsersController : ControllerBase
 
     [RequirePermission("ReadUsers")]
     [HttpGet]// GET api/users
-    public async Task<IActionResult> GetUsers()
+    public async Task<IActionResult> GetUsers(
+    string? search,
+    string sortBy = "role",
+    bool descending = false,
+    int page = 1,
+    int pageSize = 10)
     {
-        var users = await _context.Users
-            .Include (u => u.Permissions)
-            .Include (u => u.Repairs)
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = _context.Users
+            .Include(u => u.Permissions)
+            .Include(u => u.Repairs)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.ToLower();
+
+            query = query.Where(u =>
+                u.Username.ToLower().Contains(search) ||
+                u.Email.ToLower().Contains(search) ||
+                u.Role.ToString().ToLower().Contains(search) ||
+                u.CreatedAt.ToString().Contains(search)
+            );
+        }
+
+        query = sortBy.ToLower() switch
+        {
+            "id" => descending
+                ? query.OrderByDescending(u => u.Id)
+                : query.OrderBy(u => u.Id),
+
+            "username" => descending
+                ? query.OrderByDescending(u => u.Username)
+                : query.OrderBy(u => u.Username),
+
+            "email" => descending
+                ? query.OrderByDescending(u => u.Email)
+                : query.OrderBy(u => u.Email),
+
+            "role" => descending
+                ? query.OrderByDescending(u => u.Role == UserRole.Admin)
+                    .ThenByDescending(u => u.Role == UserRole.Admin ? u.Priority : 0)
+                    .ThenByDescending(u => u.Username)
+                : query.OrderByDescending(u => u.Role == UserRole.Admin)
+                    .ThenBy(u => u.Role == UserRole.Admin ? u.Priority : 0)
+                    .ThenBy(u => u.Username),
+
+            "createdat" => descending
+                ? query.OrderByDescending(u => u.CreatedAt)
+                : query.OrderBy(u => u.CreatedAt),
+
+            _ => query
+                .OrderBy(u => u.Role == UserRole.Admin ? 0 : 1)
+                .ThenBy(u => u.Role == UserRole.Admin ? u.Priority : 0)
+                .ThenBy(u => u.Username)
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var users = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
-        return Ok(users.Select(u =>
-        ToDto(u, UserResponseOption.Permissions)));
+
+        return Ok(new
+        {
+            Items = users.Select(u =>
+                ToDto(u, UserResponseOption.Permissions)),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(
+                totalCount / (double)pageSize
+            )
+        });
     }
 
 
@@ -177,6 +246,39 @@ public class UsersController : ControllerBase
 
         await _context.SaveChangesAsync();
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
+    }
+
+
+    [HttpPut("changePassword")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+    {
+        var user = await _userService.GetCurrentUser(User);
+
+        if (user == null)
+            return Unauthorized();
+
+        var passwordHasher = new PasswordHasher<User>();
+
+        var result = passwordHasher.VerifyHashedPassword(
+            user,
+            user.PasswordHash,
+            dto.CurrentPassword
+        );
+
+        if (result == PasswordVerificationResult.Failed)
+            return BadRequest("Current password is incorrect.");
+
+        user.PasswordHash = passwordHasher.HashPassword(
+            user,
+            dto.NewPassword
+        );
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Password changed successfully."
+        });
     }
 
 

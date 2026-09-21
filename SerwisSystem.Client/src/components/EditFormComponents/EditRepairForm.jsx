@@ -4,6 +4,7 @@ import { updateRepair } from "../../api/api";
 function EditRepairForm({ repair, onUpdated }) {
   const [status, setStatus] = useState(repair.status);
   const [product, setProduct] = useState(repair.product);
+  const [serialNumber, setSerialNumber] = useState(repair.serialNumber);
   const [description, setDescription] = useState(repair.description);
   const [name, setName] = useState(repair.name);
   const [surname, setSurname] = useState(repair.surname);
@@ -21,6 +22,7 @@ function EditRepairForm({ repair, onUpdated }) {
       await updateRepair(repair.id, {
         status,
         product,
+        serialNumber,
         description,
         name,
         surname,
@@ -60,6 +62,15 @@ function EditRepairForm({ repair, onUpdated }) {
 
         <div>
           <label>Product: </label>
+
+          <input
+            value={product}
+            onChange={(event) => setProduct(event.target.value)}
+          />
+        </div>
+
+          <div>
+          <label>SerialNumber: </label>
 
           <input
             value={product}

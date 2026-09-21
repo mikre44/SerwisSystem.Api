@@ -27,6 +27,7 @@ function EditPermissionsForm({ user, onUpdated }) {
   });
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   function handleChange(permission) {
     setPermissions({
@@ -55,9 +56,13 @@ function EditPermissionsForm({ user, onUpdated }) {
         permissionsGranted,
         permissionsRevoked
       );
+
       setError("");
+      setSuccess("User updated successfully.");
+
       await onUpdated();
     } catch (error) {
+      setSuccess("");
       setError(error.message);
     }
   }
@@ -66,7 +71,10 @@ function EditPermissionsForm({ user, onUpdated }) {
     <div>
       <h2>Edit permissions</h2>
 
-      {error && <p>Error: {error}</p>}
+      <Message
+        error={error}
+        success={success}
+      />
 
       <form onSubmit={handleSubmit}>
         {permissionNames.map((permission) => (

@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
-using SerwisSystem.Api.Models.Enums;
 using SerwisSystem.Api.Models.DTOs;
+using SerwisSystem.Api.Models.Enums;
 using SerwisSystem.Api.Services;
-using SerwisSystem.Api.Authorization;
+using System.Net.NetworkInformation;
+using System.Security.Claims;
 
 
 namespace SerwisSystem.Api.Controllers;
@@ -65,6 +66,8 @@ public class RepairsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetRepairs(
         string? search,
+        [FromQuery] List<RepairStatus>? statuses,
+        bool mine = false,
         string sortBy = "createdAt",
         bool descending = true,
         int page = 1,
@@ -85,6 +88,8 @@ public class RepairsController : ControllerBase
             query = query.Where(r =>
                 r.SerialNumber.ToLower().Contains(search) ||
                 r.Product.ToLower().Contains(search) ||
+                r.Status.ToString().ToLower().Contains(search) ||
+                (r.User != null && r.User.Username.ToLower().Contains(search)) ||
                 r.Name.ToLower().Contains(search) ||
                 r.Surname.ToLower().Contains(search) ||
                 r.PhoneNumber.ToLower().Contains(search) ||
@@ -94,10 +99,30 @@ public class RepairsController : ControllerBase
                 (r.User != null &&
                  r.User.Username.ToLower().Contains(search))
             );
+
+
+        }
+
+        if (statuses != null && statuses.Count > 0)
+        {
+            query = query.Where(r => statuses.Contains(r.Status));
+        }
+
+        if (mine)
+        {
+            var currentUser = await _userService.GetCurrentUser(User);
+
+            if (currentUser == null)
+                return Unauthorized();
+
+            query = query.Where(r => r.UserId == currentUser.Id);
         }
 
         query = sortBy.ToLower() switch
         {
+            "id" => descending
+                ? query.OrderByDescending(r => r.Id)
+                : query.OrderBy(r => r.Id),
             "serialnumber" => descending
                 ? query.OrderByDescending(r => r.SerialNumber)
                 : query.OrderBy(r => r.SerialNumber),
@@ -115,12 +140,12 @@ public class RepairsController : ControllerBase
                 : query.OrderBy(r => r.Surname),
 
             "status" => descending
-                ? query.OrderBy(r => r.Status)// Pending has the value of 0 so when u sort by status for the first time pending will be the first to show
-                : query.OrderByDescending(r => r.Status),
+                ? query.OrderByDescending(r => r.Status).ThenByDescending(r => r.CreatedAt)
+                : query.OrderBy(r => r.Status).ThenBy(r => r.CreatedAt),
 
             _ => descending
                 ? query.OrderByDescending(r => r.CreatedAt)
-                : query.OrderBy(r => r.CreatedAt)
+                : query.OrderBy(r => r.CreatedAt),
         };
 
         var totalCount = await query.CountAsync();

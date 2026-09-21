@@ -9,7 +9,7 @@ import UserRepairs from "../components/UserInfoComponents/UserRepairs";
 import EditUserForm from "../components/EditFormComponents/EditUserForm";
 import EditPermissionsForm from "../components/EditFormComponents/EditPermissionsForm";
 import DeleteUserButton from "../components/EditFormComponents/DeleteUserButton";
-
+import ConfirmButton from "../components/ConfirmButton";
 
 function User() {
   const { id } = useParams();

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { updateUser } from "../../api/api";
+import Message from "../Message";
 
 function EditUserForm({ user, onUpdated }) {
   const [username, setUsername] = useState(user.username);
   const [email, setEmail] = useState(user.email);
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -14,10 +16,13 @@ function EditUserForm({ user, onUpdated }) {
       await updateUser(user.id, username, email);
 
       setError("");
+      setSuccess("User updated successfully.");
 
       await onUpdated();
     } catch (error) {
       setError(error.message);
+      setSuccess("");
+
     }
   }
 
@@ -25,7 +30,10 @@ function EditUserForm({ user, onUpdated }) {
     <div>
       <h2>Edit user</h2>
 
-      {error && <p>Error: {error}</p>}
+      <Message
+        error={error}
+        success={success}
+      />
 
       <form onSubmit={handleSubmit}>
         <div>

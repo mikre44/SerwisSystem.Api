@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import Message from "../Message";
 
 import {
   takeRepair,
@@ -11,6 +12,7 @@ import {
 function EditRepairStatus({ repair, onUpdated }) {
   const { user } = useAuth();
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const isAdmin = user.role === "Admin";
 
@@ -25,38 +27,47 @@ function EditRepairStatus({ repair, onUpdated }) {
     repair.status === "InProgress" &&
     (isAdmin || isMyRepair);
 
-  async function runAction(action) {
+  async function runAction(action, successMessage) {
     try {
       await action(repair.id);
 
       setError("");
+      setSuccess(successMessage);
+
       await onUpdated();
     } catch (error) {
+      setSuccess("");
       setError(error.message);
     }
   }
 
   return (
     <div>
-      {error && <p>Error: {error}</p>}
+      <Message
+        error={error}
+        success={success}
+      />
 
       {canTake && (
-        <button onClick={() => runAction(takeRepair)}>
+        <button onClick={() => runAction(takeRepair, "Repair taken successfully.")}>
           Take
         </button>
       )}
 
       {canWorkOnRepair && (
         <>
-          <button onClick={() => runAction(completeRepair)}>
+          <button onClick={() => runAction(takeRepair, "Repair completed successfully.")}>
             Complete
           </button>
 
-          <button onClick={() => runAction(cancelRepair)}>
+          <ConfirmButton
+            message="Are you sure you want to cancel this repair?"
+            onConfirm={() => runAction(cancelRepair, "Repair cancelled successfully.")}
+          >
             Cancel
-          </button>
+          </ConfirmButton>
 
-          <button onClick={() => runAction(returnRepair)}>
+          <button onClick={() => runAction(takeRepair, "Repair returned successfully.")}>
             Return
           </button>
         </>
