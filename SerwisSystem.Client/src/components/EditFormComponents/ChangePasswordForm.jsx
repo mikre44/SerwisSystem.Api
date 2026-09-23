@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { changePassword } from "../api/api";
-import Message from "./Message";
+import { changePassword } from "../../api/api";
+import Message from "../Message";
 
 function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");

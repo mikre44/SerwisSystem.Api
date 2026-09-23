@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SerwisSystem.Api.Authorization;
@@ -8,61 +7,93 @@ using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
 using SerwisSystem.Api.Models.Enums;
 using SerwisSystem.Api.Services;
-using System.Net.NetworkInformation;
-using System.Security.Claims;
-
 
 namespace SerwisSystem.Api.Controllers;
 
 [Authorize]
-[ApiController]// indicates that this class is an API controller
-[Route("api/[controller]")]// route for the controller so its api/repairs
-
+[ApiController]
+[Route("api/[controller]")]
 public class RepairsController : ControllerBase
 {
-    private readonly AppDbContext _context;// acces to database
-    private readonly PermissionService _permissionService; // acces to the permission service
-    private readonly UserService _userService;// pretty obvious tbh
+    private readonly AppDbContext _context;
+    private readonly PermissionService _permissionService;
+    private readonly UserService _userService;
 
+    private readonly EmailService _emailService;
 
     public RepairsController(
-        AppDbContext context,
-        PermissionService permissionService,
-        UserService userService)
+    AppDbContext context,
+    PermissionService permissionService,
+    UserService userService,
+    EmailService emailService)
     {
         _context = context;
         _permissionService = permissionService;
         _userService = userService;
+        _emailService = emailService;
     }
 
+
+    // Converts Repair entity to RepairResponseDto
     private RepairResponseDto ToDto(Repair repair)
     {
         var repairResponse = new RepairResponseDto
         {
             Id = repair.Id,
-            SerialNumber = repair.SerialNumber,
+
             Status = repair.Status,
+
+            ProductCategory = repair.ProductCategory,
             Product = repair.Product,
+            SerialNumber = repair.SerialNumber,
             Description = repair.Description,
-            Name = repair.Name,
-            Surname = repair.Surname,
-            PhoneNumber = repair.PhoneNumber,
-            Address = repair.Address,
-            Email = repair.Email,
-            NIP = repair.NIP,
+
+            ReporterName = repair.ReporterName,
+            ReporterSurname = repair.ReporterSurname,
+            ReporterPhone = repair.ReporterPhone,
+            ReporterEmail = repair.ReporterEmail,
+
+            CompanyName = repair.CompanyName,
+            CompanyAddress = repair.CompanyAddress,
+            CompanyPostalCode = repair.CompanyPostalCode,
+            CompanyCity = repair.CompanyCity,
+            CompanyNip = repair.CompanyNip,
+            CompanyPhone = repair.CompanyPhone,
+
+            HasWarranty = repair.HasWarranty,
+            PurchaseDate = repair.PurchaseDate,
+            PurchaseInvoiceNumber = repair.PurchaseInvoiceNumber,
+
+            HasContract = repair.HasContract,
+            ContractNumber = repair.ContractNumber,
+
+            ServiceDataConsent = repair.ServiceDataConsent,
+            MarketingConsent = repair.MarketingConsent,
+
+            WorkerId = repair.UserId,
+
             CreatedAt = repair.CreatedAt
         };
+
         if (repair.User != null)
         {
-            repairResponse.WorkerId = repair.UserId;
             repairResponse.WorkerUsername = repair.User.Username;
         }
+
         return repairResponse;
     }
 
+    private bool IsValidPhone(string phone)
+    {
+        return System.Text.RegularExpressions.Regex.IsMatch(
+            phone,
+            @"^(\+)?\d{7,15}$"
+        );
+    }
 
 
-    [RequirePermission("ReadRepairs")]// GET api/repairs
+    // GET api/repairs
+    [RequirePermission("ReadRepairs")]
     [HttpGet]
     public async Task<IActionResult> GetRepairs(
         string? search,
@@ -73,14 +104,18 @@ public class RepairsController : ControllerBase
         int page = 1,
         int pageSize = 10)
     {
-        page = Math.Max(page, 1);// page cannot be lower than 1
+        // Page cannot be lower than 1
+        page = Math.Max(page, 1);
 
-        pageSize = Math.Clamp(pageSize, 1, 100);// if size is not between those numbers it returns the min or max
+        // Page size must stay between 1 and 100
+        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var query = _context.Repairs
             .Include(r => r.User)
             .AsQueryable();
 
+
+        // Search
         if (!string.IsNullOrWhiteSpace(search))
         {
             search = search.ToLower();
@@ -88,41 +123,60 @@ public class RepairsController : ControllerBase
             query = query.Where(r =>
                 r.SerialNumber.ToLower().Contains(search) ||
                 r.Product.ToLower().Contains(search) ||
-                r.Status.ToString().ToLower().Contains(search) ||
-                (r.User != null && r.User.Username.ToLower().Contains(search)) ||
-                r.Name.ToLower().Contains(search) ||
-                r.Surname.ToLower().Contains(search) ||
-                r.PhoneNumber.ToLower().Contains(search) ||
-                r.Email.ToLower().Contains(search) ||
-                r.Address.ToLower().Contains(search) ||
-                r.NIP.ToString().Contains(search) ||
+
+                r.ReporterName.ToLower().Contains(search) ||
+                r.ReporterSurname.ToLower().Contains(search) ||
+                r.ReporterPhone.ToLower().Contains(search) ||
+                r.ReporterEmail.ToLower().Contains(search) ||
+
+                r.CompanyName.ToLower().Contains(search) ||
+                r.CompanyAddress.ToLower().Contains(search) ||
+                r.CompanyPostalCode.ToLower().Contains(search) ||
+                r.CompanyCity.ToLower().Contains(search) ||
+                r.CompanyNip.ToLower().Contains(search) ||
+                r.CompanyPhone.ToLower().Contains(search) ||
+
+                (r.PurchaseInvoiceNumber != null &&
+                 r.PurchaseInvoiceNumber.ToLower().Contains(search)) ||
+
+                (r.ContractNumber != null &&
+                 r.ContractNumber.ToLower().Contains(search)) ||
+
                 (r.User != null &&
                  r.User.Username.ToLower().Contains(search))
             );
-
-
         }
 
+
+        // Filter by one or multiple statuses
         if (statuses != null && statuses.Count > 0)
         {
-            query = query.Where(r => statuses.Contains(r.Status));
+            query = query.Where(r =>
+                statuses.Contains(r.Status));
         }
 
+
+        // Show only repairs assigned to logged user
         if (mine)
         {
-            var currentUser = await _userService.GetCurrentUser(User);
+            var currentUser =
+                await _userService.GetCurrentUser(User);
 
             if (currentUser == null)
                 return Unauthorized();
 
-            query = query.Where(r => r.UserId == currentUser.Id);
+            query = query.Where(r =>
+                r.UserId == currentUser.Id);
         }
 
+
+        // Sorting
         query = sortBy.ToLower() switch
         {
             "id" => descending
                 ? query.OrderByDescending(r => r.Id)
                 : query.OrderBy(r => r.Id),
+
             "serialnumber" => descending
                 ? query.OrderByDescending(r => r.SerialNumber)
                 : query.OrderBy(r => r.SerialNumber),
@@ -131,36 +185,49 @@ public class RepairsController : ControllerBase
                 ? query.OrderByDescending(r => r.Product)
                 : query.OrderBy(r => r.Product),
 
-            "name" => descending
-                ? query.OrderByDescending(r => r.Name)
-                : query.OrderBy(r => r.Name),
-
-            "surname" => descending
-                ? query.OrderByDescending(r => r.Surname)
-                : query.OrderBy(r => r.Surname),
+            "reportersurname" => descending
+                ? query.OrderByDescending(r => r.ReporterSurname)
+                    .ThenBy(r => r.ReporterName)
+                : query.OrderBy(r => r.ReporterSurname)
+                    .ThenByDescending(r => r.ReporterName),
 
             "status" => descending
-                ? query.OrderByDescending(r => r.Status).ThenByDescending(r => r.CreatedAt)
-                : query.OrderBy(r => r.Status).ThenBy(r => r.CreatedAt),
-
-            _ => descending
+                ? query
+                    .OrderByDescending(r => r.Status)
+                    .ThenByDescending(r => r.CreatedAt)
+                : query
+                    .OrderBy(r => r.Status)
+                    .ThenBy(r => r.CreatedAt),
+            
+            "address" => descending
+                ? query.OrderByDescending(r => r.CompanyAddress)
+                : query.OrderBy(r => r.CompanyAddress),
+            "createdat" => descending
                 ? query.OrderByDescending(r => r.CreatedAt)
                 : query.OrderBy(r => r.CreatedAt),
+
+            _ => query.OrderByDescending(r => r.CreatedAt)
         };
+
 
         var totalCount = await query.CountAsync();
 
+
         var repairs = await query
-            .Skip((page - 1) * pageSize)// returns the first repair that it should return
-            .Take(pageSize)// returns the amount of repairs it must take
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
+
 
         return Ok(new
         {
             Items = repairs.Select(ToDto),
+
             Page = page,
             PageSize = pageSize,
+
             TotalCount = totalCount,
+
             TotalPages = (int)Math.Ceiling(
                 totalCount / (double)pageSize
             )
@@ -168,9 +235,9 @@ public class RepairsController : ControllerBase
     }
 
 
-
+    // GET api/repairs/{id}
     [RequirePermission("ReadRepairs")]
-    [HttpGet("{id}")]// GET api/repairs/**id**
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetRepair(int id)
     {
         var repair = await _context.Repairs
@@ -184,26 +251,128 @@ public class RepairsController : ControllerBase
     }
 
 
-
+    // POST api/repairs
+    // Public endpoint used by customer application
     [AllowAnonymous]
-    [HttpPost]// POST api/repairs
-    public async Task<IActionResult> CreateRepair(CreateRepairDto dto)
+    [HttpPost]
+    public async Task<IActionResult> CreateRepair(
+        CreateRepairDto dto)
     {
+        // Warranty validation
+        if (dto.HasWarranty)
+        {
+            if (dto.PurchaseDate == null)
+            {
+                return BadRequest(
+                    "Purchase date is required for warranty repairs."
+                );
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                dto.PurchaseInvoiceNumber))
+            {
+                return BadRequest(
+                    "Purchase invoice number is required for warranty repairs."
+                );
+            }
+        }
+
+
+        if (!IsValidPhone(dto.ReporterPhone))// Phone number validation
+        {
+            return BadRequest(
+                "Reporter phone number must contain 9 digits, optionally with +48."
+            );
+        }
+
+        if (!IsValidPhone(dto.CompanyPhone))
+        {
+            return BadRequest(
+                "Company phone number must contain 9 digits, optionally with +48."
+            );
+        }
+
+
+        // Contract validation
+        if (dto.HasContract &&
+            string.IsNullOrWhiteSpace(dto.ContractNumber))
+        {
+            return BadRequest(
+                "Contract number is required when contract is selected."
+            );
+        }
+
+
+        // Serial number validation
+        if (
+            dto.ProductCategory == ProductCategory.Monitor ||
+            dto.ProductCategory == ProductCategory.InteractiveBoard
+        )
+        {
+            if (string.IsNullOrWhiteSpace(dto.SerialNumber))
+            {
+                return BadRequest(
+                    "Serial number is required for monitors and interactive boards."
+                );
+            }
+        }
+
+
+        // Required service consent
+        if (!dto.ServiceDataConsent)
+        {
+            return BadRequest(
+                "Consent to process personal data for service purposes is required."
+            );
+        }
+
+
         var repair = new Repair
         {
+            ProductCategory = dto.ProductCategory,
             Product = dto.Product,
-            SerialNumber = dto.SerialNumber,
+            SerialNumber = dto.SerialNumber ?? "",
             Description = dto.Description,
-            Name = dto.Name,
-            Surname = dto.Surname,
-            Email = dto.Email,
-            PhoneNumber = dto.PhoneNumber,
-            Address = dto.Address,
-            NIP = dto.NIP
+
+            ReporterName = dto.ReporterName,
+            ReporterSurname = dto.ReporterSurname,
+            ReporterPhone = dto.ReporterPhone,
+            ReporterEmail = dto.ReporterEmail,
+
+            CompanyName = dto.CompanyName,
+            CompanyAddress = dto.CompanyAddress,
+            CompanyPostalCode = dto.CompanyPostalCode,
+            CompanyCity = dto.CompanyCity,
+            CompanyNip = dto.CompanyNip,
+            CompanyPhone = dto.CompanyPhone,
+
+            HasWarranty = dto.HasWarranty,
+            PurchaseDate = dto.PurchaseDate,
+            PurchaseInvoiceNumber =
+                dto.PurchaseInvoiceNumber,
+
+            HasContract = dto.HasContract,
+            ContractNumber = dto.ContractNumber,
+
+            ServiceDataConsent =
+                dto.ServiceDataConsent,
+
+            MarketingConsent =
+                dto.MarketingConsent
         };
 
-        _context.Repairs.Add(repair);// add the repair to the database context
-        await _context.SaveChangesAsync();// save the changes to the database
+
+        _context.Repairs.Add(repair);
+
+        await _context.SaveChangesAsync();
+
+        await _emailService.SendRepairCreatedEmail(//email confirmation
+            repair.ReporterEmail,
+            $"{repair.ReporterName} {repair.ReporterSurname}",
+            repair.Id,
+            repair.Product,
+            repair.SerialNumber
+        );
 
         return CreatedAtAction(
             nameof(GetRepair),
@@ -213,17 +382,21 @@ public class RepairsController : ControllerBase
     }
 
 
+    // POST api/repairs/check
+    // Public repair status check
     [AllowAnonymous]
     [HttpPost("check")]
-    public async Task<IActionResult> CheckRepair(CheckRepairDto dto)
+    public async Task<IActionResult> CheckRepair(
+        CheckRepairDto dto)
     {
         var repair = await _context.Repairs
             .FirstOrDefaultAsync(r =>
                 r.SerialNumber == dto.SerialNumber &&
-                r.Email == dto.Email);
+                r.ReporterEmail == dto.Email);
 
         if (repair == null)
             return NotFound("Repair not found.");
+
 
         return Ok(new PublicRepairResponseDto
         {
@@ -235,204 +408,431 @@ public class RepairsController : ControllerBase
     }
 
 
-
-
+    // PUT api/repairs/{id}
     [RequirePermission("EditRepairs")]
-    [HttpPut("{id}")]// PUT api/repairs/**id**
-    public async Task<IActionResult> UpdateRepair(int id, UpdateRepairDto updatedRepair)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateRepair(
+        int id,
+        UpdateRepairDto updatedRepair)
     {
-        var user = await _userService.GetCurrentUser(User);
+        var user =
+            await _userService.GetCurrentUser(User);
+
         if (user == null)
             return Unauthorized();
 
-        var repair = await _context.Repairs.FindAsync(id);
+
+        var repair = await _context.Repairs
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
         if (repair == null)
             return NotFound();
 
-        if (updatedRepair.Status == RepairStatus.Completed 
-            || updatedRepair.Status == RepairStatus.Cancelled 
-            || updatedRepair.Status == RepairStatus.InProgress)
+
+        // Warranty validation
+        if (updatedRepair.HasWarranty)
         {
-            repair.UserId = repair.UserId ?? user.Id;
+            if (updatedRepair.PurchaseDate == null)
+            {
+                return BadRequest(
+                    "Purchase date is required for warranty repairs."
+                );
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                updatedRepair.PurchaseInvoiceNumber))
+            {
+                return BadRequest(
+                    "Purchase invoice number is required for warranty repairs."
+                );
+            }
         }
 
-        repair.Status = updatedRepair.Status == null ? repair.Status : (RepairStatus)updatedRepair.Status;
-        repair.SerialNumber = updatedRepair.SerialNumber;
-        repair.Product = updatedRepair.Product;
-        repair.Description = updatedRepair.Description;
-        repair.Name = updatedRepair.Name;
-        repair.Surname = updatedRepair.Surname;
-        repair.PhoneNumber = updatedRepair.PhoneNumber;
-        repair.Email = updatedRepair.Email;
-        repair.Address = updatedRepair.Address;
-        repair.NIP = updatedRepair.NIP;
 
+        // Contract validation
+        if (updatedRepair.HasContract &&
+            string.IsNullOrWhiteSpace(
+                updatedRepair.ContractNumber))
+        {
+            return BadRequest(
+                "Contract number is required when contract is selected."
+            );
+        }
+
+
+        // Serial number validation
+        if (
+            updatedRepair.ProductCategory ==
+                ProductCategory.Monitor ||
+            updatedRepair.ProductCategory ==
+                ProductCategory.InteractiveBoard
+        )
+        {
+            if (string.IsNullOrWhiteSpace(
+                updatedRepair.SerialNumber))
+            {
+                return BadRequest(
+                    "Serial number is required for monitors and interactive boards."
+                );
+            }
+        }
+
+
+        // Required consent
+        if (!updatedRepair.ServiceDataConsent)
+        {
+            return BadRequest(
+                "Consent to process personal data for service purposes is required."
+            );
+        }
+
+
+        // If repair is manually moved into an active/final status
+        // and has no worker, assign the editing user.
+        if (
+            updatedRepair.Status == RepairStatus.Completed ||
+            updatedRepair.Status == RepairStatus.Cancelled ||
+            updatedRepair.Status == RepairStatus.InProgress
+        )
+        {
+            repair.UserId ??= user.Id;
+        }
+
+
+        if (updatedRepair.Status != null)
+        {
+            repair.Status =
+                (RepairStatus)updatedRepair.Status;
+        }
+
+
+        repair.ProductCategory =
+            updatedRepair.ProductCategory;
+
+        repair.Product =
+            updatedRepair.Product;
+
+        repair.SerialNumber =
+            updatedRepair.SerialNumber ?? "";
+
+        repair.Description =
+            updatedRepair.Description;
+
+
+        repair.ReporterName =
+            updatedRepair.ReporterName;
+
+        repair.ReporterSurname =
+            updatedRepair.ReporterSurname;
+
+        repair.ReporterPhone =
+            updatedRepair.ReporterPhone;
+
+        repair.ReporterEmail =
+            updatedRepair.ReporterEmail;
+
+
+        repair.CompanyName =
+            updatedRepair.CompanyName;
+
+        repair.CompanyAddress =
+            updatedRepair.CompanyAddress;
+
+        repair.CompanyPostalCode =
+            updatedRepair.CompanyPostalCode;
+
+        repair.CompanyCity =
+            updatedRepair.CompanyCity;
+
+        repair.CompanyNip =
+            updatedRepair.CompanyNip;
+
+        repair.CompanyPhone =
+            updatedRepair.CompanyPhone;
+
+
+        repair.HasWarranty =
+            updatedRepair.HasWarranty;
+
+        repair.PurchaseDate =
+            updatedRepair.PurchaseDate;
+
+        repair.PurchaseInvoiceNumber =
+            updatedRepair.PurchaseInvoiceNumber;
+
+
+        repair.HasContract =
+            updatedRepair.HasContract;
+
+        repair.ContractNumber =
+            updatedRepair.ContractNumber;
+
+
+        repair.ServiceDataConsent =
+            updatedRepair.ServiceDataConsent;
+
+        repair.MarketingConsent =
+            updatedRepair.MarketingConsent;
+
+
+        // Pending repairs should not have an assigned worker.
         if (repair.Status == RepairStatus.Pending)
+        {
             repair.UserId = null;
+            repair.User = null;
+        }
 
 
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(repair));
 
+        return Ok(ToDto(repair));
     }
 
 
-
-
+    // DELETE api/repairs/{id}
     [RequirePermission("DeleteRepairs")]
-    [HttpDelete("{id}")]// DELETE api/repairs/**id**
+    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteRepair(int id)
     {
-        var user = await _userService.GetCurrentUser(User);
+        var user =
+            await _userService.GetCurrentUser(User);
+
         if (user == null)
             return Unauthorized();
 
-        var repair = await _context.Repairs.FindAsync(id);
+
+        var repair =
+            await _context.Repairs.FindAsync(id);
 
         if (repair == null)
             return NotFound();
 
+
         _context.Repairs.Remove(repair);
+
         await _context.SaveChangesAsync();
+
 
         return NoContent();
     }
 
 
-
-
+    // POST api/repairs/{id}/take
     [RequirePermission("TakeRepairs")]
-    [HttpPost("{id}/take")]// POST api/repairs/**id**/take
+    [HttpPost("{id}/take")]
     public async Task<IActionResult> TakeRepair(int id)
     {
-        var user = await _userService.GetCurrentUser(User);
+        var user =
+            await _userService.GetCurrentUser(User);
+
         if (user == null)
             return Unauthorized();
 
+
         var repair = await _context.Repairs
-        .Include(r => r.User)
-        .FirstOrDefaultAsync(r => r.Id == id);
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
         if (repair == null)
             return NotFound();
 
+
         if (repair.UserId != null)
-            return BadRequest("Repair already assigned to a user");
+        {
+            return BadRequest(
+                "Repair already assigned to a user."
+            );
+        }
+
+
         if (repair.Status != RepairStatus.Pending)
-            return BadRequest("Repait must be pending");
+        {
+            return BadRequest(
+                "Repair must be pending."
+            );
+        }
+
 
         repair.UserId = user.Id;
         repair.User = user;
         repair.Status = RepairStatus.InProgress;
 
+
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(repair));
 
+        return Ok(ToDto(repair));
     }
 
 
-
-
-    [HttpPost("{id}/complete")]// POST api/repairs/**id**/complete
+    // POST api/repairs/{id}/complete
+    [HttpPost("{id}/complete")]
     public async Task<IActionResult> CompleteRepair(int id)
     {
-        var user = await _userService.GetCurrentUser(User);
+        var user =
+            await _userService.GetCurrentUser(User);
+
         if (user == null)
             return Unauthorized();
 
+
         var repair = await _context.Repairs
-        .Include(r => r.User)
-        .FirstOrDefaultAsync(r => r.Id == id);
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
         if (repair == null)
             return NotFound();
 
-        if (repair.UserId == null)
-            return BadRequest("Repair has not been assigned to any user");
 
-        if (user.Role != UserRole.Admin && user.Id != repair.UserId)
-            return BadRequest("Repair is assigned to a different user");
+        if (repair.UserId == null)
+        {
+            return BadRequest(
+                "Repair has not been assigned to any user."
+            );
+        }
+
+
+        if (
+            user.Role != UserRole.Admin &&
+            user.Id != repair.UserId
+        )
+        {
+            return BadRequest(
+                "Repair is assigned to a different user."
+            );
+        }
+
 
         if (repair.Status != RepairStatus.InProgress)
-            return BadRequest("Only repairs in progress can be completed");
+        {
+            return BadRequest(
+                "Only repairs in progress can be completed."
+            );
+        }
+
 
         repair.Status = RepairStatus.Completed;
 
+
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(repair));
 
+        return Ok(ToDto(repair));
     }
 
 
-
-
+    // POST api/repairs/{id}/cancel
     [RequirePermission("EditRepairs")]
-    [HttpPost("{id}/cancel")]// POST api/repairs/**id**/cancel
+    [HttpPost("{id}/cancel")]
     public async Task<IActionResult> CancelRepair(int id)
     {
-        var user = await _userService.GetCurrentUser(User);
+        var user =
+            await _userService.GetCurrentUser(User);
+
         if (user == null)
             return Unauthorized();
 
+
         var repair = await _context.Repairs
-        .Include(r => r.User)
-        .FirstOrDefaultAsync(r => r.Id == id);
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
         if (repair == null)
             return NotFound();
 
+
         if (repair.Status == RepairStatus.Completed)
-            return BadRequest("Repair is already Completed");
+        {
+            return BadRequest(
+                "Repair is already completed."
+            );
+        }
+
 
         if (repair.Status == RepairStatus.Cancelled)
-            return BadRequest("Repair has already been cancelled.");
+        {
+            return BadRequest(
+                "Repair has already been cancelled."
+            );
+        }
 
-        if (user.Role != UserRole.Admin && user.Id != repair.UserId)
-            return BadRequest("Repair is assigned to a different user");
+
+        if (
+            user.Role != UserRole.Admin &&
+            user.Id != repair.UserId
+        )
+        {
+            return BadRequest(
+                "Repair is assigned to a different user."
+            );
+        }
+
 
         repair.Status = RepairStatus.Cancelled;
 
+
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(repair));
 
+        return Ok(ToDto(repair));
     }
 
 
-
-
-    [HttpPost("{id}/return")]// POST api/repairs/**id**/return
-    public async Task<IActionResult> ReturnRepair(int id) 
+    // POST api/repairs/{id}/return
+    [HttpPost("{id}/return")]
+    public async Task<IActionResult> ReturnRepair(int id)
     {
-        var repair = await _context.Repairs.FindAsync(id);
+        var repair =
+            await _context.Repairs.FindAsync(id);
 
         if (repair == null)
             return NotFound();
 
-        var user = await _userService.GetCurrentUser(User);
+
+        var user =
+            await _userService.GetCurrentUser(User);
 
         if (user == null)
             return Unauthorized();
 
-        if (!_permissionService.HasPermission(user, "DischargeUsers") && user.Id != repair.UserId)
+
+        if (
+            !_permissionService.HasPermission(
+                user,
+                "DischargeUsers"
+            ) &&
+            user.Id != repair.UserId
+        )
+        {
             return Forbid();
+        }
+
 
         if (repair.Status == RepairStatus.Completed)
-            return BadRequest("Repair has already been completed");
+        {
+            return BadRequest(
+                "Repair has already been completed."
+            );
+        }
+
 
         if (repair.Status == RepairStatus.Cancelled)
-            return BadRequest("Repair has already been cancelled");
+        {
+            return BadRequest(
+                "Repair has already been cancelled."
+            );
+        }
+
 
         repair.UserId = null;
         repair.Status = RepairStatus.Pending;
 
+
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(repair));
 
+        return Ok(ToDto(repair));
     }
 }

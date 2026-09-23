@@ -5,39 +5,102 @@ namespace SerwisSystem.Api.Models.DTOs;
 
 public class UpdateRepairDto
 {
+    public RepairStatus? Status { get; set; }
 
-    public RepairStatus? Status {  get; set; }
+    [Required]
+    public ProductCategory ProductCategory { get; set; }
 
     [Required]
     [MaxLength(100)]
     public string Product { get; set; } = "";
 
-    [Required]
     [MaxLength(100)]
-    public string SerialNumber { get; set; } = "";
+    public string? SerialNumber { get; set; }
 
     [Required]
     [MaxLength(1000)]
     public string Description { get; set; } = "";
 
 
-    public string Name { get; set; } = "";
-
-
-    public string Surname { get; set; } = "";
+    // Reporting person
 
     [Required]
-    [Phone]
-    public string PhoneNumber { get; set; } = "";
+    [MaxLength(100)]
+    public string ReporterName { get; set; } = "";
+
+    [Required]
+    [MaxLength(100)]
+    public string ReporterSurname { get; set; } = "";
+
+    [Required]
+    [RegularExpression(
+            @"^(\+)?\d{7,15}$",
+            ErrorMessage = "Invalid phone number."
+        )]
+    public string ReporterPhone { get; set; } = "";
 
     [Required]
     [EmailAddress]
-    public string Email { get; set; } = "";
+    public string ReporterEmail { get; set; } = "";
+
+
+    // Company
 
     [Required]
     [MaxLength(200)]
-    public string Address { get; set; } = "";
+    public string CompanyName { get; set; } = "";
 
-    [Range(0, 9999999999)]
-    public long NIP { get; set; } = 0;
+    [Required]
+    [MaxLength(200)]
+    public string CompanyAddress { get; set; } = "";
+
+    [Required]
+    [RegularExpression(
+        @"^\d{2}-\d{3}$",
+        ErrorMessage = "Postal code must have format XX-XXX."
+    )]
+    public string CompanyPostalCode { get; set; } = "";
+
+    [Required]
+    [MaxLength(100)]
+    public string CompanyCity { get; set; } = "";
+
+    [Required]
+    [RegularExpression(
+        @"^\d{10}$",
+        ErrorMessage = "NIP must contain exactly 10 digits."
+    )]
+    public string CompanyNip { get; set; } = "";
+
+    [Required]
+    [RegularExpression(
+            @"^(\+)?\d{7,15}$",
+            ErrorMessage = "Invalid phone number."
+        )]
+    public string CompanyPhone { get; set; } = "";
+
+
+    // Warranty
+
+    public bool HasWarranty { get; set; }
+
+    public DateOnly? PurchaseDate { get; set; }
+
+    [MaxLength(100)]
+    public string? PurchaseInvoiceNumber { get; set; }
+
+
+    // Contract
+
+    public bool HasContract { get; set; }
+
+    [MaxLength(100)]
+    public string? ContractNumber { get; set; }
+
+
+    // Consents
+
+    public bool ServiceDataConsent { get; set; }
+
+    public bool MarketingConsent { get; set; }
 }

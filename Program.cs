@@ -12,7 +12,7 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var jwtKey = builder.Configuration["Jwt:Key"];//secret my ass 
+var jwtKey = builder.Configuration["Jwt:Key"];
 
 if (string.IsNullOrEmpty(jwtKey))
 {
@@ -85,8 +85,6 @@ builder.Services.AddControllers()//options for controllers
    });
 
 
-
-
 builder.Services.AddDbContext<AppDbContext>(options =>// options for database context
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -100,6 +98,7 @@ builder.Services.AddSingleton<
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
+builder.Services.AddScoped<EmailService>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(); 

@@ -1,5 +1,4 @@
 ﻿using SerwisSystem.Api.Models.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace SerwisSystem.Api.Models;
 
@@ -7,30 +6,72 @@ public class Repair
 {
     public int Id { get; set; }
 
-    public string SerialNumber { get; set; } = "";
-
     public RepairStatus Status { get; set; } = RepairStatus.Pending;
+
+    public ProductCategory ProductCategory { get; set; }
 
     public string Product { get; set; } = "";
 
-    public int? UserId { get; set; }// Worker in the entire project is defined as User 
-
-    public User? User { get; set; } // Navigation property to the User entity
+    public string SerialNumber { get; set; } = "";
 
     public string Description { get; set; } = "";
 
-    public string Name { get; set; } = "";
 
-    public string Surname { get; set; } = "";
+    //Reporting person
 
-    public string PhoneNumber { get; set; } = "";
+    public string ReporterName { get; set; } = "";
 
-    public string Email { get; set; } = "";
+    public string ReporterSurname { get; set; } = "";
 
-    public string Address { get; set; } = "";
+    public string ReporterPhone { get; set; } = "";
 
-    
-    public long NIP { get; set; } = 0;
+    public string ReporterEmail { get; set; } = "";
+
+
+    //Company
+
+    public string CompanyName { get; set; } = "";
+
+    public string CompanyAddress { get; set; } = "";
+
+    public string CompanyPostalCode { get; set; } = "";
+
+    public string CompanyCity { get; set; } = "";
+
+    public string CompanyNip { get; set; } = "";
+
+    public string CompanyPhone { get; set; } = "";
+
+
+    //Warranty
+
+    public bool HasWarranty { get; set; }
+
+    public DateOnly? PurchaseDate { get; set; }
+
+    public string? PurchaseInvoiceNumber { get; set; }
+
+
+    //Contract
+
+    public bool HasContract { get; set; }
+
+    public string? ContractNumber { get; set; }
+
+
+    //Consents
+
+    public bool ServiceDataConsent { get; set; }
+
+    public bool MarketingConsent { get; set; }
+
+
+    //Assigned worker
+
+    public int? UserId { get; set; }
+
+    public User? User { get; set; }
+
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

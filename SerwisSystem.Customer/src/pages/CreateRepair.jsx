@@ -1,45 +1,285 @@
+
 import { useState } from "react";
 import { createRepair } from "../api/api";
 
 function CreateRepair() {
+  // Product / repair
+  const [productCategory, setProductCategory] = useState("Other");
   const [product, setProduct] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
   const [description, setDescription] = useState("");
-  const [name, setName] = useState("");
-  const [surname, setSurname] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
+
+  // Reporter
+  const [reporterName, setReporterName] = useState("");
+  const [reporterSurname, setReporterSurname] = useState("");
+  const [reporterPhone, setReporterPhone] = useState("");
+  const [reporterEmail, setReporterEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [nip, setNip] = useState("");
+
+  // Company
+  const [companyName, setCompanyName] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyPostalCode, setCompanyPostalCode] = useState("");
+  const [companyCity, setCompanyCity] = useState("");
+  const [companyNip, setCompanyNip] = useState("");
+  const [companyPhone, setCompanyPhone] = useState("");
+
+  // Warranty
+  const [hasWarranty, setHasWarranty] = useState(false);
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [purchaseInvoiceNumber, setPurchaseInvoiceNumber] = useState("");
+
+  // Contract
+  const [hasContract, setHasContract] = useState(false);
+  const [contractNumber, setContractNumber] = useState("");
+
+  // Consents
+  const [serviceDataConsent, setServiceDataConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   const [error, setError] = useState("");
   const [createdRepair, setCreatedRepair] = useState(null);
 
+
+
+
+  function isValidNip(nip) {
+    if (!/^\d{10}$/.test(nip)) {
+      return false;
+    }
+
+    const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+
+    const sum = weights.reduce(
+      (total, weight, index) =>
+        total + Number(nip[index]) * weight,
+      0
+    );
+
+    const checksum = sum % 11;
+
+    if (checksum === 10) {
+      return false;
+    }
+
+    return checksum === Number(nip[9]);
+  }
+
+
+  function isValidPhone(phone) {
+    const cleaned = phone.replace(/[^\d+]/g, "");
+
+    return /^(\+)?\d{7,15}$/.test(cleaned);
+  }
+
+
+
+
+  function validateForm() {
+    const errors = [];
+
+    // Reporter
+    if (!reporterName.trim()) {
+      errors.push("Reporter name is required.");
+    }
+
+    if (!reporterSurname.trim()) {
+      errors.push("Reporter surname is required.");
+    }
+
+    if (!reporterPhone.trim()) {
+      errors.push("Reporter phone number is required.");
+    } else if (!isValidPhone(reporterPhone)) {
+      errors.push(
+        "Reporter phone number is invalid"
+      );
+    }
+
+
+
+    if (!reporterEmail.trim()) {
+      errors.push("Reporter email is required.");
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (
+      reporterEmail.trim() &&
+      !emailRegex.test(reporterEmail.trim())
+    ) {
+      errors.push("Reporter email is invalid.");
+    }
+
+    if (
+      reporterEmail.trim() !== confirmEmail.trim()
+    ) {
+      errors.push("Email addresses do not match.");
+    }
+
+    // Company
+    if (!companyName.trim()) {
+      errors.push("Company name is required.");
+    }
+
+    if (!companyAddress.trim()) {
+      errors.push("Company address is required.");
+    }
+
+    const postalCodeRegex = /^\d{2}-\d{3}$/;
+
+    if (!postalCodeRegex.test(companyPostalCode.trim())) {
+      errors.push(
+        "Postal code must have format XX-XXX."
+      );
+    }
+
+    if (!companyCity.trim()) {
+      errors.push("Company city is required.");
+    }
+
+    if (!companyPhone.trim()) {
+      errors.push("Company phone number is required.");
+    } else if (!isValidPhone(companyPhone)) {
+      errors.push(
+        "Company phone is invalid"
+      );
+    }
+
+    // NIP
+    const cleanNip = companyNip.replace(/\s/g, "");
+
+    if (!/^\d{10}$/.test(cleanNip)) {
+      errors.push("NIP must contain exactly 10 digits.");
+    } else if (!isValidNip(cleanNip)) {
+      errors.push("NIP is invalid.");
+    }
+
+    // Repair
+    if (!productCategory) {
+      errors.push("Product category is required.");
+    }
+
+    if (!product.trim()) {
+      errors.push("Product is required.");
+    }
+
+    if (
+      (
+        productCategory === "Monitor" ||
+        productCategory === "InteractiveBoard"
+      ) &&
+      !serialNumber.trim()
+    ) {
+      errors.push(
+        "Serial number is required for monitors and interactive boards."
+      );
+    }
+
+    if (!description.trim()) {
+      errors.push("Fault description is required.");
+    }
+
+    // Warranty
+    if (hasWarranty) {
+      if (!purchaseDate) {
+        errors.push(
+          "Purchase date is required for warranty repairs."
+        );
+      }
+
+      if (!purchaseInvoiceNumber.trim()) {
+        errors.push(
+          "Purchase invoice number is required for warranty repairs."
+        );
+      }
+
+      if (purchaseDate) {
+        const selectedDate = new Date(
+          `${purchaseDate}T00:00:00`
+        );
+
+        const today = new Date();
+
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate > today) {
+          errors.push(
+            "Purchase date cannot be in the future."
+          );
+        }
+      }
+    }
+
+    // Contract
+    if (
+      hasContract &&
+      !contractNumber.trim()
+    ) {
+      errors.push(
+        "Contract number is required when contract is selected."
+      );
+    }
+
+    // Consent
+    if (!serviceDataConsent) {
+      errors.push(
+        "Service data consent is required."
+      );
+    }
+
+    return errors;
+  }
+
+
+
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (email !== confirmEmail) {
-      setError("Emails do not match.");
+    const validationErrors = validateForm();
+
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(" "));
+      setCreatedRepair(null);
       return;
     }
 
     try {
       const repair = await createRepair({
-        serialNumber,
-        product,
-        description,
-        name,
-        surname,
-        phoneNumber,
-        email,
-        address,
-        nip,
+        productCategory,
+        product: product.trim(),
+        serialNumber: serialNumber.trim(),
+        description: description.trim(),
+
+        reporterName: reporterName.trim(),
+        reporterSurname: reporterSurname.trim(),
+        reporterPhone: reporterPhone.replace(/[^\d+]/g, ""),
+        reporterEmail: reporterEmail.trim(),
+
+        companyName: companyName.trim(),
+        companyAddress: companyAddress.trim(),
+        companyPostalCode: companyPostalCode.trim(),
+        companyCity: companyCity.trim(),
+        companyNip: companyNip.replace(/\s/g, ""),
+        companyPhone: companyPhone.replace(/[^\d+]/g, ""),
+
+        hasWarranty,
+
+        purchaseDate: hasWarranty ? purchaseDate : null,
+
+        purchaseInvoiceNumber: hasWarranty ? purchaseInvoiceNumber.trim() : null,
+
+        hasContract,
+
+        contractNumber: hasContract ? contractNumber.trim() : null,
+
+        serviceDataConsent,
+        marketingConsent,
       });
 
       setCreatedRepair(repair);
       setError("");
     } catch (error) {
+      setCreatedRepair(null);
       setError(error.message);
     }
   }
@@ -48,111 +288,378 @@ function CreateRepair() {
     <div>
       <h1>Create repair</h1>
 
-      {error && <p>Error: {error}</p>}
+      {error && (
+        <p>
+          Error: {error}
+        </p>
+      )}
 
       {createdRepair && (
         <div>
-          <h2>Repair created</h2>
+          <h2>Repair created successfully</h2>
+
+          <p>
+            Repair ID: {createdRepair.id}
+          </p>
+
+          <p>
+            Serial number:{" "}
+            {createdRepair.serialNumber || "-"}
+          </p>
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>Product: </label>
-          <input
-            required
-            value={product}
-            onChange={(event) => setProduct(event.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Device serial number: </label>
-          <input
-            required
-            type="text"
-            value={serialNumber}
-            onChange={(event) => setSerialNumber(event.target.value)}
-          />
-        </div>
-
-        <div>
-          <label>Description: </label>
-          <textarea
-            required
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </div>
+        <h2>Reporting person</h2>
 
         <div>
           <label>Name: </label>
+
           <input
             required
-            value={name}
-            onChange={(event) => setName(event.target.value)}
+            maxLength={100}
+            value={reporterName}
+            onChange={(event) =>
+              setReporterName(event.target.value)
+            }
           />
         </div>
 
         <div>
           <label>Surname: </label>
+
           <input
             required
-            value={surname}
-            onChange={(event) => setSurname(event.target.value)}
+            maxLength={100}
+            value={reporterSurname}
+            onChange={(event) =>
+              setReporterSurname(event.target.value)
+            }
           />
         </div>
 
         <div>
           <label>Phone: </label>
+
           <input
             required
-            value={phoneNumber}
-            onChange={(event) => setPhoneNumber(event.target.value)}
+            type="tel"
+            value={reporterPhone}
+            onChange={(event) =>
+              setReporterPhone(event.target.value)
+            }
           />
         </div>
 
         <div>
           <label>Email: </label>
+
           <input
             required
             type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            value={reporterEmail}
+            onChange={(event) =>
+              setReporterEmail(event.target.value)
+            }
           />
         </div>
 
         <div>
           <label>Confirm email: </label>
+
           <input
             required
             type="email"
             value={confirmEmail}
-            onChange={(event) => setConfirmEmail(event.target.value)}
+            onChange={(event) =>
+              setConfirmEmail(event.target.value)
+            }
+          />
+        </div>
+
+        <h2>Company</h2>
+
+        <div>
+          <label>Company name: </label>
+
+          <input
+            required
+            maxLength={200}
+            value={companyName}
+            onChange={(event) =>
+              setCompanyName(event.target.value)
+            }
           />
         </div>
 
         <div>
           <label>Address: </label>
+
           <input
             required
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
+            maxLength={200}
+            value={companyAddress}
+            onChange={(event) =>
+              setCompanyAddress(event.target.value)
+            }
+          />
+        </div>
+
+        <div>
+          <label>Postal code: </label>
+
+          <input
+            required
+            placeholder="00-000"
+            maxLength={6}
+            value={companyPostalCode}
+            onChange={(event) => {
+              let value = event.target.value
+                .replace(/[^\d-]/g, "")
+                .slice(0, 6);
+
+              setCompanyPostalCode(value);
+            }}
+          />
+        </div>
+
+        <div>
+          <label>City: </label>
+
+          <input
+            required
+            maxLength={100}
+            value={companyCity}
+            onChange={(event) =>
+              setCompanyCity(event.target.value)
+            }
           />
         </div>
 
         <div>
           <label>NIP: </label>
+
           <input
             required
-            value={nip}
-            onChange={(event) => setNip(event.target.value)}
+            inputMode="numeric"
+            maxLength={10}
+            value={companyNip}
+            onChange={(event) => {
+              const value = event.target.value
+                .replace(/\D/g, "")
+                .slice(0, 10);
+
+              setCompanyNip(value);
+            }}
           />
         </div>
 
-        <button type="submit">
-          Send repair
-        </button>
+        <div>
+          <label>Company phone: </label>
+
+          <input
+            required
+            type="tel"
+            value={companyPhone}
+            onChange={(event) =>
+              setCompanyPhone(event.target.value)
+            }
+          />
+        </div>
+
+        <h2>Repair</h2>
+
+        <div>
+          <label>Product category: </label>
+
+          <select
+            required
+            value={productCategory}
+            onChange={(event) =>
+              setProductCategory(event.target.value)
+            }
+          >
+            <option value="Monitor">
+              Monitor
+            </option>
+
+            <option value="InteractiveBoard">
+              Interactive board
+            </option>
+
+            <option value="Projector">
+              Projector
+            </option>
+
+            <option value="Computer">
+              Computer
+            </option>
+
+            <option value="Other">
+              Other
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label>Product: </label>
+
+          <input
+            required
+            maxLength={100}
+            value={product}
+            onChange={(event) =>
+              setProduct(event.target.value)
+            }
+          />
+        </div>
+
+        <div>
+          <label>Serial number: </label>
+
+          <input
+            required={
+              productCategory === "Monitor" ||
+              productCategory === "InteractiveBoard"
+            }
+            maxLength={100}
+            value={serialNumber}
+            onChange={(event) =>
+              setSerialNumber(event.target.value)
+            }
+          />
+        </div>
+
+        <div>
+          <label>Description: </label>
+
+          <textarea
+            required
+            maxLength={1000}
+            value={description}
+            onChange={(event) =>
+              setDescription(event.target.value)
+            }
+          />
+        </div>
+
+        <h2>Warranty</h2>
+
+        <label>
+          <input
+            type="checkbox"
+            checked={hasWarranty}
+            onChange={(event) =>
+              setHasWarranty(event.target.checked)
+            }
+          />
+
+          Warranty repair
+        </label>
+
+        {hasWarranty && (
+          <>
+            <div>
+              <label>Purchase date: </label>
+
+              <input
+                required
+                type="date"
+                value={purchaseDate}
+                onChange={(event) =>
+                  setPurchaseDate(event.target.value)
+                }
+              />
+            </div>
+
+            <div>
+              <label>
+                Purchase invoice number:{" "}
+              </label>
+
+              <input
+                required
+                maxLength={100}
+                value={purchaseInvoiceNumber}
+                onChange={(event) =>
+                  setPurchaseInvoiceNumber(
+                    event.target.value
+                  )
+                }
+              />
+            </div>
+          </>
+        )}
+
+        <h2>Contract</h2>
+
+        <label>
+          <input
+            type="checkbox"
+            checked={hasContract}
+            onChange={(event) =>
+              setHasContract(event.target.checked)
+            }
+          />
+
+          Has contract
+        </label>
+
+        {hasContract && (
+          <div>
+            <label>Contract number: </label>
+
+            <input
+              required
+              maxLength={100}
+              value={contractNumber}
+              onChange={(event) =>
+                setContractNumber(event.target.value)
+              }
+            />
+          </div>
+        )}
+
+        <h2>Consents</h2>
+
+        <label>
+          <input
+            required
+            type="checkbox"
+            checked={serviceDataConsent}
+            onChange={(event) =>
+              setServiceDataConsent(
+                event.target.checked
+              )
+            }
+          />
+
+          I provide my personal data for the purpose
+          of carrying out service activities.
+        </label>
+
+        <br />
+
+        <label>
+          <input
+            type="checkbox"
+            checked={marketingConsent}
+            onChange={(event) =>
+              setMarketingConsent(
+                event.target.checked
+              )
+            }
+          />
+
+          I want to receive information about news
+          by email.
+        </label>
+
+        <div>
+          <button type="submit">
+            Send repair
+          </button>
+        </div>
       </form>
     </div>
   );

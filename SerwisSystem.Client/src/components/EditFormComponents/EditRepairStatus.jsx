@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Message from "../Message";
+import ConfirmButton from "../ConfirmButton";
 
 import {
   takeRepair,
@@ -56,7 +57,7 @@ function EditRepairStatus({ repair, onUpdated }) {
 
       {canWorkOnRepair && (
         <>
-          <button onClick={() => runAction(takeRepair, "Repair completed successfully.")}>
+          <button onClick={() => runAction(completeRepair, "Repair completed successfully.")}>
             Complete
           </button>
 
@@ -67,7 +68,7 @@ function EditRepairStatus({ repair, onUpdated }) {
             Cancel
           </ConfirmButton>
 
-          <button onClick={() => runAction(takeRepair, "Repair returned successfully.")}>
+          <button onClick={() => runAction(returnRepair, "Repair returned successfully.")}>
             Return
           </button>
         </>

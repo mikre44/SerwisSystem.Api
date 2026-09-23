@@ -9,10 +9,15 @@ function Navbar() {
       <Link to="/"> Home </Link>{" | "}
             
       {(user.role === "Admin" || user.permissions?.readUsers) && (
-        <Link to="/users"> Users </Link>
+        <><Link to="/users"> Users </Link>{" | "}</>
       )}
+      
       {(user.role === "Admin" || user.permissions?.readRepairs) && (
-        <Link to="/repairs"> Repairs </Link>
+        <><Link to="/repairs"> Repairs </Link>{" | "}</>
+      )}
+      
+      {user.role === "Admin" && (
+        <><Link to="/admins">Admins</Link>{" | "}</>  
       )}
       
       <Link to="/user"> Your profile </Link>{" | "}

@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate  } from "react-router-dom";
 import { getRepairs } from "../api/api";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
 
 function Repairs() {
+  const navigate = useNavigate();
+
   const [repairs, setRepairs] = useState([]);
   const [error, setError] = useState("");
 
@@ -144,25 +146,39 @@ function Repairs() {
         <thead>
           <tr>
             <th onClick={() => handleSort("id")}>
-              ID{getSortIndicator("id")}
+              ID {sortBy === "id" && (descending ? "▼" : "▲")}
             </th>
+
             <th onClick={() => handleSort("serialNumber")}>
-              Serial number{getSortIndicator("serialNumber")}
+              Serial number{" "}
+              {sortBy === "serialNumber" && (descending ? "▼" : "▲")}
             </th>
+
             <th onClick={() => handleSort("product")}>
-              Product{getSortIndicator("product")}
+              Product{" "}
+              {sortBy === "product" && (descending ? "▼" : "▲")}
             </th>
+
             <th onClick={() => handleSort("surname")}>
-              Customer{getSortIndicator("surname")}
+              Reporter{" "}
+              {sortBy === "surname" && (descending ? "▼" : "▲")}
             </th>
-            <th descending="false" onClick={() => handleSort("status")}>
-              Status{getSortIndicator("status")}
+
+            <th onClick={() => handleSort("address")}>
+              Address{" "}
+              {sortBy === "address" && (descending ? "▼" : "▲")}
             </th>
-            <th>
-              Worker
+
+            <th onClick={() => handleSort("status")}>
+              Status{" "}
+              {sortBy === "status" && (descending ? "▼" : "▲")}
             </th>
+
+            <th>Worker</th>
+
             <th onClick={() => handleSort("createdAt")}>
-              Created{getSortIndicator("createdAt")}
+              Created{" "}
+              {sortBy === "createdAt" && (descending ? "▼" : "▲")}
             </th>
           </tr>
         </thead>
@@ -170,18 +186,22 @@ function Repairs() {
         <tbody>
           {repairs.map((repair) => (
             <Fragment key={repair.id}>
-              <tr>
-                <td>
-                  <Link to={`/repair/${repair.id}`}>
-                    {repair.id}
-                  </Link>
-                </td>
+              <tr
+                onClick={() => navigate(`/repair/${repair.id}`)}
+                style={{ cursor: "pointer" }}
+              >
+                <td>{repair.id}</td>
 
-                <td>{repair.serialNumber}</td>
+                <td>{repair.serialNumber || "-"}</td>
+
                 <td>{repair.product}</td>
 
                 <td>
-                  {repair.name} {repair.surname}
+                  {repair.reporterName} {repair.reporterSurname}
+                </td>
+
+                <td>
+                  {repair.companyAddress}
                 </td>
 
                 <td>{repair.status}</td>
@@ -190,11 +210,13 @@ function Repairs() {
                   {repair.workerUsername ?? "Nobody"}
                 </td>
 
-                <td>{repair.createdAt}</td>
+                <td>
+                  {new Date(repair.createdAt).toLocaleDateString()}
+                </td>
               </tr>
 
               <tr>
-                <td colSpan="7">
+                <td colSpan="8">
                   <EditRepairStatus
                     repair={repair}
                     onUpdated={loadRepairs}

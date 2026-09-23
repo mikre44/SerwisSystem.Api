@@ -9,6 +9,7 @@ import Users from "./pages/Users";
 import LoggedUser from "./pages/LoggedUser";
 import User from "./pages/User";
 import Repair from "./pages/Repair";
+import Admins from "./pages/Admins";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoutes";
@@ -35,6 +36,7 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Home />} />
+          
           <Route path="/repairs" element={<Repairs />} />
           <Route path="/repair/:id" element={<Repair />} />
 
@@ -42,6 +44,7 @@ function App() {
           <Route path="/user" element={<LoggedUser />} />
           <Route path="/user/:id" element={<User/>} />
 
+          <Route path="/admins" element={<Admins />} />
         </Route>
 
       </Routes>

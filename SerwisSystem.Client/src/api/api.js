@@ -51,7 +51,7 @@ async function apiFetch(endpoint, options = {}) {
 
 
 
-export function register(username, email, password) {// authorization ======================================================================
+export function register(username, email, password) {// authorization ============================
   return apiFetch("/auth/register", {
     method: "POST",
     body: JSON.stringify({
@@ -72,8 +72,68 @@ export function login(usernameOrEmail, password) {
   });
 }
 
+export function getRepairs({// repairs ============================================================
+  page = 1,
+  pageSize = 10,
+  search = "",
+  statuses = [],
+  mine = false,
+  sortBy = "createdAt",
+  descending = true,
+} = {}) {
+  const params = new URLSearchParams({
+    page,
+    pageSize,
+    search,
+    mine,
+    sortBy,
+    descending,
+  });
 
-export function getUsers({// users ======================================================================
+  statuses.forEach((status) => {
+    params.append("statuses", status);
+  });
+
+  return apiFetch(`/repairs?${params}`);
+}
+
+export function getRepair(id) {
+  return apiFetch(`/repairs/${id}`);
+}
+
+export function updateRepair(id, repair) {
+  return apiFetch(`/repairs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(repair),
+  });
+}
+
+export function takeRepair(id) {
+  return apiFetch(`/repairs/${id}/take`, {
+    method: "POST",
+  });
+}
+
+export function completeRepair(id) {
+  return apiFetch(`/repairs/${id}/complete`, {
+    method: "POST",
+  });
+}
+
+export function cancelRepair(id) {
+  return apiFetch(`/repairs/${id}/cancel`, {
+    method: "POST",
+  });
+}
+
+export function returnRepair(id) {
+  return apiFetch(`/repairs/${id}/return`, {
+    method: "POST",
+  });
+}
+
+
+export function getUsers({// users ================================================================
   page = 1,
   pageSize = 10,
   search = "",
@@ -129,72 +189,35 @@ export function updatePermissions(id, permissionsGranted, permissionsRevoked){
   })
 }
 
-
 export function deleteUser(id) {
   return apiFetch(`/users/${id}`, {
     method: "DELETE",
   });
 }
 
-export function updateRepair(id, repair) {
-  return apiFetch(`/repairs/${id}`, {
+
+
+export function getAdmins() {// admins ===============================================================
+  return apiFetch("/users/admins");
+}
+
+export function promoteAdmin(id) {
+  return apiFetch(`/users/${id}/promote-admin`, {
     method: "PUT",
-    body: JSON.stringify(repair),
   });
 }
 
-
-
-export function getRepairs({
-  page = 1,
-  pageSize = 10,
-  search = "",
-  statuses = [],
-  mine = false,
-  sortBy = "createdAt",
-  descending = true,
-} = {}) {
-  const params = new URLSearchParams({
-    page,
-    pageSize,
-    search,
-    mine,
-    sortBy,
-    descending,
-  });
-
-  statuses.forEach((status) => {
-    params.append("statuses", status);
-  });
-
-  return apiFetch(`/repairs?${params}`);
-}
-
-export function getRepair(id) {
-  return apiFetch(`/repairs/${id}`);
-}
-
-
-export function takeRepair(id) {
-  return apiFetch(`/repairs/${id}/take`, {
-    method: "POST",
+export function demoteAdmin(id) {
+  return apiFetch(`/users/${id}/demote-admin`, {
+    method: "PUT",
   });
 }
 
-export function completeRepair(id) {
-  return apiFetch(`/repairs/${id}/complete`, {
-    method: "POST",
-  });
-}
-
-export function cancelRepair(id) {
-  return apiFetch(`/repairs/${id}/cancel`, {
-    method: "POST",
-  });
-}
-
-export function returnRepair(id) {
-  return apiFetch(`/repairs/${id}/return`, {
-    method: "POST",
+export function updateAdminPriority(id, priority) {
+  return apiFetch(`/users/${id}/priority`, {
+    method: "PUT",
+    body: JSON.stringify({
+      priority,
+    }),
   });
 }

@@ -1,8 +1,10 @@
+import { Link } from "react-router-dom";
+
 function UserRepairs({ repairs }) {
   if (!repairs || repairs.length === 0) {
     return (
       <div>
-        <h2>Taken repairs</h2>
+        <h2>Repairs</h2>
         <p>No repairs assigned.</p>
       </div>
     );
@@ -10,20 +12,60 @@ function UserRepairs({ repairs }) {
 
   return (
     <div>
-      <h2>Taken repairs</h2>
+      <h2>Repairs</h2>
 
-      {repairs.map((repair) => (
-        <div key={repair.id}>
-          <hr />
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Serial number</th>
+            <th>Product</th>
+            <th>Reporter</th>
+            <th>Address</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
 
-          <p>ID: {repair.id}</p>
-          <p>Serial number: {repair.serialNumber}</p>
-          <p>Product: {repair.product}</p>
-          <p>Description: {repair.description}</p>
-          <p>Status: {repair.status}</p>
-          <p>Created: {repair.createdAt}</p>
-        </div>
-      ))}
+        <tbody>
+          {repairs.map((repair) => (
+            <tr key={repair.id}>
+              <td>
+                <Link to={`/repair/${repair.id}`}>
+                  #{repair.id}
+                </Link>
+              </td>
+
+              <td>
+                {repair.serialNumber || "-"}
+              </td>
+
+              <td>
+                {repair.product}
+              </td>
+
+              <td>
+                {repair.reporterName}{" "}
+                {repair.reporterSurname}
+              </td>
+
+              <td>
+                {repair.companyAddress}
+              </td>
+
+              <td>
+                {repair.status}
+              </td>
+
+              <td>
+                {new Date(
+                  repair.createdAt
+                ).toLocaleDateString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

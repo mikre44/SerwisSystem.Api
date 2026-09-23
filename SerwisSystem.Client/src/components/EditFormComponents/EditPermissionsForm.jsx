@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { updatePermissions } from "../../api/api";
+import Message from "../Message";
 
 const permissionNames = [
   "ReadRepairs",

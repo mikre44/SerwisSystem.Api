@@ -76,8 +76,31 @@ namespace SerwisSystem.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Address")
+                    b.Property<string>("CompanyAddress")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyCity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyNip")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyPostalCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContractNumber")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
@@ -87,22 +110,41 @@ namespace SerwisSystem.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("HasContract")
+                        .HasColumnType("boolean");
 
-                    b.Property<long>("NIP")
-                        .HasColumnType("bigint");
+                    b.Property<bool>("HasWarranty")
+                        .HasColumnType("boolean");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("MarketingConsent")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Product")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ProductCategory")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("PurchaseDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PurchaseInvoiceNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterSurname")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -110,12 +152,11 @@ namespace SerwisSystem.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("ServiceDataConsent")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Surname")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<int?>("UserId")
                         .HasColumnType("integer");

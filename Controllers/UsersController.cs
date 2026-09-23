@@ -66,20 +66,25 @@ public class UsersController : ControllerBase
         if (option == UserResponseOption.Repairs || option == UserResponseOption.All)
         {
             var repairs = user.Repairs
-            .Select(r => new RepairResponseDto
+            .Select(repair => new RepairResponseDto
             {
-                Id = r.Id,
-                SerialNumber = r.SerialNumber,
-                Status = r.Status,
-                Product = r.Product,
-                Description = r.Description,
-                Name = r.Name,
-                Surname = r.Surname,
-                PhoneNumber = r.PhoneNumber,
-                Address = r.Address,
-                Email = r.Email,
-                NIP = r.NIP,
-                CreatedAt = r.CreatedAt
+                Id = repair.Id,
+
+                Status = repair.Status,
+
+                ProductCategory = repair.ProductCategory,
+                Product = repair.Product,
+                SerialNumber = repair.SerialNumber,
+                Description = repair.Description,
+
+                ReporterName = repair.ReporterName,
+                ReporterSurname = repair.ReporterSurname,
+                ReporterPhone = repair.ReporterPhone,
+                ReporterEmail = repair.ReporterEmail,
+
+                CompanyAddress = repair.CompanyAddress,
+
+                CreatedAt = repair.CreatedAt
             })
             .ToList();
             respone.Repairs = repairs;
@@ -364,5 +369,152 @@ public class UsersController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(ToDto(targetUser, UserResponseOption.Permissions));
+    }
+
+
+
+    [HttpPut("{id}/promote-admin")]
+    public async Task<IActionResult> PromoteToAdmin(int id)
+    {
+        var currentUser = await _userService.GetCurrentUser(User);
+
+        if (currentUser == null)
+            return Unauthorized();
+
+        if (currentUser.Role != UserRole.Admin)
+            return Forbid();
+
+        if (currentUser.Id == id)
+            return BadRequest("You cannot promote yourself.");
+
+        var targetUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (targetUser == null)
+            return NotFound();
+
+        if (targetUser.Role == UserRole.Admin)
+            return BadRequest("User is already an admin.");
+
+        targetUser.Role = UserRole.Admin;
+
+        // Give the new admin a lower authority than the current admin.
+        targetUser.Priority = currentUser.Priority + 1;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
+    }
+
+
+    [HttpPut("{id}/priority")]
+    public async Task<IActionResult> UpdateAdminPriority(
+    int id,
+    UpdatePriorityDto dto)
+    {
+        var currentUser = await _userService.GetCurrentUser(User);
+
+        if (currentUser == null)
+            return Unauthorized();
+
+        if (currentUser.Role != UserRole.Admin)
+            return Forbid();
+
+        if (currentUser.Id == id)
+            return BadRequest("You cannot change your own priority.");
+
+        var targetUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (targetUser == null)
+            return NotFound();
+
+        if (targetUser.Role != UserRole.Admin)
+            return BadRequest("Target user is not an admin.");
+
+        if (!_permissionService.CanManageTargetUser(
+            currentUser,
+            targetUser))
+        {
+            return Forbid();
+        }
+
+        if (dto.Priority < currentUser.Priority)//smaller priority - higher authority
+        {
+            return BadRequest(
+                "You cannot give an admin higher authority than yourself."
+            );
+        }
+
+        if (dto.Priority < 1)
+        {
+            return BadRequest("Priority must be at least 1.");
+        }
+
+        targetUser.Priority = dto.Priority;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
+    }
+
+
+    [HttpGet("admins")]
+    public async Task<IActionResult> GetAdmins()
+    {
+        var currentUser = await _userService.GetCurrentUser(User);
+
+        if (currentUser == null)
+            return Unauthorized();
+
+        if (currentUser.Role != UserRole.Admin)
+            return Forbid();
+
+        var admins = await _context.Users
+            .Where(u => u.Role == UserRole.Admin)
+            .OrderBy(u => u.Priority)
+            .ThenBy(u => u.Username)
+            .ToListAsync();
+
+        return Ok(admins.Select(u =>
+            ToDto(u, UserResponseOption.OnlyUser)));
+    }
+
+
+    [HttpPut("{id}/demote-admin")]
+    public async Task<IActionResult> DemoteAdmin(int id)
+    {
+        var currentUser = await _userService.GetCurrentUser(User);
+
+        if (currentUser == null)
+            return Unauthorized();
+
+        if (currentUser.Role != UserRole.Admin)
+            return Forbid();
+
+        if (currentUser.Id == id)
+            return BadRequest("You cannot demote yourself.");
+
+        var targetUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (targetUser == null)
+            return NotFound();
+
+        if (targetUser.Role != UserRole.Admin)
+            return BadRequest("Target user is not an admin.");
+
+        if (!_permissionService.CanManageTargetUser(currentUser, targetUser))
+            return Forbid();
+
+        targetUser.Role = UserRole.Worker;
+        targetUser.Priority = 0;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(ToDto(
+            targetUser,
+            UserResponseOption.OnlyUser
+        ));
     }
 }

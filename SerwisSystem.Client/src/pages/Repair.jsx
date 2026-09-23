@@ -6,10 +6,10 @@ import { useAuth } from "../context/AuthContext";
 import EditRepairForm from "../components/EditFormComponents/EditRepairForm";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
 
-
 function Repair() {
   const { id } = useParams();
-  const { user } = useAuth(); 
+  const { user } = useAuth();
+
   const [repair, setRepair] = useState(null);
   const [error, setError] = useState("");
 
@@ -36,38 +36,106 @@ function Repair() {
     return <p>Loading repair...</p>;
   }
 
+  const canEdit =
+    user.role === "Admin" ||
+    user.permissions?.editRepairs;
+
   return (
     <div>
-      <h1>Repair</h1>
+      <h1>Repair #{repair.id}</h1>
 
-      <p>ID: {repair.id}</p>
-      <p>Serial number: {repair.serialNumber}</p>
-      <p>Product: {repair.product}</p>
-      <p>Description: {repair.description}</p>
-
-      <p>Name: {repair.name}</p>
-      <p>Surname: {repair.surname}</p>
-      <p>Phone: {repair.phoneNumber}</p>
-      <p>Email: {repair.email}</p>
-      <p>Address: {repair.address}</p>
-      <p>NIP: {repair.nip}</p>
+      <h2>Repair information</h2>
 
       <p>Status: {repair.status}</p>
-      <p>Worker: {repair.workerUsername ?? "Nobody"}</p>
-      <p>Created: {repair.createdAt}</p>
+      <p>Product category: {repair.productCategory}</p>
+      <p>Product: {repair.product}</p>
+      <p>Serial number: {repair.serialNumber || "None"}</p>
+      <p>Description: {repair.description}</p>
+
+      <h2>Reporting person</h2>
+
+      <p>Name: {repair.reporterName}</p>
+      <p>Surname: {repair.reporterSurname}</p>
+      <p>Phone: {repair.reporterPhone}</p>
+      <p>Email: {repair.reporterEmail}</p>
+
+      <h2>Company</h2>
+
+      <p>Company name: {repair.companyName}</p>
+      <p>Address: {repair.companyAddress}</p>
+      <p>Postal code: {repair.companyPostalCode}</p>
+      <p>City: {repair.companyCity}</p>
+      <p>NIP: {repair.companyNip}</p>
+      <p>Company phone: {repair.companyPhone}</p>
+
+      <h2>Warranty</h2>
+
+      <p>
+        Warranty repair: {repair.hasWarranty ? "Yes" : "No"}
+      </p>
+
+      {repair.hasWarranty && (
+        <>
+          <p>
+            Purchase date:{" "}
+            {repair.purchaseDate
+              ? new Date(repair.purchaseDate).toLocaleDateString()
+              : "None"}
+          </p>
+
+          <p>
+            Purchase invoice number:{" "}
+            {repair.purchaseInvoiceNumber ?? "None"}
+          </p>
+        </>
+      )}
+
+      <h2>Contract</h2>
+
+      <p>
+        Has contract: {repair.hasContract ? "Yes" : "No"}
+      </p>
+
+      {repair.hasContract && (
+        <p>
+          Contract number: {repair.contractNumber ?? "None"}
+        </p>
+      )}
+
+      <h2>Consents</h2>
+
+      <p>
+        Service data consent:{" "}
+        {repair.serviceDataConsent ? "Yes" : "No"}
+      </p>
+
+      <p>
+        Marketing consent:{" "}
+        {repair.marketingConsent ? "Yes" : "No"}
+      </p>
+
+      <h2>Worker</h2>
+
+      <p>
+        Worker: {repair.workerUsername ?? "Nobody"}
+      </p>
+
+      <p>
+        Created:{" "}
+        {new Date(repair.createdAt).toLocaleString()}
+      </p>
 
       <EditRepairStatus
         repair={repair}
         onUpdated={loadRepair}
       />
 
-      {(user.role === "Admin" ||
-      user.permissions?.editRepairs) && (
-      <EditRepairForm
-        repair={repair}
-        onUpdated={loadRepair}
-      />
-    )}
+      {canEdit && (
+        <EditRepairForm
+          repair={repair}
+          onUpdated={loadRepair}
+        />
+      )}
     </div>
   );
 }

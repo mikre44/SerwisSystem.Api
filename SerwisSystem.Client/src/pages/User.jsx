@@ -9,7 +9,8 @@ import UserRepairs from "../components/UserInfoComponents/UserRepairs";
 import EditUserForm from "../components/EditFormComponents/EditUserForm";
 import EditPermissionsForm from "../components/EditFormComponents/EditPermissionsForm";
 import DeleteUserButton from "../components/EditFormComponents/DeleteUserButton";
-import ConfirmButton from "../components/ConfirmButton";
+import PromoteAdminButton from "../components/EditFormComponents/EditAdminButton";
+import EditAdminButton from "../components/EditFormComponents/EditAdminButton";
 
 function User() {
   const { id } = useParams();
@@ -62,9 +63,15 @@ function User() {
             onUpdated={loadUser}
           />
         )}
+        <EditAdminButton
+          user={user}
+          onUpdated={loadUser}
+        />
+        <DeleteUserButton user={user} />
+
         <UserRepairs repairs={user.repairs} />
 
-        <DeleteUserButton user={user} />
+        
     </div>
   );
 }
