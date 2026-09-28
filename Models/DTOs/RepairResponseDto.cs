@@ -8,11 +8,11 @@ public class RepairResponseDto
 
     public RepairStatus Status { get; set; }
 
-    public ProductCategory ProductCategory { get; set; }
-
     public string Product { get; set; } = "";
 
-    public string SerialNumber { get; set; } = "";
+    public bool IsCustomProduct { get; set; }
+
+    public string? SerialNumber { get; set; }
 
     public string Description { get; set; } = "";
 

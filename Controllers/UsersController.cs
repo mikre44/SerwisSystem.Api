@@ -72,8 +72,8 @@ public class UsersController : ControllerBase
 
                 Status = repair.Status,
 
-                ProductCategory = repair.ProductCategory,
                 Product = repair.Product,
+                IsCustomProduct = repair.IsCustomProduct,
                 SerialNumber = repair.SerialNumber,
                 Description = repair.Description,
 
@@ -82,7 +82,23 @@ public class UsersController : ControllerBase
                 ReporterPhone = repair.ReporterPhone,
                 ReporterEmail = repair.ReporterEmail,
 
+                CompanyName = repair.CompanyName,
                 CompanyAddress = repair.CompanyAddress,
+                CompanyPostalCode = repair.CompanyPostalCode,
+                CompanyCity = repair.CompanyCity,
+                CompanyNip = repair.CompanyNip,
+
+                HasWarranty = repair.HasWarranty,
+                PurchaseDate = repair.PurchaseDate,
+                PurchaseInvoiceNumber = repair.PurchaseInvoiceNumber,
+
+                HasContract = repair.HasContract,
+                ContractNumber = repair.ContractNumber,
+
+                ServiceDataConsent = repair.ServiceDataConsent,
+                MarketingConsent = repair.MarketingConsent,
+
+                WorkerId = repair.UserId,
 
                 CreatedAt = repair.CreatedAt
             })

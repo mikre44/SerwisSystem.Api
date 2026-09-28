@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
-using Microsoft.IdentityModel.Tokens;
+using SerwisSystem.Api.Models.Enums;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -128,46 +130,79 @@ public class  AuthController : ControllerBase
         });
     }
 
-    // idk what i should do with it for now
+    [AllowAnonymous]
+    [HttpPost("create-first-admin")]
+    public async Task<IActionResult> CreateFirstAdmin(
+    RegisterDto dto)
+    {
+        var adminExists = await _context.Users
+            .AnyAsync(u => u.Role == UserRole.Admin);
 
+        if (adminExists)
+        {
+            return BadRequest(
+                "An admin already exists."
+            );
+        }
 
-    //[HttpPost("createAdmin")]//temporarily
-    //public async Task<IActionResult> CreateAdmin(RegisterDto dto)
-    //{
-    //    var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
-    //    var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        var existingUser = await _context.Users
+            .AnyAsync(u =>
+                u.Username == dto.Username ||
+                u.Email == dto.Email
+            );
 
-    //    if (existingUsername != null)
-    //        return BadRequest("Username already exists");
-    //    else if (existingEmail != null)
-    //        return BadRequest("Email already exists");
+        if (existingUser)
+        {
+            return BadRequest(
+                "Username or email already exists."
+            );
+        }
 
-    //    var user = new User
-    //    {
-    //        Username = dto.Username,
-    //        Email = dto.Email
-    //    };
-    //    user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
-    //    user.Role = Models.Enums.UserRole.Admin;
+        var user = new User
+        {
+            Username = dto.Username,
+            Email = dto.Email,
+            Role = UserRole.Admin,
+            Priority = 1,
+        };
 
-    //    var permissions = new Permissions
-    //    {
-    //        User = user
-    //    };
+        var hasher = new PasswordHasher<User>();
 
-    //    user.Permissions = permissions;
-    //    _context.Users.Add(user);
+        user.PasswordHash =
+            hasher.HashPassword(
+                user,
+                dto.Password
+            );
 
-    //    await _context.SaveChangesAsync();
+        _context.Users.Add(user);
 
-    //    return Ok(new
-    //    {
-    //        user.Id,
-    //        user.Username,
-    //        user.Email,
-    //        user.Role
-    //    });
-    //}
+        await _context.SaveChangesAsync();
+
+        var permissions = new Permissions
+        {
+            UserId = user.Id,
+
+            ReadRepairs = true,
+            TakeRepairs = true,
+            EditRepairs = true,
+            DeleteRepairs = true,
+
+            ReadUsers = true,
+            EditUsers = true,
+            DeleteUsers = true,
+            GrantUsers = true,
+            DischargeUsers = true
+        };
+
+        _context.Permissions.Add(permissions);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "First admin created successfully."
+        });
+    }
 
 
 }

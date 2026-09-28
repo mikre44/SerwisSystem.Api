@@ -194,7 +194,10 @@ function Repairs() {
 
                 <td>{repair.serialNumber || "-"}</td>
 
-                <td>{repair.product}</td>
+                <td>
+                  {repair.product}
+                  {repair.isCustomProduct && " (nie z listy)"}
+                </td>
 
                 <td>
                   {repair.reporterName} {repair.reporterSurname}

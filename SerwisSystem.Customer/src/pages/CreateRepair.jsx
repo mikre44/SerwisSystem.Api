@@ -4,8 +4,8 @@ import { createRepair } from "../api/api";
 
 function CreateRepair() {
   // Product / repair
-  const [productCategory, setProductCategory] = useState("Other");
-  const [product, setProduct] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [customProduct, setCustomProduct] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
   const [description, setDescription] = useState("");
 
@@ -22,7 +22,6 @@ function CreateRepair() {
   const [companyPostalCode, setCompanyPostalCode] = useState("");
   const [companyCity, setCompanyCity] = useState("");
   const [companyNip, setCompanyNip] = useState("");
-  const [companyPhone, setCompanyPhone] = useState("");
 
   // Warranty
   const [hasWarranty, setHasWarranty] = useState(false);
@@ -40,7 +39,11 @@ function CreateRepair() {
   const [error, setError] = useState("");
   const [createdRepair, setCreatedRepair] = useState(null);
 
-
+  const products = [
+    "myBoard Grey Arrow",
+    "Another device",
+    "Another monitor",
+  ];
 
 
   function isValidNip(nip) {
@@ -137,39 +140,29 @@ function CreateRepair() {
       errors.push("Company city is required.");
     }
 
-    if (!companyPhone.trim()) {
-      errors.push("Company phone number is required.");
-    } else if (!isValidPhone(companyPhone)) {
-      errors.push(
-        "Company phone is invalid"
-      );
-    }
-
     // NIP
-    const cleanNip = companyNip.replace(/\s/g, "");
 
-    if (!/^\d{10}$/.test(cleanNip)) {
+    if (!/^\d{10}$/.test(companyNip)) {
       errors.push("NIP must contain exactly 10 digits.");
-    } else if (!isValidNip(cleanNip)) {
+    } else if (!isValidNip(companyNip)) {
       errors.push("NIP is invalid.");
     }
 
     // Repair
-    if (!productCategory) {
-      errors.push("Product category is required.");
-    }
 
-    if (!product.trim()) {
+    if (!selectedProduct) {
       errors.push("Product is required.");
     }
 
-    if (
-      (
-        productCategory === "Monitor" ||
-        productCategory === "InteractiveBoard"
-      ) &&
-      !serialNumber.trim()
-    ) {
+    if (selectedProduct === "Other" && !customProduct.trim()) 
+      {
+      errors.push(
+        "Device name is required when Other is selected."
+      );
+    }
+
+    if (selectedProduct !== "Other" && !serialNumber.trim()) 
+      {
       errors.push(
         "Serial number is required for monitors and interactive boards."
       );
@@ -235,6 +228,13 @@ function CreateRepair() {
   async function handleSubmit(event) {
     event.preventDefault();
 
+    const isCustomProduct =
+      selectedProduct === "Other";
+
+    const product = isCustomProduct
+      ? customProduct.trim()
+      : selectedProduct;
+
     const validationErrors = validateForm();
 
     if (validationErrors.length > 0) {
@@ -245,8 +245,8 @@ function CreateRepair() {
 
     try {
       const repair = await createRepair({
-        productCategory,
-        product: product.trim(),
+        product,
+        isCustomProduct,
         serialNumber: serialNumber.trim(),
         description: description.trim(),
 
@@ -260,16 +260,12 @@ function CreateRepair() {
         companyPostalCode: companyPostalCode.trim(),
         companyCity: companyCity.trim(),
         companyNip: companyNip.replace(/\s/g, ""),
-        companyPhone: companyPhone.replace(/[^\d+]/g, ""),
 
         hasWarranty,
-
         purchaseDate: hasWarranty ? purchaseDate : null,
-
         purchaseInvoiceNumber: hasWarranty ? purchaseInvoiceNumber.trim() : null,
 
         hasContract,
-
         contractNumber: hasContract ? contractNumber.trim() : null,
 
         serviceDataConsent,
@@ -454,19 +450,6 @@ function CreateRepair() {
           />
         </div>
 
-        <div>
-          <label>Company phone: </label>
-
-          <input
-            required
-            type="tel"
-            value={companyPhone}
-            onChange={(event) =>
-              setCompanyPhone(event.target.value)
-            }
-          />
-        </div>
-
         <h2>Repair</h2>
 
         <div>
@@ -474,26 +457,23 @@ function CreateRepair() {
 
           <select
             required
-            value={productCategory}
+            value={selectedProduct}
             onChange={(event) =>
-              setProductCategory(event.target.value)
+              setSelectedProduct(event.target.value)
             }
           >
-            <option value="Monitor">
-              Monitor
+            <option value="">
+              Select product
             </option>
 
-            <option value="InteractiveBoard">
-              Interactive board
-            </option>
-
-            <option value="Projector">
-              Projector
-            </option>
-
-            <option value="Computer">
-              Computer
-            </option>
+            {products.map((product) => (
+              <option
+                key={product}
+                value={product}
+              >
+                {product}
+              </option>
+            ))}
 
             <option value="Other">
               Other
@@ -501,26 +481,26 @@ function CreateRepair() {
           </select>
         </div>
 
-        <div>
-          <label>Product: </label>
+        {selectedProduct === "Other" && (
+          <div>
+            <label>Device name: </label>
 
-          <input
-            required
-            maxLength={100}
-            value={product}
-            onChange={(event) =>
-              setProduct(event.target.value)
-            }
-          />
-        </div>
+            <input
+              required
+              value={customProduct}
+              onChange={(event) =>
+                setCustomProduct(event.target.value)
+              }
+            />
+          </div>
+        )}
 
         <div>
           <label>Serial number: </label>
 
           <input
             required={
-              productCategory === "Monitor" ||
-              productCategory === "InteractiveBoard"
+              selectedProduct !== "Other"
             }
             maxLength={100}
             value={serialNumber}

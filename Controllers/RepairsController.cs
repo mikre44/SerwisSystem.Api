@@ -43,8 +43,8 @@ public class RepairsController : ControllerBase
 
             Status = repair.Status,
 
-            ProductCategory = repair.ProductCategory,
             Product = repair.Product,
+            IsCustomProduct = repair.IsCustomProduct,
             SerialNumber = repair.SerialNumber,
             Description = repair.Description,
 
@@ -58,7 +58,6 @@ public class RepairsController : ControllerBase
             CompanyPostalCode = repair.CompanyPostalCode,
             CompanyCity = repair.CompanyCity,
             CompanyNip = repair.CompanyNip,
-            CompanyPhone = repair.CompanyPhone,
 
             HasWarranty = repair.HasWarranty,
             PurchaseDate = repair.PurchaseDate,
@@ -134,7 +133,6 @@ public class RepairsController : ControllerBase
                 r.CompanyPostalCode.ToLower().Contains(search) ||
                 r.CompanyCity.ToLower().Contains(search) ||
                 r.CompanyNip.ToLower().Contains(search) ||
-                r.CompanyPhone.ToLower().Contains(search) ||
 
                 (r.PurchaseInvoiceNumber != null &&
                  r.PurchaseInvoiceNumber.ToLower().Contains(search)) ||
@@ -198,7 +196,7 @@ public class RepairsController : ControllerBase
                 : query
                     .OrderBy(r => r.Status)
                     .ThenBy(r => r.CreatedAt),
-            
+
             "address" => descending
                 ? query.OrderByDescending(r => r.CompanyAddress)
                 : query.OrderBy(r => r.CompanyAddress),
@@ -285,10 +283,11 @@ public class RepairsController : ControllerBase
             );
         }
 
-        if (!IsValidPhone(dto.CompanyPhone))
+        if (dto.ProductCategory == ProductCategory.Other &&
+            string.IsNullOrWhiteSpace(dto.Product))
         {
             return BadRequest(
-                "Company phone number must contain 9 digits, optionally with +48."
+                "Product name is required when category is Other."
             );
         }
 
@@ -329,8 +328,8 @@ public class RepairsController : ControllerBase
 
         var repair = new Repair
         {
-            ProductCategory = dto.ProductCategory,
             Product = dto.Product,
+            IsCustomProduct = dto.IsCustomProduct,
             SerialNumber = dto.SerialNumber ?? "",
             Description = dto.Description,
 
@@ -344,21 +343,17 @@ public class RepairsController : ControllerBase
             CompanyPostalCode = dto.CompanyPostalCode,
             CompanyCity = dto.CompanyCity,
             CompanyNip = dto.CompanyNip,
-            CompanyPhone = dto.CompanyPhone,
 
             HasWarranty = dto.HasWarranty,
             PurchaseDate = dto.PurchaseDate,
-            PurchaseInvoiceNumber =
-                dto.PurchaseInvoiceNumber,
+            PurchaseInvoiceNumber = dto.PurchaseInvoiceNumber,
 
             HasContract = dto.HasContract,
             ContractNumber = dto.ContractNumber,
 
-            ServiceDataConsent =
-                dto.ServiceDataConsent,
+            ServiceDataConsent = dto.ServiceDataConsent,
 
-            MarketingConsent =
-                dto.MarketingConsent
+            MarketingConsent = dto.MarketingConsent
         };
 
 
@@ -366,13 +361,22 @@ public class RepairsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        await _emailService.SendRepairCreatedEmail(//email confirmation
-            repair.ReporterEmail,
-            $"{repair.ReporterName} {repair.ReporterSurname}",
-            repair.Id,
-            repair.Product,
-            repair.SerialNumber
-        );
+        try// even if the mail doesnt work the repair will be created
+        {
+            await _emailService.SendRepairCreatedEmail(
+                repair.ReporterEmail,
+                $"{repair.ReporterName} {repair.ReporterSurname}",
+                repair.Id,
+                repair.Product,
+                repair.SerialNumber
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Failed to send confirmation email: {ex.Message}"
+            );
+        }
 
         return CreatedAtAction(
             nameof(GetRepair),
@@ -411,7 +415,7 @@ public class RepairsController : ControllerBase
     // PUT api/repairs/{id}
     [RequirePermission("EditRepairs")]
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateRepair(
+    public async Task<IActionResult> EditRepair(
         int id,
         UpdateRepairDto updatedRepair)
     {
@@ -507,73 +511,33 @@ public class RepairsController : ControllerBase
         }
 
 
-        repair.ProductCategory =
-            updatedRepair.ProductCategory;
+        repair.Product = updatedRepair.Product;
+        repair.IsCustomProduct = updatedRepair.IsCustomProduct;
+        repair.SerialNumber = updatedRepair.SerialNumber ?? "";
+        repair.Description = updatedRepair.Description;
 
-        repair.Product =
-            updatedRepair.Product;
+        repair.ReporterName = updatedRepair.ReporterName;
+        repair.ReporterSurname = updatedRepair.ReporterSurname;
+        repair.ReporterPhone = updatedRepair.ReporterPhone;
+        repair.ReporterEmail = updatedRepair.ReporterEmail;
 
-        repair.SerialNumber =
-            updatedRepair.SerialNumber ?? "";
+        repair.CompanyName = updatedRepair.CompanyName;
+        repair.CompanyAddress = updatedRepair.CompanyAddress;
+        repair.CompanyPostalCode = updatedRepair.CompanyPostalCode;
+        repair.CompanyCity = updatedRepair.CompanyCity;
+        repair.CompanyNip = updatedRepair.CompanyNip;
 
-        repair.Description =
-            updatedRepair.Description;
-
-
-        repair.ReporterName =
-            updatedRepair.ReporterName;
-
-        repair.ReporterSurname =
-            updatedRepair.ReporterSurname;
-
-        repair.ReporterPhone =
-            updatedRepair.ReporterPhone;
-
-        repair.ReporterEmail =
-            updatedRepair.ReporterEmail;
+        repair.HasWarranty = updatedRepair.HasWarranty;
+        repair.PurchaseDate = updatedRepair.PurchaseDate;
+        repair.PurchaseInvoiceNumber = updatedRepair.PurchaseInvoiceNumber;
 
 
-        repair.CompanyName =
-            updatedRepair.CompanyName;
-
-        repair.CompanyAddress =
-            updatedRepair.CompanyAddress;
-
-        repair.CompanyPostalCode =
-            updatedRepair.CompanyPostalCode;
-
-        repair.CompanyCity =
-            updatedRepair.CompanyCity;
-
-        repair.CompanyNip =
-            updatedRepair.CompanyNip;
-
-        repair.CompanyPhone =
-            updatedRepair.CompanyPhone;
+        repair.HasContract = updatedRepair.HasContract;
+        repair.ContractNumber = updatedRepair.ContractNumber;
 
 
-        repair.HasWarranty =
-            updatedRepair.HasWarranty;
-
-        repair.PurchaseDate =
-            updatedRepair.PurchaseDate;
-
-        repair.PurchaseInvoiceNumber =
-            updatedRepair.PurchaseInvoiceNumber;
-
-
-        repair.HasContract =
-            updatedRepair.HasContract;
-
-        repair.ContractNumber =
-            updatedRepair.ContractNumber;
-
-
-        repair.ServiceDataConsent =
-            updatedRepair.ServiceDataConsent;
-
-        repair.MarketingConsent =
-            updatedRepair.MarketingConsent;
+        repair.ServiceDataConsent = updatedRepair.ServiceDataConsent;
+        repair.MarketingConsent = updatedRepair.MarketingConsent;
 
 
         // Pending repairs should not have an assigned worker.

@@ -11,8 +11,10 @@ public class UpdateRepairDto
     public ProductCategory ProductCategory { get; set; }
 
     [Required]
-    [MaxLength(100)]
+    [MaxLength(200)]
     public string Product { get; set; } = "";
+
+    public bool IsCustomProduct { get; set; }
 
     [MaxLength(100)]
     public string? SerialNumber { get; set; }
@@ -71,13 +73,6 @@ public class UpdateRepairDto
         ErrorMessage = "NIP must contain exactly 10 digits."
     )]
     public string CompanyNip { get; set; } = "";
-
-    [Required]
-    [RegularExpression(
-            @"^(\+)?\d{7,15}$",
-            ErrorMessage = "Invalid phone number."
-        )]
-    public string CompanyPhone { get; set; } = "";
 
 
     // Warranty

@@ -8,9 +8,9 @@ public class Repair
 
     public RepairStatus Status { get; set; } = RepairStatus.Pending;
 
-    public ProductCategory ProductCategory { get; set; }
-
     public string Product { get; set; } = "";
+
+    public bool IsCustomProduct { get; set; }
 
     public string SerialNumber { get; set; } = "";
 
@@ -18,7 +18,6 @@ public class Repair
 
 
     //Reporting person
-
     public string ReporterName { get; set; } = "";
 
     public string ReporterSurname { get; set; } = "";
@@ -39,8 +38,6 @@ public class Repair
     public string CompanyCity { get; set; } = "";
 
     public string CompanyNip { get; set; } = "";
-
-    public string CompanyPhone { get; set; } = "";
 
 
     //Warranty

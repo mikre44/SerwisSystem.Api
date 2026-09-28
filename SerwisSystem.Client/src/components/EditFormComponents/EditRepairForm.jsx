@@ -3,9 +3,9 @@ import { updateRepair } from "../../api/api";
 
 function EditRepairForm({ repair, onUpdated }) {
   const [status, setStatus] = useState(repair.status);
-  const [productCategory, setProductCategory] = useState(repair.productCategory);
-  const [product, setProduct] = useState(repair.product);
-  const [serialNumber, setSerialNumber] = useState(repair.serialNumber);
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [customProduct, setCustomProduct] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
   const [description, setDescription] = useState(repair.description);
 
   const [reporterName, setReporterName] = useState(repair.reporterName);
@@ -18,32 +18,23 @@ function EditRepairForm({ repair, onUpdated }) {
   const [companyPostalCode, setCompanyPostalCode] = useState(repair.companyPostalCode);
   const [companyCity, setCompanyCity] = useState(repair.companyCity);
   const [companyNip, setCompanyNip] = useState(repair.companyNip);
-  const [companyPhone, setCompanyPhone] = useState(repair.companyPhone);
 
   const [hasWarranty, setHasWarranty] = useState(repair.hasWarranty);
-  const [purchaseDate, setPurchaseDate] = useState(
-    repair.purchaseDate
-      ? repair.purchaseDate.split("T")[0]
-      : ""
-  );
-  const [purchaseInvoiceNumber, setPurchaseInvoiceNumber] = useState(
-    repair.purchaseInvoiceNumber ?? ""
-  );
+  const [purchaseDate, setPurchaseDate] = useState();
+  const [purchaseInvoiceNumber, setPurchaseInvoiceNumber] = useState();
 
   const [hasContract, setHasContract] = useState(repair.hasContract);
-  const [contractNumber, setContractNumber] = useState(
-    repair.contractNumber ?? ""
-  );
+  const [contractNumber, setContractNumber] = useState();
 
-  const [serviceDataConsent, setServiceDataConsent] = useState(
-    repair.serviceDataConsent
-  );
+  const [serviceDataConsent, setServiceDataConsent] = useState();
 
-  const [marketingConsent, setMarketingConsent] = useState(
-    repair.marketingConsent
-  );
+  const [marketingConsent, setMarketingConsent] = useState();
 
-
+  const products = [
+    "myBoard Grey Arrow",
+    "Another device",
+    "Another monitor",
+  ];
   
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -133,13 +124,6 @@ function EditRepairForm({ repair, onUpdated }) {
       errors.push("Company city is required.");
     }
 
-    if (!companyPhone.trim()) {
-      errors.push("Company phone number is required.");
-    } else if (!isValidPhone(companyPhone)) {
-      errors.push("Company phone is invalid.");
-    }
-
-
     // NIP
     const cleanNip = companyNip.replace(/\s/g, "");
 
@@ -153,21 +137,21 @@ function EditRepairForm({ repair, onUpdated }) {
 
 
     // Repair
-    if (!productCategory) {
-      errors.push("Product category is required.");
-    }
-
-    if (!product.trim()) {
+    if (!selectedProduct) {
       errors.push("Product is required.");
     }
 
     if (
-      (
-        productCategory === "Monitor" ||
-        productCategory === "InteractiveBoard"
-      ) &&
-      !serialNumber.trim()
+      selectedProduct === "Other" &&
+      !customProduct.trim()
     ) {
+      errors.push(
+        "Device name is required when Other is selected."
+      );
+    }
+
+    if (selectedProduct !== "Other" && !serialNumber.trim()) 
+      {
       errors.push(
         "Serial number is required for monitors and interactive boards."
       );
@@ -245,12 +229,19 @@ function EditRepairForm({ repair, onUpdated }) {
       return;
     }
 
+    const isCustomProduct =
+      selectedProduct === "Other";
+
+    const product = isCustomProduct
+      ? customProduct.trim()
+      : selectedProduct;
+
     try {
       await updateRepair(repair.id, {
         status,
 
-        productCategory,
-        product: product.trim(),
+        product,
+        isCustomProduct,
         serialNumber: serialNumber.trim(),
         description: description.trim(),
 
@@ -264,7 +255,6 @@ function EditRepairForm({ repair, onUpdated }) {
         companyPostalCode: companyPostalCode.trim(),
         companyCity: companyCity.trim(),
         companyNip: companyNip.replace(/\s/g, ""),
-        companyPhone: companyPhone.replace(/[^\d+]/g, ""),
 
         hasWarranty,
         purchaseDate: hasWarranty ? purchaseDate : null,
@@ -315,40 +305,51 @@ function EditRepairForm({ repair, onUpdated }) {
           <label>Product category: </label>
 
           <select
-            value={productCategory}
+            required
+            value={selectedProduct}
             onChange={(event) =>
-              setProductCategory(event.target.value)
+              setSelectedProduct(event.target.value)
             }
           >
-            <option value="Monitor">Monitor</option>
-            <option value="InteractiveBoard">
-              Interactive board
+            <option value="">
+              Select product
             </option>
-            <option value="Projector">Projector</option>
-            <option value="Computer">Computer</option>
-            <option value="Other">Other</option>
+
+            {products.map((product) => (
+              <option
+                key={product}
+                value={product}
+              >
+                {product}
+              </option>
+            ))}
+
+            <option value="Other">
+              Other
+            </option>
           </select>
         </div>
 
-        <div>
-          <label>Product: </label>
+        {selectedProduct === "Other" && (
+          <div>
+            <label>Device name: </label>
 
-          <input
-            required
-            value={product}
-            onChange={(event) =>
-              setProduct(event.target.value)
-            }
-          />
-        </div>
+            <input
+              required
+              value={customProduct}
+              onChange={(event) =>
+                setCustomProduct(event.target.value)
+              }
+            />
+          </div>
+        )}
 
         <div>
           <label>Serial number: </label>
 
           <input
             required={
-              productCategory === "Monitor" ||
-              productCategory === "InteractiveBoard"
+              selectedProduct === "Other"
             }
             value={serialNumber}
             onChange={(event) =>
@@ -483,19 +484,6 @@ function EditRepairForm({ repair, onUpdated }) {
             }
           />
         </div>
-
-        <div>
-          <label>Company phone: </label>
-
-          <input
-            required
-            value={companyPhone}
-            onChange={(event) =>
-              setCompanyPhone(event.target.value)
-            }
-          />
-        </div>
-
 
         <h3>Warranty</h3>
 

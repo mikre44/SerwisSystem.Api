@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 import EditRepairForm from "../components/EditFormComponents/EditRepairForm";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
+import DeleteRepairButton from "../components/EditFormComponents/DeleteRepairButton";
 
 function Repair() {
   const { id } = useParams();
@@ -12,6 +13,10 @@ function Repair() {
 
   const [repair, setRepair] = useState(null);
   const [error, setError] = useState("");
+
+  const canDelete =
+  user.role === "Admin" ||
+  user.permissions?.deleteRepairs;
 
   async function loadRepair() {
     try {
@@ -47,8 +52,9 @@ function Repair() {
       <h2>Repair information</h2>
 
       <p>Status: {repair.status}</p>
-      <p>Product category: {repair.productCategory}</p>
-      <p>Product: {repair.product}</p>
+      <p> Product: {repair.product} 
+        {repair.isCustomProduct && " (nie z listy)"}
+      </p>
       <p>Serial number: {repair.serialNumber || "None"}</p>
       <p>Description: {repair.description}</p>
 
@@ -66,7 +72,6 @@ function Repair() {
       <p>Postal code: {repair.companyPostalCode}</p>
       <p>City: {repair.companyCity}</p>
       <p>NIP: {repair.companyNip}</p>
-      <p>Company phone: {repair.companyPhone}</p>
 
       <h2>Warranty</h2>
 
@@ -129,6 +134,13 @@ function Repair() {
         repair={repair}
         onUpdated={loadRepair}
       />
+
+      {canDelete && (
+        <DeleteRepairButton
+          repairId={repair.id}
+          onDeleted={() => navigate("/repairs")}
+        />
+      )}
 
       {canEdit && (
         <EditRepairForm

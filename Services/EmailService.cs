@@ -27,18 +27,31 @@ public class EmailService
         var fromEmail = _configuration["Email:FromEmail"];
         var fromName = _configuration["Email:FromName"];
 
-        if (
-            string.IsNullOrWhiteSpace(host) ||
-            string.IsNullOrWhiteSpace(portString) ||
-            string.IsNullOrWhiteSpace(username) ||
-            string.IsNullOrWhiteSpace(password) ||
-            string.IsNullOrWhiteSpace(fromEmail)
-        )
+        var missing = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(host))
+            missing.Add("Email:SmtpHost");
+
+        if (string.IsNullOrWhiteSpace(portString))
+            missing.Add("Email:SmtpPort");
+
+        if (string.IsNullOrWhiteSpace(username))
+            missing.Add("Email:Username");
+
+        if (string.IsNullOrWhiteSpace(password))
+            missing.Add("Email:Password");
+
+        if (string.IsNullOrWhiteSpace(fromEmail))
+            missing.Add("Email:FromEmail");
+
+        if (missing.Count > 0)
         {
             throw new InvalidOperationException(
-                "Email configuration is missing."
+                $"Missing email configuration: {string.Join(", ", missing)}"
             );
         }
+
+       
 
         if (!int.TryParse(portString, out var port))
         {

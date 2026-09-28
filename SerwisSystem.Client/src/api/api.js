@@ -132,6 +132,11 @@ export function returnRepair(id) {
   });
 }
 
+export function deleteRepair(id) {
+  return apiFetch(`/repairs/${id}`, {
+    method: "DELETE",
+  });
+}
 
 export function getUsers({// users ================================================================
   page = 1,

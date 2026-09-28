@@ -92,10 +92,6 @@ namespace SerwisSystem.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("CompanyPhone")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("CompanyPostalCode")
                         .IsRequired()
                         .HasColumnType("text");
@@ -116,15 +112,15 @@ namespace SerwisSystem.Api.Migrations
                     b.Property<bool>("HasWarranty")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsCustomProduct")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("MarketingConsent")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Product")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int>("ProductCategory")
-                        .HasColumnType("integer");
 
                     b.Property<DateOnly?>("PurchaseDate")
                         .HasColumnType("date");

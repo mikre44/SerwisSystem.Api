@@ -1,6 +1,25 @@
-@SerwisSystem_Api_HostAddress = http://localhost:5000
+@SerwisSystem_Api_HostAddress = http://localhost:5000 
+### Change to your host address ^
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjE2IiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6Ik1pa2UxIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiV29ya2VyIiwiZXhwIjoxNzg5MDUzNjY2fQ.fE-9JA5aEPF9lQfy8EZ5HaW5sHk4ACK6J2wCnzHFT0c
+@token = YOUR_TOKEN
+
+
+
+### FIRST ADMIN CREATION ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/create-first-admin
+Content-Type: application/json
+{
+  "username": "admin",
+  "email": "admin@example.com",
+  "password": "YourStrongPassword123!"
+}
+
+###^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+
 
 ###=====================================List of Repair requests=====================================
 
@@ -147,7 +166,7 @@ Authorization: Bearer {{token}}
 ###=====================================List of Authorization requests=====================================
 
 ### register user
-POST http://localhost:5000/api/auth/register
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/register
 Content-Type: application/json
 
 {
@@ -157,7 +176,7 @@ Content-Type: application/json
 }
 
 ### login user
-POST http://localhost:5000/api/auth/login
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
@@ -166,7 +185,7 @@ Content-Type: application/json
 }
 
 ### create admin
-POST http://localhost:5000/api/auth/createAdmin
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/createAdmin
 Content-Type: application/json
 
 {
