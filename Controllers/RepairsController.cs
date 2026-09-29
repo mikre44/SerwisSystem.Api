@@ -283,7 +283,7 @@ public class RepairsController : ControllerBase
             );
         }
 
-        if (dto.ProductCategory == ProductCategory.Other &&
+        if (dto.IsCustomProduct &&
             string.IsNullOrWhiteSpace(dto.Product))
         {
             return BadRequest(
@@ -303,18 +303,18 @@ public class RepairsController : ControllerBase
 
 
         // Serial number validation
-        if (
-            dto.ProductCategory == ProductCategory.Monitor ||
-            dto.ProductCategory == ProductCategory.InteractiveBoard
-        )
-        {
-            if (string.IsNullOrWhiteSpace(dto.SerialNumber))
-            {
-                return BadRequest(
-                    "Serial number is required for monitors and interactive boards."
-                );
-            }
-        }
+        //if (
+        //    dto.ProductCategory == ProductCategory.Monitor ||
+        //    dto.ProductCategory == ProductCategory.InteractiveBoard
+        //)
+        //{
+        //    if (string.IsNullOrWhiteSpace(dto.SerialNumber))
+        //    {
+        //        return BadRequest(
+        //            "Serial number is required for monitors and interactive boards."
+        //        );
+        //    }
+        //}
 
 
         // Required service consent
@@ -390,21 +390,19 @@ public class RepairsController : ControllerBase
     // Public repair status check
     [AllowAnonymous]
     [HttpPost("check")]
-    public async Task<IActionResult> CheckRepair(
-        CheckRepairDto dto)
+    public async Task<IActionResult> CheckRepair(CheckRepairDto dto)
     {
         var repair = await _context.Repairs
             .FirstOrDefaultAsync(r =>
-                r.SerialNumber == dto.SerialNumber &&
-                r.ReporterEmail == dto.Email);
+                r.Id == dto.Id &&
+                r.ReporterEmail == dto.Email
+            );
 
         if (repair == null)
             return NotFound("Repair not found.");
 
-
         return Ok(new PublicRepairResponseDto
         {
-            SerialNumber = repair.SerialNumber,
             Product = repair.Product,
             Status = repair.Status.ToString(),
             CreatedAt = repair.CreatedAt
@@ -482,16 +480,6 @@ public class RepairsController : ControllerBase
             }
         }
 
-
-        // Required consent
-        if (!updatedRepair.ServiceDataConsent)
-        {
-            return BadRequest(
-                "Consent to process personal data for service purposes is required."
-            );
-        }
-
-
         // If repair is manually moved into an active/final status
         // and has no worker, assign the editing user.
         if (
@@ -534,11 +522,6 @@ public class RepairsController : ControllerBase
 
         repair.HasContract = updatedRepair.HasContract;
         repair.ContractNumber = updatedRepair.ContractNumber;
-
-
-        repair.ServiceDataConsent = updatedRepair.ServiceDataConsent;
-        repair.MarketingConsent = updatedRepair.MarketingConsent;
-
 
         // Pending repairs should not have an assigned worker.
         if (repair.Status == RepairStatus.Pending)

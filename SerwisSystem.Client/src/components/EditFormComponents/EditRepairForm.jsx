@@ -2,46 +2,170 @@ import { useState } from "react";
 import { updateRepair } from "../../api/api";
 
 function EditRepairForm({ repair, onUpdated }) {
-  const [status, setStatus] = useState(repair.status);
-  const [selectedProduct, setSelectedProduct] = useState("");
-  const [customProduct, setCustomProduct] = useState("");
-  const [serialNumber, setSerialNumber] = useState("");
-  const [description, setDescription] = useState(repair.description);
+  const [status, setStatus] = useState(
+    repair.status
+  );
 
-  const [reporterName, setReporterName] = useState(repair.reporterName);
-  const [reporterSurname, setReporterSurname] = useState(repair.reporterSurname);
-  const [reporterPhone, setReporterPhone] = useState(repair.reporterPhone);
-  const [reporterEmail, setReporterEmail] = useState(repair.reporterEmail);
+  const [selectedProduct, setSelectedProduct] = useState(
+    repair.isCustomProduct
+      ? "Other"
+      : repair.product
+  );
 
-  const [companyName, setCompanyName] = useState(repair.companyName);
-  const [companyAddress, setCompanyAddress] = useState(repair.companyAddress);
-  const [companyPostalCode, setCompanyPostalCode] = useState(repair.companyPostalCode);
-  const [companyCity, setCompanyCity] = useState(repair.companyCity);
-  const [companyNip, setCompanyNip] = useState(repair.companyNip);
+  const [customProduct, setCustomProduct] = useState(
+    repair.isCustomProduct
+      ? repair.product
+      : ""
+  );
 
-  const [hasWarranty, setHasWarranty] = useState(repair.hasWarranty);
-  const [purchaseDate, setPurchaseDate] = useState();
-  const [purchaseInvoiceNumber, setPurchaseInvoiceNumber] = useState();
+  const [serialNumber, setSerialNumber] = useState(
+    repair.serialNumber ?? ""
+  );
 
-  const [hasContract, setHasContract] = useState(repair.hasContract);
-  const [contractNumber, setContractNumber] = useState();
+  const [description, setDescription] = useState(
+    repair.description ?? ""
+  );
 
-  const [serviceDataConsent, setServiceDataConsent] = useState();
+  // Osoba zgłaszająca
+  const [reporterName, setReporterName] = useState(
+    repair.reporterName ?? ""
+  );
 
-  const [marketingConsent, setMarketingConsent] = useState();
+  const [reporterSurname, setReporterSurname] = useState(
+    repair.reporterSurname ?? ""
+  );
 
-  const products = [
-    "myBoard Grey Arrow",
-    "Another device",
-    "Another monitor",
-  ];
-  
+  const [reporterPhone, setReporterPhone] = useState(
+    repair.reporterPhone ?? ""
+  );
+
+  const [reporterEmail, setReporterEmail] = useState(
+    repair.reporterEmail ?? ""
+  );
+
+  // Firma
+  const [companyName, setCompanyName] = useState(
+    repair.companyName ?? ""
+  );
+
+  const [companyAddress, setCompanyAddress] = useState(
+    repair.companyAddress ?? ""
+  );
+
+  const [companyPostalCode, setCompanyPostalCode] = useState(
+    repair.companyPostalCode ?? ""
+  );
+
+  const [companyCity, setCompanyCity] = useState(
+    repair.companyCity ?? ""
+  );
+
+  const [companyNip, setCompanyNip] = useState(
+    repair.companyNip ?? ""
+  );
+
+  // Gwarancja
+  const [hasWarranty, setHasWarranty] = useState(
+    repair.hasWarranty ?? false
+  );
+
+  const [purchaseDate, setPurchaseDate] = useState(
+    repair.purchaseDate ?? ""
+  );
+
+  const [
+    purchaseInvoiceNumber,
+    setPurchaseInvoiceNumber
+  ] = useState(
+    repair.purchaseInvoiceNumber ?? ""
+  );
+
+  // Umowa
+  const [hasContract, setHasContract] = useState(
+    repair.hasContract ?? false
+  );
+
+  const [contractNumber, setContractNumber] = useState(
+    repair.contractNumber ?? ""
+  );
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [updating, setUpdating] = useState(false);
 
-  
+  const productRules = {
+    "Monitor interaktywny myBoard Titan (Android 15)": {
+      checkVersion: "new",
+      expectedNumber: "05",
+    },
+
+    "Monitor interaktywny myBoard Grey Arrow (Android 13)": {
+      checkVersion: "old",
+      expectedNumber: "13",
+    },
+
+    "Monitor interaktywny myBoard Panda (Android 13)": {
+      checkVersion: "new",
+      expectedNumber: "02",
+    },
+
+    "Monitor interaktywny myBoard Black Arrow (Android 13)": {
+      checkVersion: "new",
+      expectedNumber: "01",
+    },
+
+    "Monitor interaktywny myBoard Grey Rock (Android 11)": {
+      checkVersion: "old",
+      expectedNumber: "11",
+    },
+
+    "Monitor interaktywny myBoard Grey Rock 2.0 (Android 11)": {
+      checkVersion: "old",
+      expectedNumber: "11",
+    },
+
+    "Monitor interaktywny myBoard White Arrow (Android 14)": {
+      checkVersion: "new",
+      expectedNumber: "04",
+    },
+
+    "Monitor interaktywny myBoard Panda 2.0 (Android 14)": {
+      checkVersion: "new",
+      expectedNumber: "03",
+    },
+
+    "Monitor interaktywny (model spoza listy)": {
+      checkVersion: "generic",
+      expectedNumber: null,
+    },
+
+    "Tablica interaktywna myBoard Silver": {
+      checkVersion: "generic",
+      expectedNumber: null,
+    },
+
+    "Tablica interaktywna myBoard Black": {
+      checkVersion: "generic",
+      expectedNumber: null,
+    },
+  };
+
+  const products = [
+    ...Object.keys(productRules),
+    "Akcesoria do tablic interaktywnych myBoard",
+    "Akcesoria dla monitorów interaktywnych myBoard",
+    "Pracownie językowe",
+    "Podłoga interaktywna SmartFloor",
+    "Meble",
+    "Systemy konferencyjne",
+    "Projektory",
+    "Laptop",
+  ];// product 
+
+
   function isValidPhone(phone) {
-    const cleaned = phone.replace(/[^\d+]/g, "");
+    const cleaned =
+      phone.replace(/[^\d+]/g, "");
 
     return /^(\+)?\d{7,15}$/.test(cleaned);
   }
@@ -51,7 +175,10 @@ function EditRepairForm({ repair, onUpdated }) {
       return false;
     }
 
-    const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+    const weights = [
+      6, 5, 7, 2, 3,
+      4, 5, 6, 7
+    ];
 
     const sum = weights.reduce(
       (total, weight, index) =>
@@ -69,76 +196,193 @@ function EditRepairForm({ repair, onUpdated }) {
   }
 
 
+  function validateSerialNumber(serialNumber, product) {
+    const serial = serialNumber.trim();
+
+    const rule = productRules[product];
+
+    if (!rule) {
+      return {
+        valid: true
+      };
+    }
+
+    // new form
+    if (rule.checkVersion === "new") {
+      const match = serial.match(
+        /^L(\d{6})(01|02|03|04|05|06)(55|65|75|86|98)(\d{5})$/
+      );
+
+      if (!match) {
+        return {
+          valid: false,
+          message:
+            "Numer seryjny ma nieprawidłowy format dla wybranego monitora."
+        };
+      }
+
+      const modelNumber = match[2];
+
+      if (modelNumber !== rule.expectedNumber) {
+        return {
+          valid: false,
+          message:
+            "Numer seryjny nie odpowiada wybranemu modelowi monitora."
+        };
+      }
+
+      return {
+        valid: true
+      };
+    }
+
+    // old form
+    if (rule.checkVersion === "old") {
+      const match = serial.match(
+        /^(\d{4})(8|11|13)\d(55|65|75|86|98)(\d{3})Z$/i
+      );
+
+      if (!match) {
+        return {
+          valid: false,
+          message:
+            "Numer seryjny ma nieprawidłowy format dla wybranego monitora."
+        };
+      }
+
+      const androidVersion = match[2];
+
+      if (androidVersion !== rule.expectedNumber) {
+        return {
+          valid: false,
+          message:
+            `Numer seryjny wskazuje Android ${androidVersion}, ` +
+            `a wybrany monitor ma Android ${rule.expectedNumber}.`
+        };
+      }
+
+      return {
+        valid: true
+      };
+    }
+
+    // default form
+    if (rule.checkVersion === "generic") {
+      if (!/^[A-Za-z0-9\-\/._]{4,40}$/.test(serial)) {
+        return {
+          valid: false,
+          message:
+            "Numer seryjny musi mieć od 4 do 40 dozwolonych znaków."
+        };
+      }
+
+      return {
+        valid: true
+      };
+    }
+
+    return {
+      valid: false,
+      message: "Nie można zweryfikować numeru seryjnego."
+    };
+  }
+
+  
 
 
   function validateForm() {
     const errors = [];
 
-    // Reporter
     if (!reporterName.trim()) {
-      errors.push("Reporter name is required.");
+      errors.push(
+        "Imię osoby zgłaszającej jest wymagane."
+      );
     }
 
     if (!reporterSurname.trim()) {
-      errors.push("Reporter surname is required.");
+      errors.push(
+        "Nazwisko osoby zgłaszającej jest wymagane."
+      );
     }
 
     if (!reporterPhone.trim()) {
-      errors.push("Reporter phone number is required.");
+      errors.push(
+        "Numer telefonu jest wymagany."
+      );
     } else if (!isValidPhone(reporterPhone)) {
-      errors.push("Reporter phone number is invalid.");
+      errors.push(
+        "Numer telefonu jest nieprawidłowy."
+      );
     }
 
     if (!reporterEmail.trim()) {
-      errors.push("Reporter email is required.");
+      errors.push(
+        "Adres e-mail jest wymagany."
+      );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (
       reporterEmail.trim() &&
-      !emailRegex.test(reporterEmail.trim())
+      !emailRegex.test(
+        reporterEmail.trim()
+      )
     ) {
-      errors.push("Reporter email is invalid.");
+      errors.push(
+        "Adres e-mail jest nieprawidłowy."
+      );
     }
 
-
-    // Company
     if (!companyName.trim()) {
-      errors.push("Company name is required.");
+      errors.push(
+        "Nazwa firmy jest wymagana."
+      );
     }
 
     if (!companyAddress.trim()) {
-      errors.push("Company address is required.");
+      errors.push(
+        "Adres firmy jest wymagany."
+      );
     }
 
-    const postalCodeRegex = /^\d{2}-\d{3}$/;
+    const postalCodeRegex =
+      /^\d{2}-\d{3}$/;
 
-    if (!postalCodeRegex.test(companyPostalCode.trim())) {
+    if (
+      !postalCodeRegex.test(
+        companyPostalCode.trim()
+      )
+    ) {
       errors.push(
-        "Postal code must have format XX-XXX."
+        "Kod pocztowy musi mieć format XX-XXX."
       );
     }
 
     if (!companyCity.trim()) {
-      errors.push("Company city is required.");
+      errors.push(
+        "Miasto jest wymagane."
+      );
     }
 
-    // NIP
-    const cleanNip = companyNip.replace(/\s/g, "");
+    const cleanNip =
+      companyNip.replace(/\s/g, "");
 
     if (!/^\d{10}$/.test(cleanNip)) {
       errors.push(
-        "NIP must contain exactly 10 digits."
+        "NIP musi składać się dokładnie z 10 cyfr."
       );
     } else if (!isValidNip(cleanNip)) {
-      errors.push("NIP is invalid.");
+      errors.push(
+        "Podany NIP jest nieprawidłowy."
+      );
     }
 
-
-    // Repair
     if (!selectedProduct) {
-      errors.push("Product is required.");
+      errors.push(
+        "Wybierz produkt."
+      );
     }
 
     if (
@@ -146,85 +390,101 @@ function EditRepairForm({ repair, onUpdated }) {
       !customProduct.trim()
     ) {
       errors.push(
-        "Device name is required when Other is selected."
+        "Podaj nazwę urządzenia niewystępującego na liście."
       );
     }
 
-    if (selectedProduct !== "Other" && !serialNumber.trim()) 
-      {
-      errors.push(
-        "Serial number is required for monitors and interactive boards."
-      );
-    }
+    const serialRule = productRules[selectedProduct];
 
-    if (!description.trim()) {
-      errors.push(
-        "Fault description is required."
-      );
-    }
-
-
-    // Warranty
-    if (hasWarranty) {
-      if (!purchaseDate) {
+    if (serialRule) {
+      if (!serialNumber.trim()) {
         errors.push(
-          "Purchase date is required for warranty repairs."
+          "Numer seryjny jest wymagany dla wybranego produktu."
         );
-      }
-
-      if (!purchaseInvoiceNumber.trim()) {
-        errors.push(
-          "Purchase invoice number is required for warranty repairs."
-        );
-      }
-
-      if (purchaseDate) {
-        const selectedDate = new Date(
-          `${purchaseDate}T00:00:00`
+      } else {
+        const serialValidation = validateSerialNumber(
+          serialNumber,
+          selectedProduct
         );
 
-        const today = new Date();
-
-        today.setHours(0, 0, 0, 0);
-
-        if (selectedDate > today) {
-          errors.push(
-            "Purchase date cannot be in the future."
-          );
+        if (!serialValidation.valid) {
+          errors.push(serialValidation.message);
         }
       }
     }
 
 
-    // Contract
+    if (!description.trim()) {
+      errors.push(
+        "Opis usterki jest wymagany."
+      );
+    }
+
+    if (hasWarranty) {
+      if (!purchaseDate) {
+        errors.push(
+          "Data zakupu jest wymagana przy naprawie gwarancyjnej."
+        );
+      }
+
+      if (!purchaseInvoiceNumber.trim()) {
+        errors.push(
+          "Numer faktury jest wymagany przy naprawie gwarancyjnej."
+        );
+      }
+
+      if (purchaseDate) {
+        const selectedDate =
+          new Date(
+            `${purchaseDate}T00:00:00`
+          );
+
+        const today = new Date();
+
+        today.setHours(
+          0,
+          0,
+          0,
+          0
+        );
+
+        if (selectedDate > today) {
+          errors.push(
+            "Data zakupu nie może być datą przyszłą."
+          );
+        }
+      }
+    }
+
     if (
       hasContract &&
       !contractNumber.trim()
     ) {
       errors.push(
-        "Contract number is required when contract is selected."
-      );
-    }
-
-
-    // Consent
-    if (!serviceDataConsent) {
-      errors.push(
-        "Service data consent is required."
+        "Numer umowy jest wymagany."
       );
     }
 
     return errors;
   }
 
-
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const validationErrors = validateForm();
+    if (updating) {
+      return;
+    }
 
-    if (validationErrors.length > 0) {
-      setError(validationErrors.join(" "));
+    const validationErrors =
+      validateForm();
+
+    if (
+      validationErrors.length > 0
+    ) {
+      setError(
+        validationErrors.join(" ")
+      );
+
       setSuccess("");
       return;
     }
@@ -232,87 +492,161 @@ function EditRepairForm({ repair, onUpdated }) {
     const isCustomProduct =
       selectedProduct === "Other";
 
-    const product = isCustomProduct
-      ? customProduct.trim()
-      : selectedProduct;
+    const product =
+      isCustomProduct
+        ? customProduct.trim()
+        : selectedProduct;
 
     try {
-      await updateRepair(repair.id, {
-        status,
+      setUpdating(true);
+      setError("");
+      setSuccess("");
 
-        product,
-        isCustomProduct,
-        serialNumber: serialNumber.trim(),
-        description: description.trim(),
+      await updateRepair(
+        repair.id,
+        {
+          status,
 
-        reporterName: reporterName.trim(),
-        reporterSurname: reporterSurname.trim(),
-        reporterPhone: reporterPhone.replace(/[^\d+]/g, ""),
-        reporterEmail: reporterEmail.trim(),
+          product,
+          isCustomProduct,
 
-        companyName: companyName.trim(),
-        companyAddress: companyAddress.trim(),
-        companyPostalCode: companyPostalCode.trim(),
-        companyCity: companyCity.trim(),
-        companyNip: companyNip.replace(/\s/g, ""),
+          serialNumber:
+            serialNumber.trim() ||
+            null,
 
-        hasWarranty,
-        purchaseDate: hasWarranty ? purchaseDate : null,
-        purchaseInvoiceNumber:  hasWarranty ? purchaseInvoiceNumber.trim() : null,
+          description:
+            description.trim(),
 
-        hasContract,
-        contractNumber: hasContract ? contractNumber.trim() : null,
+          reporterName:
+            reporterName.trim(),
 
-        serviceDataConsent,
-        marketingConsent,
-      });
+          reporterSurname:
+            reporterSurname.trim(),
+
+          reporterPhone:
+            reporterPhone.replace(
+              /[^\d+]/g,
+              ""
+            ),
+
+          reporterEmail:
+            reporterEmail.trim(),
+
+          companyName:
+            companyName.trim(),
+
+          companyAddress:
+            companyAddress.trim(),
+
+          companyPostalCode:
+            companyPostalCode.trim(),
+
+          companyCity:
+            companyCity.trim(),
+
+          companyNip:
+            companyNip.replace(
+              /\s/g,
+              ""
+            ),
+
+          hasWarranty,
+
+          purchaseDate:
+            hasWarranty
+              ? purchaseDate
+              : null,
+
+          purchaseInvoiceNumber:
+            hasWarranty
+              ? purchaseInvoiceNumber.trim()
+              : null,
+
+          hasContract,
+
+          contractNumber:
+            hasContract
+              ? contractNumber.trim()
+              : null,
+        }
+      );
 
       setError("");
+
       setSuccess(
-        "Repair updated successfully."
+        "Dane naprawy zostały zapisane."
       );
 
       await onUpdated();
     } catch (error) {
       setSuccess("");
       setError(error.message);
+    } finally {
+      setUpdating(false);
     }
   }
 
+  const serialRequired =
+    productRules[selectedProduct] != null;
+
   return (
     <div>
-      <h2>Edit repair</h2>
+      <h2>Edytuj naprawę</h2>
 
-      {error && <p>Error: {error}</p>}
-      {success && <p>{success}</p>}
+      {error && (
+        <p>Błąd: {error}</p>
+      )}
+
+      {success && (
+        <p>{success}</p>
+      )}
 
       <form onSubmit={handleSubmit}>
+        <h3>Status</h3>
 
-        <h2>Status: </h2>
         <select
           value={status}
-          onChange={(event) => setStatus(event.target.value)}>
-          <option value="Pending">Pending</option>
-          <option value="InProgress">InProgress</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
+          onChange={(event) =>
+            setStatus(
+              event.target.value
+            )
+          }
+        >
+          <option value="Pending">
+            Oczekująca
+          </option>
+
+          <option value="InProgress">
+            W trakcie
+          </option>
+
+          <option value="Completed">
+            Zakończona
+          </option>
+
+          <option value="Cancelled">
+            Anulowana
+          </option>
         </select>
 
-
-        <h3>Repair</h3>
+        <h3>Urządzenie</h3>
 
         <div>
-          <label>Product category: </label>
+          <label>Produkt: </label>
 
           <select
             required
             value={selectedProduct}
-            onChange={(event) =>
-              setSelectedProduct(event.target.value)
-            }
+            onChange={(event) => {
+              setSelectedProduct(
+                event.target.value
+              );
+
+              setSerialNumber("");
+            }}
           >
             <option value="">
-              Select product
+              Wybierz produkt
             </option>
 
             {products.map((product) => (
@@ -325,150 +659,186 @@ function EditRepairForm({ repair, onUpdated }) {
             ))}
 
             <option value="Other">
-              Other
+              Inny
             </option>
           </select>
         </div>
 
         {selectedProduct === "Other" && (
           <div>
-            <label>Device name: </label>
+            <label>
+              Nazwa urządzenia:
+            </label>
 
             <input
               required
               value={customProduct}
               onChange={(event) =>
-                setCustomProduct(event.target.value)
+                setCustomProduct(
+                  event.target.value
+                )
               }
             />
           </div>
         )}
 
         <div>
-          <label>Serial number: </label>
+          <label>
+            Numer seryjny:
+          </label>
 
           <input
-            required={
-              selectedProduct === "Other"
-            }
+            required={serialRequired}
             value={serialNumber}
             onChange={(event) =>
-              setSerialNumber(event.target.value)
+              setSerialNumber(
+                event.target.value
+              )
             }
           />
+
+          {selectedProduct === "Other" && (
+            <small>
+              Numer seryjny jest opcjonalny
+              dla urządzenia spoza listy.
+            </small>
+          )}
         </div>
 
         <div>
-          <label>Description: </label>
+          <label>
+            Opis usterki:
+          </label>
 
           <textarea
             required
             value={description}
             onChange={(event) =>
-              setDescription(event.target.value)
+              setDescription(
+                event.target.value
+              )
             }
           />
         </div>
 
-
-        <h3>Reporting person</h3>
+        <h3>Dane osoby zgłaszającej</h3>
 
         <div>
-          <label>Name: </label>
+          <label>Imię: </label>
 
           <input
             required
             value={reporterName}
             onChange={(event) =>
-              setReporterName(event.target.value)
+              setReporterName(
+                event.target.value
+              )
             }
           />
         </div>
 
         <div>
-          <label>Surname: </label>
+          <label>Nazwisko: </label>
 
           <input
             required
             value={reporterSurname}
             onChange={(event) =>
-              setReporterSurname(event.target.value)
+              setReporterSurname(
+                event.target.value
+              )
             }
           />
         </div>
 
         <div>
-          <label>Phone: </label>
+          <label>Telefon: </label>
 
           <input
             required
+            type="tel"
             value={reporterPhone}
             onChange={(event) =>
-              setReporterPhone(event.target.value)
+              setReporterPhone(
+                event.target.value
+              )
             }
           />
         </div>
 
         <div>
-          <label>Email: </label>
+          <label>E-mail: </label>
 
           <input
             required
             type="email"
             value={reporterEmail}
             onChange={(event) =>
-              setReporterEmail(event.target.value)
+              setReporterEmail(
+                event.target.value
+              )
             }
           />
         </div>
 
-
-        <h3>Company</h3>
+        <h3>Dane firmy</h3>
 
         <div>
-          <label>Company name: </label>
+          <label>
+            Nazwa firmy:
+          </label>
 
           <input
             required
             value={companyName}
             onChange={(event) =>
-              setCompanyName(event.target.value)
+              setCompanyName(
+                event.target.value
+              )
             }
           />
         </div>
 
         <div>
-          <label>Address: </label>
+          <label>Adres: </label>
 
           <input
             required
             value={companyAddress}
             onChange={(event) =>
-              setCompanyAddress(event.target.value)
+              setCompanyAddress(
+                event.target.value
+              )
             }
           />
         </div>
 
         <div>
-          <label>Postal code: </label>
+          <label>
+            Kod pocztowy:
+          </label>
 
           <input
             required
             value={companyPostalCode}
             onChange={(event) =>
-              setCompanyPostalCode(event.target.value)
+              setCompanyPostalCode(
+                event.target.value
+              )
             }
           />
         </div>
 
         <div>
-          <label>City: </label>
+          <label>Miasto: </label>
 
           <input
             required
             value={companyCity}
             onChange={(event) =>
-              setCompanyCity(event.target.value)
+              setCompanyCity(
+                event.target.value
+              )
             }
           />
         </div>
@@ -478,117 +848,144 @@ function EditRepairForm({ repair, onUpdated }) {
 
           <input
             required
+            inputMode="numeric"
+            maxLength={10}
             value={companyNip}
-            onChange={(event) =>
-              setCompanyNip(event.target.value)
-            }
+            onChange={(event) => {
+              const value =
+                event.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 10);
+
+              setCompanyNip(value);
+            }}
           />
         </div>
 
-        <h3>Warranty</h3>
+        <h3>Gwarancja</h3>
 
         <label>
           <input
             type="checkbox"
             checked={hasWarranty}
             onChange={(event) =>
-              setHasWarranty(event.target.checked)
+              setHasWarranty(
+                event.target.checked
+              )
             }
           />
 
-          Warranty repair
+          Naprawa gwarancyjna
         </label>
 
         {hasWarranty && (
           <>
             <div>
-              <label>Purchase date: </label>
+              <label>
+                Data zakupu:
+              </label>
 
               <input
                 required
                 type="date"
                 value={purchaseDate}
                 onChange={(event) =>
-                  setPurchaseDate(event.target.value)
+                  setPurchaseDate(
+                    event.target.value
+                  )
                 }
               />
             </div>
 
             <div>
-              <label>Invoice number: </label>
+              <label>
+                Numer faktury:
+              </label>
 
               <input
                 required
-                value={purchaseInvoiceNumber}
+                value={
+                  purchaseInvoiceNumber
+                }
                 onChange={(event) =>
-                  setPurchaseInvoiceNumber(event.target.value)
+                  setPurchaseInvoiceNumber(
+                    event.target.value
+                  )
                 }
               />
             </div>
           </>
         )}
 
-
-        <h3>Contract</h3>
+        <h3>Umowa</h3>
 
         <label>
           <input
             type="checkbox"
             checked={hasContract}
             onChange={(event) =>
-              setHasContract(event.target.checked)
+              setHasContract(
+                event.target.checked
+              )
             }
           />
 
-          Has contract
+          Zgłoszenie w ramach umowy
         </label>
 
         {hasContract && (
           <div>
-            <label>Contract number: </label>
+            <label>
+              Numer umowy:
+            </label>
 
             <input
               required
               value={contractNumber}
               onChange={(event) =>
-                setContractNumber(event.target.value)
+                setContractNumber(
+                  event.target.value
+                )
               }
             />
           </div>
         )}
 
+        <h3>Zgody</h3>
 
-        <h3>Consents</h3>
+        <p>
+          Zgoda na przetwarzanie danych
+          w celu realizacji serwisu:{" "}
+          <strong>
+            {repair.serviceDataConsent
+              ? "Tak"
+              : "Nie"}
+          </strong>
+        </p>
 
-        <label>
-          <input
-            type="checkbox"
-            checked={serviceDataConsent}
-            onChange={(event) =>
-              setServiceDataConsent(event.target.checked)
-            }
-          />
+        <p>
+          Zgoda marketingowa:{" "}
+          <strong>
+            {repair.marketingConsent
+              ? "Tak"
+              : "Nie"}
+          </strong>
+        </p>
 
-          Service data consent
-        </label>
-
-        <br />
-
-        <label>
-          <input
-            type="checkbox"
-            checked={marketingConsent}
-            onChange={(event) =>
-              setMarketingConsent(event.target.checked)
-            }
-          />
-
-          Marketing consent
-        </label>
+        <small>
+          Zgody udzielone przez klienta
+          nie mogą być zmieniane przez
+          pracowników ani administratorów.
+        </small>
 
         <div>
-          <button type="submit">
-            Save repair
+          <button
+            type="submit"
+            disabled={updating}
+          >
+            {updating
+              ? "Zapisywanie..."
+              : "Zapisz zmiany"}
           </button>
         </div>
       </form>

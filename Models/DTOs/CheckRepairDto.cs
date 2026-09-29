@@ -5,8 +5,7 @@ namespace SerwisSystem.Api.Models.DTOs;
 public class CheckRepairDto
 {
     [Required]
-    [MaxLength(100)]
-    public string SerialNumber { get; set; }
+    public int Id { get; set; }
 
     [Required]
     [EmailAddress]

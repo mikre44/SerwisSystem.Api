@@ -91,11 +91,4 @@ public class UpdateRepairDto
 
     [MaxLength(100)]
     public string? ContractNumber { get; set; }
-
-
-    // Consents
-
-    public bool ServiceDataConsent { get; set; }
-
-    public bool MarketingConsent { get; set; }
 }
