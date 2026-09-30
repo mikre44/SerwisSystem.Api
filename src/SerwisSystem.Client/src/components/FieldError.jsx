@@ -5,7 +5,11 @@ function FieldError({ messages }) {
     return null;
   }
 
-  return <small role="alert">{messages.join(" ")}</small>;
+  return (
+    <div className="invalid-feedback d-block" role="alert">
+      {messages.join(" ")}
+    </div>
+  );
 }
 
 export default FieldError;
