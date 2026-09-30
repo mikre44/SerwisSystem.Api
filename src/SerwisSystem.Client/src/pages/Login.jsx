@@ -1,28 +1,29 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { login } from "../api/api";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import Message from "../components/Message";
 
 function Login() {
-  const { reloadUser } = useAuth();
+  const { signIn } = useAuth();
 
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
 
+    setError("");
+    setSubmitting(true);
+
     try {
-      const data = await login(usernameOrEmail, password);
-
-      localStorage.setItem("token", data.token);
-
-      await reloadUser();
-
-      console.log("Login successful!");
-
+      // On success the user is set and PublicRoute redirects to the home page.
+      await signIn(usernameOrEmail, password);
     } catch (error) {
-      console.error(error);
+      setError(error.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -30,33 +31,41 @@ function Login() {
     <div>
       <h1>Login</h1>
 
+      <Message error={error} />
+
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username or email"
-          value={usernameOrEmail}
-          onChange={(event) =>
-            setUsernameOrEmail(event.target.value)
-          }
-        />
+        <div>
+          <label htmlFor="login-username">Username or email</label>
+          <input
+            id="login-username"
+            type="text"
+            autoComplete="username"
+            required
+            value={usernameOrEmail}
+            onChange={(event) => setUsernameOrEmail(event.target.value)}
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(event) =>
-            setPassword(event.target.value)
-          }
-        />
+        <div>
+          <label htmlFor="login-password">Password</label>
+          <input
+            id="login-password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
 
-        <button type="submit">
-          Login
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Logging in..." : "Login"}
         </button>
       </form>
-        <p>
-          Don't have an account?{" "}
-          <Link to="/register">Register</Link>
-        </p>
+
+      <p>
+        Don't have an account? <Link to="/register">Register</Link>
+      </p>
     </div>
   );
 }
