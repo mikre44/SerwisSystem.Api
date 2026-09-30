@@ -1,77 +1,64 @@
 import { useState } from "react";
-import { promoteAdmin } from "../../api/api";
+import { demoteAdmin, promoteAdmin } from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
 import ConfirmButton from "../ConfirmButton";
+import Message from "../Message";
 
+// Promotes a worker to admin or demotes an admin. onUpdated() is called after
+// a successful change so the parent can load the changed user(s) again.
 function EditAdminButton({ user, onUpdated }) {
   const { user: loggedUser } = useAuth();
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const canManage =
-  loggedUser.id !== user.id &&
-  loggedUser.priority <= user.priority;
-  
-  if (
-    loggedUser.role !== "Admin" ||
-    loggedUser.id === user.id
-  ) {
+  if (loggedUser.role !== "Admin" || loggedUser.id === user.id) {
     return null;
   }
 
-  async function handlePromote() {
+  const isAdmin = user.role === "Admin";
+  // A lower priority number means more authority; only a strictly
+  // higher authority may demote another admin (the API checks the same).
+  const canDemote = loggedUser.priority < user.priority;
+
+  if (isAdmin && !canDemote) {
+    return null;
+  }
+
+  async function runAction(action, successMessage) {
     try {
-      await promoteAdmin(user.id);
+      await action(user.id);
 
       setError("");
-      setSuccess("User promoted to Admin.");
-
-      await onUpdated();
+      setSuccess(successMessage);
+      onUpdated();
     } catch (error) {
       setSuccess("");
       setError(error.message);
     }
   }
 
-    async function handleDemote() {
-    try {
-      await demoteAdmin(user.id);
-
-      setError("");
-      setSuccess("Admin demoted successfully.");
-
-      await loadAdmins();
-    } catch (error) {
-      setSuccess("");
-      setError(error.message);
-    }
-  }
-  
-  if (user.role !== "Admin")
   return (
     <div>
-      {error && <p>Error: {error}</p>}
-      {success && <p>{success}</p>}
+      <Message error={error} success={success} />
 
-      <ConfirmButton
-        message={`Promote ${user.username} to Admin?`}
-        onConfirm={handlePromote}
-      >
-        Promote to Admin
-      </ConfirmButton>
+      {isAdmin ? (
+        <ConfirmButton
+          message={`Demote ${user.username} to Worker?`}
+          onConfirm={() => runAction(demoteAdmin, "Admin demoted successfully.")}
+        >
+          Demote
+        </ConfirmButton>
+      ) : (
+        <ConfirmButton
+          message={`Promote ${user.username} to Admin?`}
+          onConfirm={() => runAction(promoteAdmin, "User promoted to Admin.")}
+        >
+          Promote to Admin
+        </ConfirmButton>
+      )}
     </div>
   );
-  else if(canManage)
-    return(
-      <ConfirmButton
-        message={`Demote ${user.username} to Worker?`}
-        onConfirm={handleDemote}
-      >
-        Demote
-      </ConfirmButton> 
-    );
-  return null;
 }
 
 export default EditAdminButton;
