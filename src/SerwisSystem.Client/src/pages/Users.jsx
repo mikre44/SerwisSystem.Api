@@ -2,47 +2,59 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUsers } from "../api/api";
 
+const PAGE_SIZE = 10;
+
 function Users() {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
 
+  // `search` follows the input; `appliedSearch` changes only when the form is submitted.
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [sortBy, setSortBy] = useState("priority");
   const [descending, setDescending] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  async function loadUsers(customPage = page) {
-    try {
-      const data = await getUsers({
-        page: customPage,
-        pageSize,
-        search,
-        sortBy,
-        descending,
+  useEffect(() => {
+    // Ignore a late response if the filters changed in the meantime.
+    let ignore = false;
+
+    getUsers({
+      page,
+      pageSize: PAGE_SIZE,
+      search: appliedSearch,
+      sortBy,
+      descending,
+    })
+      .then((data) => {
+        if (ignore) {
+          return;
+        }
+
+        setUsers(data.items);
+        setTotalPages(data.totalPages);
+        setTotalCount(data.totalCount);
+        setError("");
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setError(error.message);
+        }
       });
 
-      setUsers(data.items);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.totalCount);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
+    return () => {
+      ignore = true;
+    };
+  }, [page, appliedSearch, sortBy, descending]);
 
-  useEffect(() => {
-    loadUsers();
-  }, [page, sortBy, descending]);
-
-  async function handleSearch(event) {
+  function handleSearch(event) {
     event.preventDefault();
 
+    setAppliedSearch(search.trim());
     setPage(1);
-    await loadUsers(1);
   }
 
   function handleSort(column) {
@@ -72,12 +84,11 @@ function Users() {
 
       <form onSubmit={handleSearch}>
         <input
-          type="text"
+          type="search"
+          aria-label="Search users"
           placeholder="Search users..."
           value={search}
-          onChange={(event) =>
-            setSearch(event.target.value)
-          }
+          onChange={(event) => setSearch(event.target.value)}
         />
 
         <button type="submit">
@@ -121,19 +132,18 @@ function Users() {
         <tbody>
           {users.map((user) => (
             <tr key={user.id}>
-              <td>
-                {user.id}
-              </td>
+              <td>{user.id}</td>
 
               <td>
                 <Link to={`/user/${user.id}`}>
                   {user.username}
                 </Link>
               </td>
+
               <td>{user.email}</td>
               <td>{user.role}</td>
               <td>{user.priority}</td>
-              <td>{user.createdAt}</td>
+              <td>{new Date(user.createdAt).toLocaleDateString()}</td>
             </tr>
           ))}
         </tbody>

@@ -101,7 +101,7 @@ function toUpdateRequest(form) {
 
 // Returns { fieldName: [message] }, the same shape as the API's validation `errors`,
 // so client-side and server-side messages are shown in the same place.
-// The serial number format is checked only by the API (one set of rules, #15).
+// The serial number format is checked only by the API, so the rules live in one place.
 function validateForm(form, serialRequired) {
   const errors = {};
 
