@@ -17,12 +17,14 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Repair>()// relationship 1:N user to repairs 
+        // One worker has many repairs. Deleting the worker only unassigns their repairs.
+        modelBuilder.Entity<Repair>()
             .HasOne(r => r.User)
             .WithMany(u => u.Repairs)
             .HasForeignKey(r => r.UserId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // Every user has one row of permissions, deleted together with the user.
         modelBuilder.Entity<Permissions>()
             .HasOne(p => p.User)
             .WithOne(u => u.Permissions)
@@ -40,10 +42,5 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Permissions>()
             .HasIndex(p => p.UserId)
             .IsUnique();
-
     }
-
-
 }
-
-
