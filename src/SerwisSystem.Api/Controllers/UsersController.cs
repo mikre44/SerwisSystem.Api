@@ -327,25 +327,29 @@ public class UsersController : ControllerBase
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Nieznane uprawnienie: {invalidName}.");
         }
 
+        var targetPermissions = targetUser.Permissions ??= new Permissions();
+
+        // Only the permissions whose value really changes count. Granting something the user
+        // already has (or revoking something they do not have) changes nothing, so it needs no rights.
+        var changes = granted.Select(permission => (Permission: permission, Value: true))
+            .Concat(revoked.Select(permission => (Permission: permission, Value: false)))
+            .Where(change => _permissionService.HasPermission(targetPermissions, change.Permission) != change.Value)
+            .ToList();
+
         // You can only give or take away a permission you have yourself.
-        foreach (var permission in granted.Concat(revoked))
+        foreach (var change in changes)
         {
-            if (!_permissionService.HasPermission(user, permission))
+            if (!_permissionService.HasPermission(user, change.Permission))
             {
                 return Problem(
                     statusCode: StatusCodes.Status403Forbidden,
-                    detail: $"Nie możesz nadać ani odebrać uprawnienia „{PermissionNames.DisplayName(permission)}”, " +
+                    detail: $"Nie możesz nadać ani odebrać uprawnienia „{PermissionNames.DisplayName(change.Permission)}”, " +
                             "ponieważ go nie posiadasz.");
             }
         }
 
-        targetUser.Permissions ??= new Permissions();
-
-        foreach (var permission in granted)
-            _permissionService.SetPermission(targetUser.Permissions, permission, true);
-
-        foreach (var permission in revoked)
-            _permissionService.SetPermission(targetUser.Permissions, permission, false);
+        foreach (var change in changes)
+            _permissionService.SetPermission(targetPermissions, change.Permission, change.Value);
 
         await _context.SaveChangesAsync();
 
