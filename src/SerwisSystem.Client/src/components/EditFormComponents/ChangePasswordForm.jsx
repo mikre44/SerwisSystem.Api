@@ -47,8 +47,6 @@ function ChangePasswordForm() {
 
   return (
     <>
-      <h2 className="h5 card-title">Zmiana hasła</h2>
-
       <Message error={error} success={success} />
 
       <form onSubmit={handleSubmit} noValidate>

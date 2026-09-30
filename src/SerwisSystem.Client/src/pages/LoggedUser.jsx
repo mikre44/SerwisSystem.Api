@@ -6,6 +6,18 @@ import UserRepairs from "../components/UserInfoComponents/UserRepairs";
 import EditUserForm from "../components/EditFormComponents/EditUserForm";
 import ChangePasswordForm from "../components/EditFormComponents/ChangePasswordForm";
 
+// A card with a title in its header; the section components are headless.
+function Section({ title, children }) {
+  return (
+    <div className="card shadow-sm">
+      <div className="card-header">
+        <h2 className="h5 card-title mb-0">{title}</h2>
+      </div>
+      <div className="card-body">{children}</div>
+    </div>
+  );
+}
+
 function LoggedUser() {
   const { user, reloadUser } = useAuth();
 
@@ -20,33 +32,25 @@ function LoggedUser() {
 
       <div className="row g-4">
         <div className="col-lg-8 d-flex flex-column gap-4">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <UserInfo user={user} />
-              <hr className="my-3" />
-              <EditUserForm key={user.id} user={user} onUpdated={reloadUser} />
-            </div>
-          </div>
+          <Section title="Moje dane">
+            <UserInfo user={user} />
+            <hr className="my-3" />
+            <EditUserForm key={user.id} user={user} onUpdated={reloadUser} />
+          </Section>
 
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <UserRepairs repairs={user.repairs} />
-            </div>
-          </div>
+          <Section title="Moje naprawy">
+            <UserRepairs repairs={user.repairs} />
+          </Section>
         </div>
 
         <div className="col-lg-4 d-flex flex-column gap-4">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <UserPermissions permissions={user.permissions} />
-            </div>
-          </div>
+          <Section title="Moje uprawnienia">
+            <UserPermissions permissions={user.permissions} />
+          </Section>
 
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <ChangePasswordForm />
-            </div>
-          </div>
+          <Section title="Zmiana hasła">
+            <ChangePasswordForm />
+          </Section>
         </div>
       </div>
     </main>
