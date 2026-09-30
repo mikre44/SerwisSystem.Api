@@ -1,14 +1,4 @@
-const PERMISSION_LABELS = [
-  { key: "readRepairs", label: "Odczyt napraw" },
-  { key: "takeRepairs", label: "Przyjmowanie napraw" },
-  { key: "editRepairs", label: "Edycja napraw" },
-  { key: "deleteRepairs", label: "Usuwanie napraw" },
-  { key: "readUsers", label: "Odczyt użytkowników" },
-  { key: "editUsers", label: "Edycja użytkowników" },
-  { key: "deleteUsers", label: "Usuwanie użytkowników" },
-  { key: "grantUsers", label: "Nadawanie uprawnień" },
-  { key: "dischargeUsers", label: "Odbieranie uprawnień" },
-];
+import { PERMISSION_KEYS, PERMISSION_LABELS } from "../../permissions";
 
 // Read-only view of a user's permission flags. Headless (no card of its own)
 // so it can be dropped into any card body.
@@ -19,7 +9,7 @@ function UserPermissions({ permissions }) {
 
   return (
     <ul className="list-inline mb-0">
-      {PERMISSION_LABELS.map(({ key, label }) => (
+      {PERMISSION_KEYS.map((key) => (
         <li className="list-inline-item mb-2" key={key}>
           <span
             className={`badge ${
@@ -27,7 +17,7 @@ function UserPermissions({ permissions }) {
             }`}
           >
             {permissions[key] && <i className="bi bi-check-lg me-1" aria-hidden="true" />}
-            {label}
+            {PERMISSION_LABELS[key]}
           </span>
         </li>
       ))}

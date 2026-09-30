@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUsers } from "../api/api";
+import { PERMISSION_KEYS } from "../permissions";
 
 const PAGE_SIZE = 10;
-const PERMISSION_COUNT = 9;
 
 function roleBadgeClass(role) {
   return role === "Admin" ? "text-bg-dark" : "text-bg-light border";
@@ -215,7 +215,7 @@ function Users() {
                         <span className="text-body-secondary">—</span>
                       ) : (
                         <span className="badge text-bg-secondary">
-                          {countPermissions(user.permissions)}/{PERMISSION_COUNT}
+                          {countPermissions(user.permissions)}/{PERMISSION_KEYS.length}
                         </span>
                       )}
                     </td>

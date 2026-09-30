@@ -1,58 +1,32 @@
 import { useState } from "react";
 import { updatePermissions } from "../../api/api";
+import { PERMISSION_GROUPS, PERMISSION_KEYS, PERMISSION_LABELS } from "../../permissions";
 import Message from "../Message";
 
-// Drives the submit logic (which permissions are granted vs. revoked).
-const permissionNames = [
-  "ReadRepairs",
-  "TakeRepairs",
-  "EditRepairs",
-  "DeleteRepairs",
-  "ReadUsers",
-  "EditUsers",
-  "DeleteUsers",
-  "GrantUsers",
-  "DischargeUsers",
-];
+// The API sends permissions in camelCase ("readRepairs"), but the grant
+// endpoint expects the enum names ("ReadRepairs").
+function toApiName(key) {
+  return key[0].toUpperCase() + key.slice(1);
+}
 
-// Same permissions, grouped and labelled in Polish for the toggle grid below.
-const REPAIR_PERMISSIONS = [
-  { key: "ReadRepairs", label: "Odczyt napraw" },
-  { key: "TakeRepairs", label: "Przyjmowanie napraw" },
-  { key: "EditRepairs", label: "Edycja napraw" },
-  { key: "DeleteRepairs", label: "Usuwanie napraw" },
-];
-
-const USER_PERMISSIONS = [
-  { key: "ReadUsers", label: "Odczyt użytkowników" },
-  { key: "EditUsers", label: "Edycja użytkowników" },
-  { key: "DeleteUsers", label: "Usuwanie użytkowników" },
-  { key: "GrantUsers", label: "Nadawanie uprawnień" },
-  { key: "DischargeUsers", label: "Odbieranie uprawnień" },
-];
+function readPermissions(user) {
+  return Object.fromEntries(
+    PERMISSION_KEYS.map((key) => [key, user.permissions?.[key] ?? false])
+  );
+}
 
 // Edits a user's permission flags. Headless (no card of its own) — the page
 // that uses it provides the surrounding card and title.
 function EditPermissionsForm({ user, onUpdated }) {
-  const [permissions, setPermissions] = useState({
-    ReadRepairs: user.permissions?.readRepairs ?? false,
-    TakeRepairs: user.permissions?.takeRepairs ?? false,
-    EditRepairs: user.permissions?.editRepairs ?? false,
-    DeleteRepairs: user.permissions?.deleteRepairs ?? false,
-    ReadUsers: user.permissions?.readUsers ?? false,
-    EditUsers: user.permissions?.editUsers ?? false,
-    DeleteUsers: user.permissions?.deleteUsers ?? false,
-    GrantUsers: user.permissions?.grantUsers ?? false,
-    DischargeUsers: user.permissions?.dischargeUsers ?? false,
-  });
+  const [permissions, setPermissions] = useState(() => readPermissions(user));
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  function handleChange(permission) {
+  function handleChange(key) {
     setPermissions({
       ...permissions,
-      [permission]: !permissions[permission],
+      [key]: !permissions[key],
     });
   }
 
@@ -62,11 +36,11 @@ function EditPermissionsForm({ user, onUpdated }) {
     const permissionsGranted = [];
     const permissionsRevoked = [];
 
-    for (const permission of permissionNames) {
-      if (permissions[permission]) {
-        permissionsGranted.push(permission);
+    for (const key of PERMISSION_KEYS) {
+      if (permissions[key]) {
+        permissionsGranted.push(toApiName(key));
       } else {
-        permissionsRevoked.push(permission);
+        permissionsRevoked.push(toApiName(key));
       }
     }
 
@@ -83,37 +57,32 @@ function EditPermissionsForm({ user, onUpdated }) {
     }
   }
 
-  function renderGroup(title, items) {
-    return (
-      <div className="col-sm-6">
-        <h3 className="h6 text-body-secondary text-uppercase mb-3">{title}</h3>
-
-        {items.map(({ key, label }) => (
-          <div className="form-check form-switch mb-2" key={key}>
-            <input
-              className="form-check-input"
-              type="checkbox"
-              role="switch"
-              id={`permission-${user.id}-${key}`}
-              checked={permissions[key]}
-              onChange={() => handleChange(key)}
-            />
-            <label className="form-check-label" htmlFor={`permission-${user.id}-${key}`}>
-              {label}
-            </label>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit}>
       <Message error={error} success={success} />
 
       <div className="row g-4">
-        {renderGroup("Naprawy", REPAIR_PERMISSIONS)}
-        {renderGroup("Użytkownicy", USER_PERMISSIONS)}
+        {PERMISSION_GROUPS.map((group) => (
+          <div className="col-sm-6" key={group.title}>
+            <h3 className="h6 text-body-secondary text-uppercase mb-3">{group.title}</h3>
+
+            {group.keys.map((key) => (
+              <div className="form-check form-switch mb-2" key={key}>
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id={`permission-${user.id}-${key}`}
+                  checked={permissions[key]}
+                  onChange={() => handleChange(key)}
+                />
+                <label className="form-check-label" htmlFor={`permission-${user.id}-${key}`}>
+                  {PERMISSION_LABELS[key]}
+                </label>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
 
       <button type="submit" className="btn btn-primary mt-3">
