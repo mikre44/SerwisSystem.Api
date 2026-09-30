@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
+using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
@@ -22,47 +24,36 @@ public class  AuthController : ControllerBase
 {
     private readonly AppDbContext _context;// access to database
     private readonly PasswordHasher<User> _passwordHasher;
-    private readonly IConfiguration _configuration;
+    private readonly JwtOptions _jwtOptions;
 
 
-    public AuthController(AppDbContext context, IConfiguration configuration)
+    public AuthController(AppDbContext context, IOptions<JwtOptions> jwtOptions)
     {
         _context = context;
         _passwordHasher = new PasswordHasher<User>();
-        _configuration = configuration;
+        _jwtOptions = jwtOptions.Value;
     }
 
 
     private string GenerateToken(User user)
     {
-        var claims = new[]// what will be stored in tokens (id,username,role)
+        // Data stored inside the token (the API reads the user id from it on every request).
+        var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role.ToString())
         };
 
-        var jwtKey = _configuration["Jwt:Key"];
-
-        if (string.IsNullOrEmpty(jwtKey))
-        {
-            throw new InvalidOperationException("JWT key is not configured.");
-        }
-
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtKey)
-        );
-
-        var credentials = new SigningCredentials(//yo im using this ^ key with this algorithm ig 
-            key,
-            SecurityAlgorithms.HmacSha256
-        );
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
+            issuer: _jwtOptions.Issuer,
+            audience: _jwtOptions.Audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(2),
-            signingCredentials: credentials
-        );
+            signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }

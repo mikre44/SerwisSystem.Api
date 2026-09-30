@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
@@ -14,12 +15,18 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-
-if (string.IsNullOrEmpty(jwtKey))
-{
-    throw new InvalidOperationException("JWT key is not configured.");
-}
+// Issuer and Audience come from appsettings.json. The Key is a secret: set it with
+// `dotnet user-secrets set Jwt:Key <value>` in development or the Jwt__Key environment variable in production.
+builder.Services.AddOptions<JwtOptions>()
+    .BindConfiguration(JwtOptions.SectionName)
+    .Validate(
+        jwt => jwt.Key.Length >= JwtOptions.MinKeyLength,
+        $"Jwt:Key is missing or shorter than {JwtOptions.MinKeyLength} characters. " +
+        "Set it with 'dotnet user-secrets set Jwt:Key <value>' or the Jwt__Key environment variable.")
+    .Validate(
+        jwt => jwt.Issuer != "" && jwt.Audience != "",
+        "Jwt:Issuer and Jwt:Audience must be set.")
+    .ValidateOnStart(); // fail when the app starts, not at the first login
 
 builder.Services.AddCors(options =>
 {
@@ -33,18 +40,23 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    .AddJwtBearer();
+
+// Configured through the options system so the validated JwtOptions are used.
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
     {
+        var jwt = jwtOptions.Value;
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
-            IssuerSigningKey = new SymmetricSecurityKey(
-                   Encoding.UTF8.GetBytes(jwtKey)
-            )
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key))
         };
     });
 
