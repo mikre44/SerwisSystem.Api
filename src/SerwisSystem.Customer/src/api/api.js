@@ -67,6 +67,13 @@ function toCamelCaseKeys(errors) {
   return result;
 }
 
+// Product catalogue: [{ name, serialRequired, serialHint }]. The backend is
+// now the single source of truth for which products need a serial number
+// and how to validate it (see validation/repairForm.js).
+export function getProducts() {
+  return apiFetch("/products");
+}
+
 export function createRepair(repair) {
   return apiFetch("/repairs", {
     method: "POST",

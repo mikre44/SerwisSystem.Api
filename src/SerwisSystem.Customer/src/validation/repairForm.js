@@ -1,75 +1,14 @@
 // Client-side validation for the "report a repair" form. Kept deliberately
 // simple: format checks the user should see immediately (required fields,
 // NIP checksum, phone, postal code). The backend is the source of truth and
-// re-validates everything, including the product-specific serial number.
+// re-validates everything, including the product-specific serial number
+// (see the product catalogue served by GET /api/products).
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POSTAL_CODE_REGEX = /^\d{2}-\d{3}$/;
 const NIP_WEIGHTS = [6, 5, 7, 2, 3, 4, 5, 6, 7];
 
 export const CUSTOM_PRODUCT_VALUE = "Other";
-
-// TODO(#15): temporary local copy of the product list, moved here as-is
-// from the original CreateRepair.jsx. Will be replaced by GET /api/products
-// once the backend exposes the shared catalogue.
-export const PRODUCT_RULES = {
-  "Monitor interaktywny myBoard Titan (Android 15)": {
-    checkVersion: "new",
-    expectedNumber: "05",
-  },
-  "Monitor interaktywny myBoard Grey Arrow (Android 13)": {
-    checkVersion: "old",
-    expectedNumber: "13",
-  },
-  "Monitor interaktywny myBoard Panda (Android 13)": {
-    checkVersion: "new",
-    expectedNumber: "02",
-  },
-  "Monitor interaktywny myBoard Black Arrow (Android 13)": {
-    checkVersion: "new",
-    expectedNumber: "01",
-  },
-  "Monitor interaktywny myBoard Grey Rock (Android 11)": {
-    checkVersion: "old",
-    expectedNumber: "11",
-  },
-  "Monitor interaktywny myBoard Grey Rock 2.0 (Android 11)": {
-    checkVersion: "old",
-    expectedNumber: "11",
-  },
-  "Monitor interaktywny myBoard White Arrow (Android 14)": {
-    checkVersion: "new",
-    expectedNumber: "04",
-  },
-  "Monitor interaktywny myBoard Panda 2.0 (Android 14)": {
-    checkVersion: "new",
-    expectedNumber: "03",
-  },
-  "Monitor interaktywny (model spoza listy)": {
-    checkVersion: "generic",
-    expectedNumber: null,
-  },
-  "Tablica interaktywna myBoard Silver": {
-    checkVersion: "generic",
-    expectedNumber: null,
-  },
-  "Tablica interaktywna myBoard Black": {
-    checkVersion: "generic",
-    expectedNumber: null,
-  },
-};
-
-export const PRODUCTS = [
-  ...Object.keys(PRODUCT_RULES),
-  "Akcesoria do tablic interaktywnych myBoard",
-  "Akcesoria dla monitorów interaktywnych myBoard",
-  "Pracownie językowe",
-  "Podłoga interaktywna SmartFloor",
-  "Meble",
-  "Systemy konferencyjne",
-  "Projektory",
-  "Laptop",
-];
 
 // Polish NIP (tax id) checksum: the last digit must equal a weighted sum
 // of the first nine digits, mod 11.
@@ -93,76 +32,12 @@ export function isValidPhone(phone) {
   return /^(\+)?\d{7,15}$/.test(cleaned);
 }
 
-export function validateSerialNumber(serialNumber, product) {
-  const serial = serialNumber.trim();
-  const rule = PRODUCT_RULES[product];
-
-  // Products such as laptop, projector, furniture etc. have no serial rule.
-  if (!rule) {
-    return { valid: true };
-  }
-
-  if (rule.checkVersion === "new") {
-    const match = serial.match(/^L(\d{6})(\d{2})(55|65|75|86|98)(\d{5})$/);
-
-    if (!match) {
-      return {
-        valid: false,
-        message: "Numer seryjny ma nieprawidłowy format dla wybranego monitora.",
-      };
-    }
-
-    if (match[2] !== rule.expectedNumber) {
-      return {
-        valid: false,
-        message: "Numer seryjny nie odpowiada wybranemu modelowi monitora.",
-      };
-    }
-
-    return { valid: true };
-  }
-
-  if (rule.checkVersion === "old") {
-    const match = serial.match(/^(\d{4})(8|11|13)\d(55|65|75|86|98)(\d{3})z$/i);
-
-    if (!match) {
-      return {
-        valid: false,
-        message: "Numer seryjny ma nieprawidłowy format dla wybranego monitora.",
-      };
-    }
-
-    const androidVersion = match[2];
-
-    if (androidVersion !== rule.expectedNumber) {
-      return {
-        valid: false,
-        message:
-          `Numer seryjny wskazuje Android ${androidVersion}, ` +
-          `a wybrany monitor ma Android ${rule.expectedNumber}.`,
-      };
-    }
-
-    return { valid: true };
-  }
-
-  if (rule.checkVersion === "generic") {
-    if (!/^[A-Za-z0-9._/-]{4,40}$/.test(serial)) {
-      return {
-        valid: false,
-        message: "Numer seryjny musi mieć od 4 do 40 dozwolonych znaków.",
-      };
-    }
-
-    return { valid: true };
-  }
-
-  return { valid: false, message: "Nie można zweryfikować numeru seryjnego." };
-}
-
 // Returns an object of { fieldName: message }, so each FormField can show
 // its own error instead of one long list at the top of the page.
-export function validateRepairForm(form) {
+// `selectedProductMeta` is the matching entry from GET /api/products (or
+// undefined for a custom product); only its serialRequired flag is used
+// here -- the actual format is checked by the backend.
+export function validateRepairForm(form, selectedProductMeta) {
   const errors = {};
 
   if (!form.reporterName.trim()) {
@@ -221,18 +96,8 @@ export function validateRepairForm(form) {
       "Podaj nazwę urządzenia niewystępującego na liście.";
   }
 
-  const serialRule = PRODUCT_RULES[form.product];
-
-  if (serialRule) {
-    if (!form.serialNumber.trim()) {
-      errors.serialNumber = "Numer seryjny jest wymagany dla wybranego produktu.";
-    } else {
-      const serialValidation = validateSerialNumber(form.serialNumber, form.product);
-
-      if (!serialValidation.valid) {
-        errors.serialNumber = serialValidation.message;
-      }
-    }
+  if (selectedProductMeta?.serialRequired && !form.serialNumber.trim()) {
+    errors.serialNumber = "Numer seryjny jest wymagany dla wybranego produktu.";
   }
 
   if (!form.description.trim()) {

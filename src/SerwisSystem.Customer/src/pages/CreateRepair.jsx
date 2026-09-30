@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { createRepair } from "../api/api";
+import { createRepair, getProducts } from "../api/api";
 import { CUSTOM_PRODUCT_VALUE, validateRepairForm } from "../validation/repairForm";
 import ReporterSection from "../components/CreateRepairSections/ReporterSection";
 import CompanySection from "../components/CreateRepairSections/CompanySection";
@@ -43,6 +43,17 @@ function CreateRepair() {
   const [submitError, setSubmitError] = useState("");
   const [createdRepair, setCreatedRepair] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [products, setProducts] = useState([]);
+  const [productsError, setProductsError] = useState("");
+
+  useEffect(() => {
+    getProducts()
+      .then(setProducts)
+      .catch((error) => setProductsError(error.message));
+  }, []);
+
+  const selectedProductMeta = products.find((p) => p.name === form.product);
 
   function handleFieldChange(event) {
     const { name, value, type, checked } = event.target;
@@ -89,7 +100,7 @@ function CreateRepair() {
       return;
     }
 
-    const validationErrors = validateRepairForm(form);
+    const validationErrors = validateRepairForm(form, selectedProductMeta);
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -181,6 +192,9 @@ function CreateRepair() {
           errors={errors}
           onChange={handleFieldChange}
           onProductChange={handleProductChange}
+          products={products}
+          productsError={productsError}
+          selectedProductMeta={selectedProductMeta}
         />
         <WarrantyContractSection form={form} errors={errors} onChange={handleFieldChange} />
         <ConsentsSection form={form} errors={errors} onChange={handleFieldChange} />

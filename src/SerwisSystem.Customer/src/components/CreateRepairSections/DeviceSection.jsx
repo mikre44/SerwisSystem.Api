@@ -1,14 +1,28 @@
 import FormField from "../FormField";
-import { CUSTOM_PRODUCT_VALUE, PRODUCT_RULES, PRODUCTS } from "../../validation/repairForm";
+import { CUSTOM_PRODUCT_VALUE } from "../../validation/repairForm";
 
-function DeviceSection({ form, errors, onChange, onProductChange }) {
+function DeviceSection({
+  form,
+  errors,
+  onChange,
+  onProductChange,
+  products,
+  productsError,
+  selectedProductMeta,
+}) {
   const isCustomProduct = form.product === CUSTOM_PRODUCT_VALUE;
-  const serialRequired = Boolean(PRODUCT_RULES[form.product]);
+  const serialRequired = Boolean(selectedProductMeta?.serialRequired);
 
   return (
     <div className="card mb-3">
       <div className="card-body">
         <h2 className="h5 card-title mb-3">Informacje o urządzeniu</h2>
+
+        {productsError && (
+          <div className="alert alert-warning" role="alert">
+            Nie udało się pobrać listy produktów: {productsError}
+          </div>
+        )}
 
         <div className="mb-3">
           <label htmlFor="product" className="form-label">
@@ -22,9 +36,9 @@ function DeviceSection({ form, errors, onChange, onProductChange }) {
             onChange={onProductChange}
           >
             <option value="">Wybierz produkt</option>
-            {PRODUCTS.map((product) => (
-              <option key={product} value={product}>
-                {product}
+            {products.map((product) => (
+              <option key={product.name} value={product.name}>
+                {product.name}
               </option>
             ))}
             <option value={CUSTOM_PRODUCT_VALUE}>Inny</option>
@@ -56,6 +70,9 @@ function DeviceSection({ form, errors, onChange, onProductChange }) {
             value={form.serialNumber}
             onChange={onChange}
           />
+          {selectedProductMeta?.serialHint && (
+            <div className="form-text">{selectedProductMeta.serialHint}</div>
+          )}
           {isCustomProduct && (
             <div className="form-text">
               Numer seryjny jest opcjonalny dla urządzenia spoza listy.
