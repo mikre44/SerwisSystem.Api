@@ -211,7 +211,7 @@ public class RepairsController : ControllerBase
         }
 
         if (!ModelState.IsValid)
-            return ValidationProblem();
+            return InvalidRepairData();
 
         var repair = new Repair
         {
@@ -288,7 +288,7 @@ public class RepairsController : ControllerBase
         ValidateRepairData(updatedRepair);
 
         if (!ModelState.IsValid)
-            return ValidationProblem();
+            return InvalidRepairData();
 
         CopyRepairData(updatedRepair, repair);
 
@@ -549,9 +549,18 @@ public class RepairsController : ControllerBase
             detail: "User not found.");
     }
 
+    // Returns the errors collected in ModelState with the same title
+    // as the automatic [ApiController] validation response.
+    private ActionResult InvalidRepairData()
+    {
+        return ValidationProblem(
+            title: "Validation failed.",
+            modelStateDictionary: ModelState);
+    }
+
     // Business rules that the data annotations on the DTO cannot express.
-    // Errors are added to ModelState, so ValidationProblem() returns them
-    // in the same format as the automatic [ApiController] validation.
+    // Errors are added to ModelState, so the client gets them per field,
+    // just like the errors from the data annotations.
     private void ValidateRepairData(RepairDataDto dto)
     {
         // A custom product is any device outside the catalogue,
