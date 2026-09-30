@@ -95,6 +95,12 @@ export function login(usernameOrEmail, password) {
   });
 }
 
+// Products
+
+export function getProducts() {
+  return apiFetch("/products");
+}
+
 // Repairs
 
 export function getRepairs({

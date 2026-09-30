@@ -1,115 +1,11 @@
 import { useState } from "react";
 import { updateRepair } from "../../api/api";
+import useProducts from "../../hooks/useProducts";
 import FieldError from "../FieldError";
 import Message from "../Message";
 
 // Value of the "Inny" option: the product name is then typed in by hand.
 const CUSTOM_PRODUCT = "custom";
-
-const productRules = {
-  "Monitor interaktywny myBoard Titan (Android 15)": {
-    checkVersion: "new",
-    expectedNumber: "05",
-  },
-  "Monitor interaktywny myBoard Grey Arrow (Android 13)": {
-    checkVersion: "old",
-    expectedNumber: "13",
-  },
-  "Monitor interaktywny myBoard Panda (Android 13)": {
-    checkVersion: "new",
-    expectedNumber: "02",
-  },
-  "Monitor interaktywny myBoard Black Arrow (Android 13)": {
-    checkVersion: "new",
-    expectedNumber: "01",
-  },
-  "Monitor interaktywny myBoard Grey Rock (Android 11)": {
-    checkVersion: "old",
-    expectedNumber: "11",
-  },
-  "Monitor interaktywny myBoard Grey Rock 2.0 (Android 11)": {
-    checkVersion: "old",
-    expectedNumber: "11",
-  },
-  "Monitor interaktywny myBoard White Arrow (Android 14)": {
-    checkVersion: "new",
-    expectedNumber: "04",
-  },
-  "Monitor interaktywny myBoard Panda 2.0 (Android 14)": {
-    checkVersion: "new",
-    expectedNumber: "03",
-  },
-  "Monitor interaktywny (model spoza listy)": {
-    checkVersion: "generic",
-    expectedNumber: null,
-  },
-  "Tablica interaktywna myBoard Silver": {
-    checkVersion: "generic",
-    expectedNumber: null,
-  },
-  "Tablica interaktywna myBoard Black": {
-    checkVersion: "generic",
-    expectedNumber: null,
-  },
-};
-
-const products = [
-  ...Object.keys(productRules),
-  "Akcesoria do tablic interaktywnych myBoard",
-  "Akcesoria dla monitorów interaktywnych myBoard",
-  "Pracownie językowe",
-  "Podłoga interaktywna SmartFloor",
-  "Meble",
-  "Systemy konferencyjne",
-  "Projektory",
-  "Laptop",
-];
-
-function validateSerialNumber(serialNumber, product) {
-  const serial = serialNumber.trim();
-  const rule = productRules[product];
-
-  if (rule.checkVersion === "new") {
-    const match = serial.match(
-      /^L(\d{6})(01|02|03|04|05|06)(55|65|75|86|98)(\d{5})$/
-    );
-
-    if (!match) {
-      return "Numer seryjny ma nieprawidłowy format dla wybranego monitora.";
-    }
-
-    if (match[2] !== rule.expectedNumber) {
-      return "Numer seryjny nie odpowiada wybranemu modelowi monitora.";
-    }
-
-    return null;
-  }
-
-  if (rule.checkVersion === "old") {
-    const match = serial.match(
-      /^(\d{4})(8|11|13)\d(55|65|75|86|98)(\d{3})Z$/i
-    );
-
-    if (!match) {
-      return "Numer seryjny ma nieprawidłowy format dla wybranego monitora.";
-    }
-
-    if (match[2] !== rule.expectedNumber) {
-      return (
-        `Numer seryjny wskazuje Android ${match[2]}, ` +
-        `a wybrany monitor ma Android ${rule.expectedNumber}.`
-      );
-    }
-
-    return null;
-  }
-
-  if (!/^[A-Za-z0-9._/-]{4,40}$/.test(serial)) {
-    return "Numer seryjny musi mieć od 4 do 40 dozwolonych znaków.";
-  }
-
-  return null;
-}
 
 function isValidPhone(phone) {
   const cleaned = phone.replace(/[^\d+]/g, "");
@@ -205,6 +101,7 @@ function toUpdateRequest(form) {
 
 // Returns { fieldName: [message] }, the same shape as the API's validation `errors`,
 // so client-side and server-side messages are shown in the same place.
+// The serial number format is checked only by the API (one set of rules, #15).
 function validateForm(form, serialRequired) {
   const errors = {};
 
@@ -220,16 +117,8 @@ function validateForm(form, serialRequired) {
     addError("product", "Podaj nazwę urządzenia niewystępującego na liście.");
   }
 
-  if (serialRequired) {
-    if (!form.serialNumber.trim()) {
-      addError("serialNumber", "Numer seryjny jest wymagany dla wybranego produktu.");
-    } else {
-      const serialError = validateSerialNumber(form.serialNumber, form.selectedProduct);
-
-      if (serialError) {
-        addError("serialNumber", serialError);
-      }
-    }
+  if (serialRequired && !form.serialNumber.trim()) {
+    addError("serialNumber", "Numer seryjny jest wymagany dla wybranego produktu.");
   }
 
   if (!form.description.trim()) {
@@ -314,6 +203,8 @@ function TextField({ name, label, value, onChange, errors, ...inputProps }) {
 // The parent renders it with key={repair.id}, so another repair gets a fresh form.
 // After saving, onUpdated(updatedRepair) receives the repair returned by the API.
 function EditRepairForm({ repair, onUpdated }) {
+  const { products, error: productsError } = useProducts();
+
   const [form, setForm] = useState(() => toFormState(repair));
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState("");
@@ -321,7 +212,10 @@ function EditRepairForm({ repair, onUpdated }) {
   const [saving, setSaving] = useState(false);
 
   const isCustomProduct = form.selectedProduct === CUSTOM_PRODUCT;
-  const serialRequired = productRules[form.selectedProduct] != null;
+  const catalogueProduct = products.find(
+    (product) => product.name === form.selectedProduct
+  );
+  const serialRequired = !isCustomProduct && catalogueProduct?.serialRequired === true;
 
   function updateField(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -383,6 +277,10 @@ function EditRepairForm({ repair, onUpdated }) {
 
       <Message error={error} success={success} />
 
+      {productsError && (
+        <p>Nie udało się pobrać listy produktów: {productsError}</p>
+      )}
+
       <form onSubmit={handleSubmit} noValidate>
         <h3>Urządzenie</h3>
 
@@ -397,8 +295,8 @@ function EditRepairForm({ repair, onUpdated }) {
             <option value="">Wybierz produkt</option>
 
             {products.map((product) => (
-              <option key={product} value={product}>
-                {product}
+              <option key={product.name} value={product.name}>
+                {product.name}
               </option>
             ))}
 
@@ -420,6 +318,7 @@ function EditRepairForm({ repair, onUpdated }) {
         <TextField
           name="serialNumber"
           label={serialRequired ? "Numer seryjny" : "Numer seryjny (opcjonalnie)"}
+          placeholder={catalogueProduct?.serialHint ?? ""}
           value={form.serialNumber}
           onChange={handleChange}
           errors={fieldErrors.serialNumber}
