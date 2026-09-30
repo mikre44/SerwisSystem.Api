@@ -111,7 +111,9 @@ public class RepairsController : ControllerBase
             query = query.Where(r => r.UserId == currentUser.Id);
         }
 
-        query = sortBy.ToLower() switch
+        // An unknown key is an error in the client, so it gets a 400
+        // instead of a silent fallback to the default order.
+        IQueryable<Repair>? sortedQuery = sortBy.ToLowerInvariant() switch
         {
             "id" => descending
                 ? query.OrderByDescending(r => r.Id)
@@ -127,9 +129,9 @@ public class RepairsController : ControllerBase
 
             "reportersurname" => descending
                 ? query.OrderByDescending(r => r.ReporterSurname)
-                    .ThenBy(r => r.ReporterName)
+                    .ThenByDescending(r => r.ReporterName)
                 : query.OrderBy(r => r.ReporterSurname)
-                    .ThenByDescending(r => r.ReporterName),
+                    .ThenBy(r => r.ReporterName),
 
             "status" => descending
                 ? query.OrderByDescending(r => r.Status)
@@ -145,8 +147,18 @@ public class RepairsController : ControllerBase
                 ? query.OrderByDescending(r => r.CreatedAt)
                 : query.OrderBy(r => r.CreatedAt),
 
-            _ => query.OrderByDescending(r => r.CreatedAt)
+            _ => null
         };
+
+        if (sortedQuery == null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"Unknown sortBy value '{sortBy}'. Use one of: " +
+                        "id, serialNumber, product, reporterSurname, status, address, createdAt.");
+        }
+
+        query = sortedQuery;
 
         var totalCount = await query.CountAsync();
 
