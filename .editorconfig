@@ -1,0 +1,18 @@
+root = true
+
+[*]
+indent_style = space
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+[*.cs]
+indent_size = 4
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+[*.{js,jsx,ts,tsx,json,css,html}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

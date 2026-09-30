@@ -1,559 +1,208 @@
-# SerwisSystem API
+# SerwisSystem
 
-Backend API for a repair service management system built with **ASP.NET Core** and **PostgreSQL**.
+A repair-service management system for interactive-monitor/whiteboard hardware,
+made up of three apps:
 
-The system allows users to create and manage repairs, assign repairs to workers, manage users, and control access through roles and individual permissions.
+- **SerwisSystem.Api** — ASP.NET Core 10 Web API, EF Core + PostgreSQL. Owns
+  authentication, users/permissions, the product catalogue and the repair workflow.
+- **SerwisSystem.Client** — staff web app (React + Vite). Workers and admins
+  manage repairs, users and permissions here.
+- **SerwisSystem.Customer** — public web app (React + Vite) where customers
+  submit a repair request and check its status.
 
----
+UI text in both frontends is in Polish; the codebase (code, comments, docs) is in English.
 
-## 🛠️ Technologies
+## Repository layout
 
-* **C#**
-* **ASP.NET Core Web API**
-* **Entity Framework Core**
-* **PostgreSQL**
-* **JWT Authentication**
-* **ASP.NET Core Authorization**
-* **PasswordHasher**
-* **REST API**
-* **Git / GitHub**
+```
+SerwisSystem.Api/               (repo root)
+├── SerwisSystem.slnx
+├── src/
+│   ├── SerwisSystem.Api/       ASP.NET Core Web API
+│   ├── SerwisSystem.Client/    staff app (React + Vite)
+│   └── SerwisSystem.Customer/  customer app (React + Vite)
+└── tests/
+    └── SerwisSystem.Api.Tests/ integration tests (WebApplicationFactory)
+```
 
----
+## Prerequisites
 
-## 📌 Features
+- .NET SDK 10
+- Node.js 22+
+- PostgreSQL 17 (or compatible)
+- EF Core CLI: `dotnet tool install --global dotnet-ef`
 
-### Authentication
+## Setup
 
-* User registration
-* User login
-* JWT token authentication
-* Password hashing
-* Username and email uniqueness
-* Role-based authentication
+### 1. Configure secrets
+
+The API reads its configuration from environment variables or .NET user-secrets.
+Real secrets must never be committed to `appsettings*.json`.
+
+```bash
+cd src/SerwisSystem.Api
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=SerwisSystem;Username=postgres;Password=<your-password>"
+dotnet user-secrets set "Jwt:Key" "<a random string, 64+ characters>"
+dotnet user-secrets set "Jwt:Issuer" "SerwisSystem.Api"
+dotnet user-secrets set "Jwt:Audience" "SerwisSystem.Client"
+dotnet user-secrets set "Email:SmtpHost" "smtp.example.com"
+dotnet user-secrets set "Email:SmtpPort" "587"
+dotnet user-secrets set "Email:Username" "<smtp-username>"
+dotnet user-secrets set "Email:Password" "<smtp-password>"
+dotnet user-secrets set "Email:FromEmail" "no-reply@example.com"
+dotnet user-secrets set "Email:FromName" "SerwisSystem"
+dotnet user-secrets set "FirstAdmin:Username" "admin"
+dotnet user-secrets set "FirstAdmin:Email" "admin@example.com"
+dotnet user-secrets set "FirstAdmin:Password" "<a strong password>"
+```
+
+The same keys work as environment variables (used in CI and Docker), with `:`
+replaced by `__`, e.g. `ConnectionStrings__DefaultConnection`, `Jwt__Key`.
+
+Notes:
+- `FirstAdmin:*` is only used once, at startup: if the database has no admin
+  yet and all three values are configured, that account is created as the
+  first admin. If any value is missing, nothing is seeded and a warning is
+  logged instead — there is no `create-first-admin` endpoint.
+- `Email:*` is required to send the repair-confirmation email from
+  `POST /api/repairs`; if sending fails the repair is still created (the
+  failure is only logged).
+
+### 2. Apply database migrations
+
+```bash
+dotnet ef database update --project src/SerwisSystem.Api
+```
+
+### 3. Run the API
+
+```bash
+dotnet run --project src/SerwisSystem.Api
+```
+
+The API listens on `http://localhost:5000`.
+
+### 4. Run the frontends
+
+Each app is an independent Vite project (see each app's own README):
+
+```bash
+cd src/SerwisSystem.Client && npm ci && npm run dev      # staff app
+cd src/SerwisSystem.Customer && npm ci && npm run dev    # customer app
+```
+
+Vite defaults to `http://localhost:5173`, and to the next free port
+(normally `5174`) for whichever app you start second. Both talk to the API
+at `http://localhost:5000/api` by default.
+
+### CORS
+
+The API only accepts browser requests from `http://localhost:5173` and
+`http://localhost:5174`. If you serve a frontend from another origin, add it
+to the CORS policy in `src/SerwisSystem.Api/Program.cs`.
+
+## API overview
+
+### Auth
+
+| Method | Endpoint             | Auth | Description                                           |
+| ------ | --------------------- | ---- | ------------------------------------------------------ |
+| POST   | `/api/auth/register`  | none | Register a new user                                     |
+| POST   | `/api/auth/login`     | none | `{ usernameOrEmail, password }` → `{ token }`           |
 
 ### Users
 
-* View users
-* View individual users
-* View currently logged-in user
-* Edit user information
-* Delete users
-* Grant and revoke permissions
-* User priority system
+| Method | Endpoint                          | Permission                     | Description                          |
+| ------ | ---------------------------------- | ------------------------------- | ------------------------------------- |
+| GET    | `/api/users`                       | `ReadUsers`                     | List users (paged, searchable)        |
+| GET    | `/api/users/{id:int}`              | `ReadUsers`, or the user themself | Get a single user                   |
+| GET    | `/api/users/logged`                | any authenticated user          | Get the current user                  |
+| PUT    | `/api/users/{id:int}`              | `EditUsers`, or the user themself | Update username/email               |
+| PUT    | `/api/users/change-password`       | any authenticated user          | `{ currentPassword, newPassword }`    |
+| DELETE | `/api/users/{id:int}`              | `DeleteUsers`                    | Delete a user                         |
+| PUT    | `/api/users/grant/{id:int}`        | `GrantUsers`                     | Grant/revoke another user's permissions |
+| PUT    | `/api/users/{id:int}/promote-admin`| Admin role                       | Promote a worker to admin             |
+| PUT    | `/api/users/{id:int}/priority`     | Admin role                       | Change an admin's priority            |
+| GET    | `/api/users/admins`                | Admin role                       | List admins, ordered by priority      |
+| PUT    | `/api/users/{id:int}/demote-admin` | Admin role                       | Demote an admin back to worker        |
 
-### Repairs
+A user can never delete themselves, and the last remaining admin can't be
+deleted or demoted. Priority is compared strictly (`<`): a lower number means
+more authority, and an admin can't grant another admin higher authority than
+their own.
 
-* Create repairs
-* View all repairs
-* View individual repairs
-* Edit repairs
-* Delete repairs
-* Assign repairs to workers
-* Complete repairs
-* Cancel repairs
-* Return repairs to the pending queue
+### Products & repairs
 
-### Authorization
+| Method | Endpoint                        | Auth                                        | Description                                    |
+| ------ | -------------------------------- | -------------------------------------------- | ------------------------------------------------ |
+| GET    | `/api/products`                  | none                                          | Product catalogue (name, whether a serial number is required, and its format hint) |
+| GET    | `/api/repairs`                   | `ReadRepairs`                                 | List repairs (paged, searchable, filterable, sortable) |
+| GET    | `/api/repairs/{id:int}`          | `ReadRepairs`                                 | Get a single repair                              |
+| POST   | `/api/repairs`                   | none, rate limited                            | Create a repair (used by the customer app)       |
+| POST   | `/api/repairs/check`             | none, rate limited                            | `{ id, email }` → repair status                  |
+| PUT    | `/api/repairs/{id:int}`          | `EditRepairs`                                 | Edit repair data (does not change status)        |
+| PUT    | `/api/repairs/{id:int}/status`   | Admin role                                    | Correct a repair's status (see below)            |
+| DELETE | `/api/repairs/{id:int}`          | `DeleteRepairs`                               | Delete a repair                                  |
+| POST   | `/api/repairs/{id:int}/take`     | `TakeRepairs`                                 | Assign the repair to the current user            |
+| POST   | `/api/repairs/{id:int}/complete` | authenticated; must own the repair, or be Admin | Mark as completed                              |
+| POST   | `/api/repairs/{id:int}/cancel`   | `EditRepairs`; must own the repair, or be Admin | Cancel the repair                              |
+| POST   | `/api/repairs/{id:int}/return`   | `DischargeUsers`, or the assigned worker      | Return the repair to the pending queue           |
 
-The API uses a combination of:
+`POST /api/repairs` and `POST /api/repairs/check` are anonymous (the customer
+app is not authenticated) and rate limited per client IP.
 
-* JWT authentication
-* User roles
-* Individual permissions
-* User priority levels
+Status corrections via `PUT /api/repairs/{id:int}/status` only allow:
+`Pending → Cancelled`, `InProgress → Pending`, `InProgress → Cancelled`,
+`Completed → InProgress`, `Cancelled → Pending`. Any other transition is
+rejected with `400`.
 
-Administrators automatically have access to all permissions.
+### Errors
 
----
-
-# 🔐 Authentication
-
-The API uses **JWT Bearer tokens**.
-
-After logging in, the API returns a token:
-
-```json
-{
-  "token": "YOUR_JWT_TOKEN",
-  "role": "Worker"
-}
-```
-
-The token must be sent with authenticated requests:
-
-```http
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-JWT tokens currently expire after **2 hours**.
-
----
-
-# 👥 User Roles
-
-The system currently has two roles:
-
-```text
-Worker
-Admin
-```
-
-### Worker
-
-A Worker has access based on their individual permissions.
-
-### Admin
-
-Admins automatically pass permission checks and therefore have access to all permissions.
-
----
-
-# 🔑 Permissions
-
-The system currently supports the following permissions:
-
-```text
-ReadRepairs
-TakeRepairs
-EditRepairs
-DeleteRepairs
-
-ReadUsers
-EditUsers
-DeleteUsers
-GrantUsers
-DischargeUsers
-```
-
-Permissions can be granted or revoked by users who have the `GrantUsers` permission.
-
-A user cannot modify their own permissions.
-
----
-
-# 🧑‍🔧 Repair Workflow
-
-Repairs follow a basic workflow:
-
-```text
-Pending
-   │
-   │ /take
-   ▼
-InProgress
-   │
-   ├───────────────┐
-   │               │
-/complete        /cancel
-   │               │
-   ▼               ▼
-Completed       Cancelled
-```
-
-A repair can also be returned:
-
-```text
-InProgress
-     │
-   /return
-     ▼
-Pending
-```
-
-Users with `EditRepairs` can manually correct a repair's information and status if an incorrect status was assigned.
-
----
-
-# 📡 API Endpoints
-
-## Authentication
-
-| Method | Endpoint             | Authentication | Description                   |
-| ------ | -------------------- | -------------- | ----------------------------- |
-| POST   | `/api/auth/register` | No             | Register a new user           |
-| POST   | `/api/auth/login`    | No             | Login and receive a JWT token |
-
----
-
-## Users
-
-| Method | Endpoint                | Permission              | Description              |
-| ------ | ----------------------- | ----------------------- | ------------------------ |
-| GET    | `/api/users`            | `ReadUsers`             | Get all users            |
-| GET    | `/api/users/{id}`       | `ReadUsers` or own user | Get a specific user      |
-| GET    | `/api/users/logged`     | Authenticated           | Get the logged-in user   |
-| PUT    | `/api/users/{id}`       | `EditUsers` or own user | Update username/email    |
-| DELETE | `/api/users/{id}`       | `DeleteUsers`           | Delete a user            |
-| PUT    | `/api/users/grant/{id}` | `GrantUsers`            | Grant/revoke permissions |
-
----
-
-## Repairs
-
-| Method | Endpoint                     | Permission                  | Description                   |
-| ------ | ---------------------------- | --------------------------- | ----------------------------- |
-| GET    | `/api/repairs`               | `ReadRepairs`               | Get all repairs               |
-| GET    | `/api/repairs/{id}`          | `ReadRepairs`               | Get a specific repair         |
-| POST   | `/api/repairs`               | `EditRepairs`               | Create a repair               |
-| PUT    | `/api/repairs/{id}`          | `EditRepairs`               | Edit a repair                 |
-| DELETE | `/api/repairs/{id}`          | `DeleteRepairs`             | Delete a repair               |
-| POST   | `/api/repairs/{id}/take`     | `TakeRepairs`               | Assign repair to current user |
-| POST   | `/api/repairs/{id}/complete` | Authenticated + owner/Admin | Complete repair               |
-| POST   | `/api/repairs/{id}/cancel`   | `EditRepairs` + owner/Admin | Cancel repair                 |
-| POST   | `/api/repairs/{id}/return`   | `DischargeUsers` or owner   | Return repair to pending      |
-
----
-
-# 📝 Example Requests
-
-## Register
-
-```http
-POST /api/auth/register
-Content-Type: application/json
-```
+Every non-2xx response is an RFC 7807 `ProblemDetails` JSON body:
 
 ```json
 {
-  "username": "john",
-  "email": "john@example.com",
-  "password": "password123"
+  "type": "...",
+  "title": "...",
+  "status": 400,
+  "detail": "Human-readable message.",
+  "errors": { "fieldName": ["message"] },
+  "traceId": "..."
 }
 ```
 
----
+- `400` — invalid input; validation failures also include `errors` keyed by
+  camelCase field name.
+- `401` — not logged in, or an invalid/expired token.
+- `403` — logged in, but missing the required permission.
+- `404` — resource not found.
+- `409` — conflict (duplicate username or email).
+- `429` — rate limited (the anonymous repair endpoints).
 
-## Login
-
-```http
-POST /api/auth/login
-Content-Type: application/json
-```
-
-```json
-{
-  "usernameOrEmail": "john",
-  "password": "password123"
-}
-```
-
----
-
-## Create a Repair
-
-```http
-POST /api/repairs
-Authorization: Bearer YOUR_JWT_TOKEN
-Content-Type: application/json
-```
-
-```json
-{
-  "product": "Laptop",
-  "description": "Does not turn on",
-  "name": "John",
-  "surname": "Smith",
-  "phoneNumber": "+48123456789",
-  "email": "john@example.com",
-  "address": "Example Street 10",
-  "nip": "1234567890"
-}
-```
-
----
-
-## Take a Repair
-
-```http
-POST /api/repairs/1/take
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-The repair must:
-
-* exist
-* have no assigned user
-* have the `Pending` status
-* be accessed by a user with `TakeRepairs`
-
-After taking the repair:
-
-```text
-UserId = current user
-Status = InProgress
-```
-
----
-
-## Complete a Repair
-
-```http
-POST /api/repairs/1/complete
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-The repair must be assigned to the current user, unless the current user is an Admin.
-
-The repair must also have:
-
-```text
-Status = InProgress
-```
-
-After completion:
-
-```text
-Status = Completed
-```
-
----
-
-# 🗄️ Database
-
-The project uses **PostgreSQL** with **Entity Framework Core**.
-
-Main entities:
-
-```text
-User
- ├── Permissions
- └── Repairs
-
-Repair
- └── User (optional)
-
-Permissions
- └── User
-```
-
-### Relationships
-
-A user can have multiple repairs:
-
-```text
-User 1 ──────── * Repair
-```
-
-A user has one permissions record:
-
-```text
-User 1 ──────── 1 Permissions
-```
-
-When a user is deleted, their permissions are deleted as well.
-
-When a worker is deleted, their assigned repairs are not deleted. The repair's `UserId` is set to `null`.
-
----
-
-# ⚙️ Setup
-
-## Requirements
-
-Before running the project, install:
-
-* [.NET SDK](https://dotnet.microsoft.com/)
-* PostgreSQL
-* Entity Framework Core CLI
-
-Install EF Core CLI if necessary:
+## Running tests
 
 ```bash
-dotnet tool install --global dotnet-ef
+dotnet test
 ```
 
----
+`tests/SerwisSystem.Api.Tests` runs integration tests against a real
+PostgreSQL database via `WebApplicationFactory`; point it at a local instance
+with `ConnectionStrings__DefaultConnection` and `Jwt__Key` environment
+variables (same names as above). See `.github/workflows/ci.yml` for the exact
+setup used in CI, where PostgreSQL runs as a service container.
 
-## Clone the repository
+## Docker
+
+The API ships a standalone multi-stage Dockerfile:
 
 ```bash
-git clone YOUR_REPOSITORY_URL
-cd SerwisSystem.Api
+cd src/SerwisSystem.Api
+docker build -t serwissystem-api .
+docker run --rm -p 8080:8080 \
+  -e ConnectionStrings__DefaultConnection="Host=host.docker.internal;Port=5432;Database=SerwisSystem;Username=postgres;Password=<your-password>" \
+  -e Jwt__Key="<a random string, 64+ characters>" \
+  serwissystem-api
 ```
 
----
-
-## Configure the database
-
-Add your PostgreSQL connection string to:
-
-```text
-appsettings.json
-```
-
-Example:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=SerwisSystem;Username=postgres;Password=YOUR_PASSWORD"
-  }
-}
-```
-
-If your local PostgreSQL installation requires it, configure the appropriate SSL settings for your environment.
-
----
-
-## Configure JWT
-
-Add a JWT key to `appsettings.json`:
-
-```json
-{
-  "Jwt": {
-    "Key": "YOUR_SECRET_KEY"
-  }
-}
-```
-
-The JWT key should be kept secret and should **not** be committed to a public repository.
-
-For production, use a secure secret-management solution or environment variables.
-
----
-
-## Apply database migrations
-
-Run:
-
-```bash
-dotnet ef database update
-```
-
----
-
-## Run the API
-
-```bash
-dotnet run
-```
-
-The API will start using the ASP.NET Core development configuration.
-
----
-
-# 🧪 Testing
-
-The API can be tested using:
-
-* Visual Studio `.http` files
-* Postman
-* Insomnia
-* Another HTTP client
-* The future frontend application
-
-A typical testing flow is:
-
-```text
-1. Register
-      ↓
-2. Login
-      ↓
-3. Get JWT token
-      ↓
-4. Send JWT with Authorization header
-      ↓
-5. Create / view / manage repairs
-```
-
----
-
-# 🔒 Security
-
-The project currently uses:
-
-* JWT Bearer authentication
-* Password hashing using `PasswordHasher<User>`
-* Authorization policies
-* Custom permission handling
-* Role-based Admin access
-* User priority restrictions
-* Model validation
-* Global exception handling
-* Unique username constraint
-* Unique email constraint
-
-Passwords are never stored directly. Only their hashes are stored in the database.
-
----
-
-# 📁 Project Structure
-
-A simplified project structure:
-
-```text
-SerwisSystem.Api/
-│
-├── Authorization/
-│   ├── PermissionHandler.cs
-│   ├── PermissionPolicyProvider.cs
-│   ├── PermissionRequirement.cs
-│   └── RequirePermissionAttribute.cs
-│
-├── Controllers/
-│   ├── AuthController.cs
-│   ├── RepairsController.cs
-│   └── UsersController.cs
-│
-├── Data/
-│   └── AppDbContext.cs
-│
-├── Models/
-│   ├── DTOs/
-│   │   ├── CreateRepairDto.cs
-│   │   ├── LoginDto.cs
-│   │   ├── PermissionsResponseDto.cs
-│   │   ├── RegisterDto.cs
-│   │   ├── RepairResponseDto.cs
-│   │   ├── UpdatePermissionsDto.cs
-│   │   ├── UpdateRepairDto.cs
-│   │   ├── UpdateUserDto.cs
-│   │   └── UserResponseDto.cs
-│   │
-│   ├── Enums/
-│   │   ├── RepairStatus.cs
-│   │   ├── UserResponseOption.cs
-│   │   └── UserRole.cs
-│   │
-│   ├── Permissions.cs
-│   ├── Repair.cs
-│   └── User.cs
-│
-├── Services/
-│   ├── PermissionService.cs
-│   └── UserService.cs
-│
-├── Migrations/
-│
-├── GlobalExceptionHandler.cs
-├── Program.cs
-├── appsettings.json
-└── appsettings.Development.json
-```
-
----
-
-# 🚧 Future Development
-
-Planned improvements include:
-
-* React frontend
-* Worker interface
-* User management interface
-* Repair management interface
-* Better API documentation
-* Improved error handling
-* Production-ready secret management
-* Additional validation
-* More comprehensive automated tests
-
----
-
-# 👨‍💻 Author
-
-**Michał Reinert**
-
-readme was generated by ai
-
-
+The container listens on port 8080 and runs as a non-root user.
