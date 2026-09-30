@@ -3,6 +3,9 @@ function ConfirmButton({
   onConfirm,
   children,
   disabled = false,
+  className = "btn btn-outline-danger",
+  type = "button",
+  ...rest
 }) {
   async function handleClick() {
     const confirmed = window.confirm(message);
@@ -16,8 +19,11 @@ function ConfirmButton({
 
   return (
     <button
+      type={type}
+      className={className}
       onClick={handleClick}
       disabled={disabled}
+      {...rest}
     >
       {children}
     </button>
