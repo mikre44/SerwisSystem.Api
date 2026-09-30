@@ -19,34 +19,37 @@ function App() {
   const { loading, user } = useAuth();
 
   if (loading) {
-    return <p>Loading...</p>;
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Ładowanie…</span>
+        </div>
+      </div>
+    );
   }
 
   return (
     <BrowserRouter>
-
       {user && <Navbar />}
 
       <Routes>
         <Route element={<PublicRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
         </Route>
 
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Home />} />
-          
+
           <Route path="/repairs" element={<Repairs />} />
           <Route path="/repair/:id" element={<Repair />} />
 
           <Route path="/users" element={<Users />} />
           <Route path="/user" element={<LoggedUser />} />
-          <Route path="/user/:id" element={<User/>} />
+          <Route path="/user/:id" element={<User />} />
 
           <Route path="/admins" element={<Admins />} />
         </Route>
-
       </Routes>
     </BrowserRouter>
   );
