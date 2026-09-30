@@ -15,8 +15,10 @@ npm ci
 npm run dev
 ```
 
-The dev server prints its own URL; Vite defaults to `http://localhost:5173`
-(or the next free port if it's taken).
+The dev server always runs on `http://localhost:5173` (`vite.config.js` sets
+`strictPort: true`): if that port is already taken, Vite fails to start
+instead of picking another one — the API's CORS policy only allows this exact
+origin (see the root README).
 
 The app calls the API at `http://localhost:5000/api` by default. To use
 another address, set `VITE_API_URL` in a `.env` file next to `package.json`
