@@ -31,8 +31,8 @@ public class GlobalExceptionHandler : IExceptionHandler
             Exception = exception,
             ProblemDetails =
             {
-                Title = "An unexpected error occurred.",
-                Status = StatusCodes.Status500InternalServerError
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "Wystąpił nieoczekiwany błąd serwera. Spróbuj ponownie później."
             }
         });
     }

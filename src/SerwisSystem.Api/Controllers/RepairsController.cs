@@ -155,7 +155,7 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: $"Unknown sortBy value '{sortBy}'. Use one of: " +
+                detail: $"Nieznana wartość sortBy '{sortBy}'. Dozwolone wartości: " +
                         "id, serialNumber, product, reporterSurname, status, address, createdAt.");
         }
 
@@ -207,7 +207,7 @@ public class RepairsController : ControllerBase
         {
             ModelState.AddModelError(
                 "serviceDataConsent",
-                "Consent to process personal data for service purposes is required.");
+                "Zgoda na przetwarzanie danych w celu realizacji serwisu jest wymagana.");
         }
 
         if (!ModelState.IsValid)
@@ -315,7 +315,7 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status403Forbidden,
-                detail: "Only an admin can change the repair status.");
+                detail: "Tylko administrator może zmienić status naprawy.");
         }
 
         var repair = await FindRepairWithWorker(id);
@@ -330,7 +330,8 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: $"Status change from {repair.Status} to {newStatus} is not allowed.");
+                detail: $"Zmiana statusu z „{StatusLabel(repair.Status)}” " +
+                        $"na „{StatusLabel(newStatus)}” jest niedozwolona.");
         }
 
         // A pending repair waits in the queue without a worker,
@@ -385,14 +386,14 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: "Repair is already assigned to a worker.");
+                detail: "Naprawa jest już przypisana do pracownika.");
         }
 
         if (repair.Status != RepairStatus.Pending)
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: "Only pending repairs can be taken.");
+                detail: "Można przyjąć tylko oczekującą naprawę.");
         }
 
         repair.User = user;
@@ -424,14 +425,14 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: "Only repairs in progress can be completed.");
+                detail: "Można zakończyć tylko naprawę w trakcie realizacji.");
         }
 
         if (user.Role != UserRole.Admin && user.Id != repair.UserId)
         {
             return Problem(
                 statusCode: StatusCodes.Status403Forbidden,
-                detail: "Only the assigned worker or an admin can complete this repair.");
+                detail: "Tylko przypisany pracownik lub administrator może zakończyć tę naprawę.");
         }
 
         repair.Status = RepairStatus.Completed;
@@ -461,21 +462,21 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: "Repair is already completed.");
+                detail: "Naprawa jest już zakończona.");
         }
 
         if (repair.Status == RepairStatus.Cancelled)
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: "Repair is already cancelled.");
+                detail: "Naprawa jest już anulowana.");
         }
 
         if (user.Role != UserRole.Admin && user.Id != repair.UserId)
         {
             return Problem(
                 statusCode: StatusCodes.Status403Forbidden,
-                detail: "Only the assigned worker or an admin can cancel this repair.");
+                detail: "Tylko przypisany pracownik lub administrator może anulować tę naprawę.");
         }
 
         repair.Status = RepairStatus.Cancelled;
@@ -506,7 +507,7 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: "Only repairs in progress can be returned.");
+                detail: "Można zwrócić tylko naprawę w trakcie realizacji.");
         }
 
         if (user.Id != repair.UserId &&
@@ -514,7 +515,8 @@ public class RepairsController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status403Forbidden,
-                detail: "Only the assigned worker or a user with DischargeUsers can return this repair.");
+                detail: "Tylko przypisany pracownik lub osoba z uprawnieniem " +
+                        $"„{PermissionNames.DisplayName(Permission.DischargeUsers)}” może zwrócić tę naprawę.");
         }
 
         repair.User = null;
@@ -538,15 +540,25 @@ public class RepairsController : ControllerBase
     {
         return Problem(
             statusCode: StatusCodes.Status404NotFound,
-            detail: "Repair not found.");
+            detail: "Nie znaleziono naprawy.");
     }
+
+    // Polish status names for error messages, the same as the labels in both apps.
+    private static string StatusLabel(RepairStatus status) => status switch
+    {
+        RepairStatus.Pending => "Oczekująca",
+        RepairStatus.InProgress => "W trakcie",
+        RepairStatus.Completed => "Zakończona",
+        RepairStatus.Cancelled => "Anulowana",
+        _ => status.ToString()
+    };
 
     // The token is valid, but its user no longer exists (e.g. was deleted).
     private ObjectResult CurrentUserNotFound()
     {
         return Problem(
             statusCode: StatusCodes.Status401Unauthorized,
-            detail: "User not found.");
+            detail: "Twoje konto już nie istnieje.");
     }
 
     // Returns the errors collected in ModelState with the same title
@@ -554,7 +566,7 @@ public class RepairsController : ControllerBase
     private ActionResult InvalidRepairData()
     {
         return ValidationProblem(
-            title: "Validation failed.",
+            title: ValidationMessages.Title,
             modelStateDictionary: ModelState);
     }
 
@@ -586,7 +598,7 @@ public class RepairsController : ControllerBase
         {
             ModelState.AddModelError(
                 "purchaseDate",
-                "Purchase date is required for warranty repairs.");
+                "Data zakupu jest wymagana przy naprawie gwarancyjnej.");
         }
 
         if (dto.HasWarranty &&
@@ -594,7 +606,7 @@ public class RepairsController : ControllerBase
         {
             ModelState.AddModelError(
                 "purchaseInvoiceNumber",
-                "Purchase invoice number is required for warranty repairs.");
+                "Numer faktury zakupu jest wymagany przy naprawie gwarancyjnej.");
         }
 
         if (dto.HasContract &&
@@ -602,7 +614,7 @@ public class RepairsController : ControllerBase
         {
             ModelState.AddModelError(
                 "contractNumber",
-                "Contract number is required when contract is selected.");
+                "Numer umowy jest wymagany po zaznaczeniu opcji umowy.");
         }
     }
 

@@ -4,17 +4,17 @@ namespace SerwisSystem.Api.Models.DTOs;
 
 public class RegisterDto
 {
-    [Required]
-    [MaxLength(50)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(50, ErrorMessage = ValidationMessages.MaxLength)]
     public string Username { get; set; } = "";
 
-    [Required]
-    [MaxLength(100)]
-    [EmailAddress]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(100, ErrorMessage = ValidationMessages.MaxLength)]
+    [EmailAddress(ErrorMessage = ValidationMessages.Email)]
     public string Email { get; set; } = "";
 
-    [Required]
-    [MinLength(6)]
-    [MaxLength(50)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MinLength(6, ErrorMessage = ValidationMessages.MinLength)]
+    [MaxLength(50, ErrorMessage = ValidationMessages.MaxLength)]
     public string Password { get; set; } = "";
 }

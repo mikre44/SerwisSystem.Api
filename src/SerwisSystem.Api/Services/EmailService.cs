@@ -27,30 +27,31 @@ public class EmailService
         var safeProduct = WebUtility.HtmlEncode(product);
         var safeSerialNumber = WebUtility.HtmlEncode(serialNumber);
 
-        var subject = $"Repair request #{repairId} received";
+        // Customers are Polish, so the email is in Polish.
+        var subject = $"Przyjęto zgłoszenie naprawy nr {repairId}";
 
         var body = $"""
-            <h2>Repair request received</h2>
+            <h2>Przyjęliśmy zgłoszenie naprawy</h2>
 
-            <p>Hello {safeName},</p>
+            <p>Dzień dobry, {safeName},</p>
 
             <p>
-                Your repair request has been successfully created.
+                Twoje zgłoszenie naprawy zostało zarejestrowane.
             </p>
 
             <p>
-                <strong>Repair number:</strong> {repairId}<br/>
-                <strong>Product:</strong> {safeProduct}<br/>
-                <strong>Serial number:</strong> {safeSerialNumber}
+                <strong>Numer naprawy:</strong> {repairId}<br/>
+                <strong>Produkt:</strong> {safeProduct}<br/>
+                <strong>Numer seryjny:</strong> {safeSerialNumber}
             </p>
 
             <p>
-                You can use your repair number and email address
-                to check the current repair status.
+                Za pomocą numeru naprawy i adresu e-mail
+                możesz sprawdzić aktualny status naprawy.
             </p>
 
             <p>
-                This message was generated automatically.
+                Ta wiadomość została wygenerowana automatycznie.
             </p>
             """;
 

@@ -158,7 +158,7 @@ public class UsersController : ControllerBase
             return CurrentUserMissing();
 
         if (!_permissionService.HasPermission(user, Permission.ReadUsers) && user.Id != id)
-            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to view this user.");
+            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Nie masz uprawnień do przeglądania tego użytkownika.");
 
         var targetUser = await _userService.GetUserWithRepairs(id);
 
@@ -203,7 +203,7 @@ public class UsersController : ControllerBase
         if (user.Id != id)
         {
             if (!_permissionService.HasPermission(user, Permission.EditUsers))
-                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to edit this user.");
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Nie masz uprawnień do edycji tego użytkownika.");
 
             if (!_permissionService.CanManageTargetUser(user, targetUser))
                 return CannotManageTargetUser();
@@ -211,10 +211,10 @@ public class UsersController : ControllerBase
 
         // "u.Id != id" lets the user keep their own username while changing only the email (and vice versa).
         if (await _context.Users.AnyAsync(u => u.Username == updatedUser.Username && u.Id != id))
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ta nazwa użytkownika jest już zajęta.");
 
         if (await _context.Users.AnyAsync(u => u.Email == updatedUser.Email && u.Id != id))
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Email already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ten adres e-mail jest już zajęty.");
 
         targetUser.Username = updatedUser.Username;
         targetUser.Email = updatedUser.Email;
@@ -226,7 +226,7 @@ public class UsersController : ControllerBase
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             // Another request took the same username or email between the checks above and this update.
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username or email already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Nazwa użytkownika lub adres e-mail jest już zajęty.");
         }
 
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
@@ -243,7 +243,7 @@ public class UsersController : ControllerBase
         var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
 
         if (result == PasswordVerificationResult.Failed)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Current password is incorrect.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Obecne hasło jest nieprawidłowe.");
 
         user.PasswordHash = _passwordHasher.HashPassword(user, dto.NewPassword);
 
@@ -251,7 +251,7 @@ public class UsersController : ControllerBase
 
         return Ok(new
         {
-            message = "Password changed successfully."
+            message = "Hasło zostało zmienione."
         });
     }
 
@@ -265,7 +265,7 @@ public class UsersController : ControllerBase
             return CurrentUserMissing();
 
         if (user.Id == id)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot delete your own account.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Nie możesz usunąć własnego konta.");
 
         var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
@@ -292,7 +292,7 @@ public class UsersController : ControllerBase
             return CurrentUserMissing();
 
         if (user.Id == id)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot change your own permissions.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Nie możesz zmienić własnych uprawnień.");
 
         var targetUser = await _context.Users
             .Include(u => u.Permissions)
@@ -308,14 +308,19 @@ public class UsersController : ControllerBase
         if (!TryParsePermissions(dto.PermissionsGranted, out var granted, out var invalidName) ||
             !TryParsePermissions(dto.PermissionsRevoked, out var revoked, out invalidName))
         {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Invalid permission: {invalidName}.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Nieznane uprawnienie: {invalidName}.");
         }
 
         // You can only give or take away a permission you have yourself.
         foreach (var permission in granted.Concat(revoked))
         {
             if (!_permissionService.HasPermission(user, permission))
-                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: $"You do not have the {permission} permission yourself.");
+            {
+                return Problem(
+                    statusCode: StatusCodes.Status403Forbidden,
+                    detail: $"Nie możesz nadać ani odebrać uprawnienia „{PermissionNames.DisplayName(permission)}”, " +
+                            "ponieważ go nie posiadasz.");
+            }
         }
 
         targetUser.Permissions ??= new Permissions();
@@ -364,7 +369,7 @@ public class UsersController : ControllerBase
             return AdminOnly();
 
         if (currentUser.Id == id)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot promote yourself.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Nie możesz nadać sobie roli administratora.");
 
         var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
@@ -372,7 +377,7 @@ public class UsersController : ControllerBase
             return UserNotFound();
 
         if (targetUser.Role == UserRole.Admin)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "User is already an admin.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Ten użytkownik jest już administratorem.");
 
         targetUser.Role = UserRole.Admin;
 
@@ -396,7 +401,7 @@ public class UsersController : ControllerBase
             return AdminOnly();
 
         if (currentUser.Id == id)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot change your own priority.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Nie możesz zmienić własnego priorytetu.");
 
         var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
@@ -404,7 +409,7 @@ public class UsersController : ControllerBase
             return UserNotFound();
 
         if (targetUser.Role != UserRole.Admin)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Target user is not an admin.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Ten użytkownik nie jest administratorem.");
 
         if (!_permissionService.CanManageTargetUser(currentUser, targetUser))
             return CannotManageTargetUser();
@@ -415,7 +420,7 @@ public class UsersController : ControllerBase
         {
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
-                detail: $"Priority must be greater than your own ({currentUser.Priority}).");
+                detail: $"Priorytet musi być większy niż Twój ({currentUser.Priority}).");
         }
 
         targetUser.Priority = dto.Priority;
@@ -457,7 +462,7 @@ public class UsersController : ControllerBase
             return AdminOnly();
 
         if (currentUser.Id == id)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot demote yourself.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Nie możesz odebrać sobie roli administratora.");
 
         var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
@@ -465,7 +470,7 @@ public class UsersController : ControllerBase
             return UserNotFound();
 
         if (targetUser.Role != UserRole.Admin)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Target user is not an admin.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Ten użytkownik nie jest administratorem.");
 
         if (!_permissionService.CanManageTargetUser(currentUser, targetUser))
             return CannotManageTargetUser();
@@ -479,14 +484,14 @@ public class UsersController : ControllerBase
     }
 
     private ObjectResult CurrentUserMissing() =>
-        Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Your account no longer exists.");
+        Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Twoje konto już nie istnieje.");
 
     private ObjectResult UserNotFound() =>
-        Problem(statusCode: StatusCodes.Status404NotFound, detail: "User not found.");
+        Problem(statusCode: StatusCodes.Status404NotFound, detail: "Nie znaleziono użytkownika.");
 
     private ObjectResult AdminOnly() =>
-        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Only an admin can do this.");
+        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Tylko administrator może wykonać tę operację.");
 
     private ObjectResult CannotManageTargetUser() =>
-        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You cannot manage an admin with the same or higher authority.");
+        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Nie możesz zarządzać administratorem o takich samych lub wyższych uprawnieniach.");
 }

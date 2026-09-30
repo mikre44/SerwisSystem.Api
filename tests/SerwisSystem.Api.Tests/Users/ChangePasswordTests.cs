@@ -46,6 +46,6 @@ public class ChangePasswordTests : ApiTestBase
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.ReadProblemAsync();
-        Assert.Equal("Current password is incorrect.", problem.Detail);
+        Assert.Equal("Obecne hasło jest nieprawidłowe.", problem.Detail);
     }
 }

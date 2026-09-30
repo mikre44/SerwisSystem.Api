@@ -26,6 +26,6 @@ public class RateLimitingTests
 
         Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
         var problem = await rejected.ReadProblemAsync();
-        Assert.Equal("Too many requests. Try again in a minute.", problem.Detail);
+        Assert.Equal("Zbyt wiele żądań. Spróbuj ponownie za chwilę.", problem.Detail);
     }
 }

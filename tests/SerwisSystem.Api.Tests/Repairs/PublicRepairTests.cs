@@ -56,7 +56,7 @@ public class PublicRepairTests : ApiTestBase
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.ReadValidationProblemAsync();
-        Assert.Equal("Validation failed.", problem.Title);
+        Assert.Equal("Błędne dane.", problem.Title);
         Assert.True(problem.Errors.ContainsKey("serialNumber"));
     }
 

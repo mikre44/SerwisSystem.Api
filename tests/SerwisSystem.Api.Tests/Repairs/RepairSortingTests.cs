@@ -44,6 +44,6 @@ public class RepairSortingTests : ApiTestBase
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.ReadProblemAsync();
-        Assert.StartsWith("Unknown sortBy value 'passwordHash'.", problem.Detail);
+        Assert.StartsWith("Nieznana wartość sortBy 'passwordHash'.", problem.Detail);
     }
 }

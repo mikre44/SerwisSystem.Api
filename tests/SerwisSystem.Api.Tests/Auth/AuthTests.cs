@@ -71,7 +71,25 @@ public class AuthTests : ApiTestBase
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var problem = await response.ReadProblemAsync();
-        Assert.Equal("Username already exists.", problem.Detail);
+        Assert.Equal("Ta nazwa użytkownika jest już zajęta.", problem.Detail);
+    }
+
+    [Fact]
+    public async Task Validation_errors_are_returned_in_polish_per_field()
+    {
+        var response = await CreateAnonymousClient().PostJsonAsync("/api/auth/register", new RegisterDto
+        {
+            Username = "",
+            Email = "not-an-email",
+            Password = "123"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.ReadValidationProblemAsync();
+        Assert.Equal("Błędne dane.", problem.Title);
+        Assert.Equal(["To pole jest wymagane."], problem.Errors["username"]);
+        Assert.Equal(["Nieprawidłowy adres e-mail."], problem.Errors["email"]);
+        Assert.Equal(["Minimum 6 znaków."], problem.Errors["password"]);
     }
 
     [Fact]
@@ -98,7 +116,7 @@ public class AuthTests : ApiTestBase
 
         var wrongPasswordProblem = await wrongPassword.ReadProblemAsync();
         var unknownUserProblem = await unknownUser.ReadProblemAsync();
-        Assert.Equal("Invalid credentials.", wrongPasswordProblem.Detail);
+        Assert.Equal("Nieprawidłowy login lub hasło.", wrongPasswordProblem.Detail);
         Assert.Equal(wrongPasswordProblem.Detail, unknownUserProblem.Detail);
     }
 

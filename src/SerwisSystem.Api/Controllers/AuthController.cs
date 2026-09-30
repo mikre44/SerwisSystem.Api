@@ -59,10 +59,10 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register(RegisterDto dto)
     {
         if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ta nazwa użytkownika jest już zajęta.");
 
         if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Email already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ten adres e-mail jest już zajęty.");
 
         var user = new User
         {
@@ -81,7 +81,7 @@ public class AuthController : ControllerBase
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             // Another request took the same username or email between the checks above and this insert.
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username or email already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Nazwa użytkownika lub adres e-mail jest już zajęty.");
         }
 
         return Ok(new
@@ -102,7 +102,7 @@ public class AuthController : ControllerBase
         if (user == null ||
             _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password) == PasswordVerificationResult.Failed)
         {
-            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Invalid credentials.");
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Nieprawidłowy login lub hasło.");
         }
 
         var token = GenerateToken(user);

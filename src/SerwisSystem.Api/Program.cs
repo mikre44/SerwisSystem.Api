@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
+using SerwisSystem.Api.Models.DTOs;
 using SerwisSystem.Api.Services;
 using System.Text;
 using System.Text.Json;
@@ -85,7 +86,7 @@ builder.Services.AddControllers()
                 context.HttpContext,
                 context.ModelState,
                 statusCode: StatusCodes.Status400BadRequest,
-                title: "Validation failed.");
+                title: ValidationMessages.Title);
 
             return new BadRequestObjectResult(problem);
         };
@@ -111,14 +112,16 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(options =>
 {
     // Responses produced by middleware (JWT challenge, authorization, rate limiter) have no message of
-    // their own, so give them a readable "detail" that the frontend can show.
+    // their own, so give them a readable "detail" that the frontend can show. Both apps are Polish-only,
+    // so every message meant for the user is in Polish.
     options.CustomizeProblemDetails = context =>
     {
         context.ProblemDetails.Detail ??= context.ProblemDetails.Status switch
         {
-            StatusCodes.Status401Unauthorized => "You must be logged in.",
-            StatusCodes.Status403Forbidden => "You do not have permission to do this.",
-            StatusCodes.Status429TooManyRequests => "Too many requests. Try again in a minute.",
+            StatusCodes.Status401Unauthorized => "Musisz być zalogowany.",
+            StatusCodes.Status403Forbidden => "Nie masz uprawnień do tej operacji.",
+            StatusCodes.Status404NotFound => "Nie znaleziono.",
+            StatusCodes.Status429TooManyRequests => "Zbyt wiele żądań. Spróbuj ponownie za chwilę.",
             _ => null
         };
     };

@@ -17,7 +17,7 @@ public class ConfirmationEmailTests : ApiTestBase
         var repair = await CreateRepairAsync(data);
 
         var email = Assert.Single(Factory.EmailSender.SentEmails, e => e.ToEmail == data.ReporterEmail);
-        Assert.Equal($"Repair request #{repair.Id} received", email.Subject);
+        Assert.Equal($"Przyjęto zgłoszenie naprawy nr {repair.Id}", email.Subject);
     }
 
     [Fact]
