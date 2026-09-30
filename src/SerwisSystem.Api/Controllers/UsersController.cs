@@ -236,23 +236,24 @@ public class UsersController : ControllerBase
     {
         var user = await _userService.GetCurrentUser(User);
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
-
-
         if (user == null)
             return CurrentUserMissing();
+
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
             return UserNotFound();
 
-        if (!_permissionService.HasPermission(user, "EditUsers") && user.Id != id)
-            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to edit this user.");
+        // Everyone may edit their own account; editing someone else needs EditUsers
+        // and, for an admin, a higher authority.
+        if (user.Id != id)
+        {
+            if (!_permissionService.HasPermission(user, "EditUsers"))
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to edit this user.");
 
-
-        if (!_permissionService.CanManageTargetUser(user, targetUser))
-            return CannotManageTargetUser();
-
+            if (!_permissionService.CanManageTargetUser(user, targetUser))
+                return CannotManageTargetUser();
+        }
 
         // "u.Id != id" lets the user keep their own username while changing only the email (and vice versa).
         if (await _context.Users.AnyAsync(u => u.Username == updatedUser.Username && u.Id != id))
@@ -304,19 +305,22 @@ public class UsersController : ControllerBase
 
     [RequirePermission("DeleteUsers")]
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DeleteUser(int id)// this might stay but will be changed too 
+    public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _userService.GetCurrentUser(User);
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
-
-
         if (user == null)
             return CurrentUserMissing();
+
+        if (user.Id == id)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot delete your own account.");
+
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
         if (targetUser == null)
             return UserNotFound();
 
+        // Deleting an admin needs an admin with a higher authority, so the top admin is never deleted.
         if (!_permissionService.CanManageTargetUser(user, targetUser))
             return CannotManageTargetUser();
 
@@ -331,15 +335,12 @@ public class UsersController : ControllerBase
     [HttpPut("grant/{id:int}")]
     public async Task<IActionResult> GrantUser(int id, UpdatePermissionsDto dto)
     {
-
         var user = await _userService.GetCurrentUser(User);
+
         if (user == null)
             return CurrentUserMissing();
-        
-        if (user.Permissions == null && user.Role != UserRole.Admin)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Current user has no permissions.");
 
-        if (user.Id == id)// user cant change his own 
+        if (user.Id == id)
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot change your own permissions.");
 
         var targetUser = await _context.Users
@@ -349,37 +350,30 @@ public class UsersController : ControllerBase
         if (targetUser == null)
             return UserNotFound();
 
-        if (targetUser.Permissions == null)
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Target user has no permissions.");
+        if (!_permissionService.CanManageTargetUser(user, targetUser))
+            return CannotManageTargetUser();
 
-
-        foreach (var permission in dto.PermissionsGranted)
+        // Check every requested name before changing anything, so a bad request changes nothing.
+        foreach (var permission in dto.PermissionsGranted.Concat(dto.PermissionsRevoked))
         {
-
-            if (!_permissionService.HasPermission(user, permission))
-                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: $"You cannot grant a permission you do not have: {permission}.");
-
-            var property = typeof(Permissions).GetProperty(permission);// converts string to actual property in Permissions.cs
-
-            if (property == null || property.PropertyType != typeof(bool))// checking if its actually bool not some user id or smth
-                return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Invalid permission: {permission}.");
-
-            property.SetValue(targetUser.Permissions, true );// the guy who thought about it is insane or genius
-        }
-
-        foreach (var permission in dto.PermissionsRevoked)
-        {
-            if (!_permissionService.HasPermission(user, permission))
-                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: $"You cannot revoke a permission you do not have: {permission}.");
-
+            // Permission names are the names of the bool properties of Permissions (e.g. "ReadRepairs").
             var property = typeof(Permissions).GetProperty(permission);
 
             if (property == null || property.PropertyType != typeof(bool))
                 return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Invalid permission: {permission}.");
 
-            property.SetValue(targetUser.Permissions, false);
+            // You can only give or take away a permission you have yourself.
+            if (!_permissionService.HasPermission(user, permission))
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: $"You do not have the {permission} permission yourself.");
         }
 
+        targetUser.Permissions ??= new Permissions();
+
+        foreach (var permission in dto.PermissionsGranted)
+            typeof(Permissions).GetProperty(permission)!.SetValue(targetUser.Permissions, true);
+
+        foreach (var permission in dto.PermissionsRevoked)
+            typeof(Permissions).GetProperty(permission)!.SetValue(targetUser.Permissions, false);
 
         await _context.SaveChangesAsync();
 
@@ -447,21 +441,16 @@ public class UsersController : ControllerBase
         if (targetUser.Role != UserRole.Admin)
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Target user is not an admin.");
 
-        if (!_permissionService.CanManageTargetUser(
-            currentUser,
-            targetUser))
-        {
+        if (!_permissionService.CanManageTargetUser(currentUser, targetUser))
             return CannotManageTargetUser();
-        }
 
-        if (dto.Priority < currentUser.Priority)//smaller priority - higher authority
+        // The same rule as CanManageTargetUser: after the change you must still have more authority
+        // (a lower number) than the admin you are editing.
+        if (dto.Priority <= currentUser.Priority)
         {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot give an admin higher authority than yourself.");
-        }
-
-        if (dto.Priority < 1)
-        {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Priority must be at least 1.");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"Priority must be greater than your own ({currentUser.Priority}).");
         }
 
         targetUser.Priority = dto.Priority;
@@ -541,5 +530,5 @@ public class UsersController : ControllerBase
         Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Only an admin can do this.");
 
     private ObjectResult CannotManageTargetUser() =>
-        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You cannot manage this user.");
+        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You cannot manage an admin with the same or higher authority.");
 }
