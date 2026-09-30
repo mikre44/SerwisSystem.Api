@@ -73,7 +73,7 @@ public class UsersController : ControllerBase
         return response;
     }
 
-    [RequirePermission("ReadUsers")]
+    [RequirePermission(Permission.ReadUsers)]
     [HttpGet]
     public async Task<IActionResult> GetUsers(
         string? search,
@@ -157,7 +157,7 @@ public class UsersController : ControllerBase
         if (user == null)
             return CurrentUserMissing();
 
-        if (!_permissionService.HasPermission(user, "ReadUsers") && user.Id != id)
+        if (!_permissionService.HasPermission(user, Permission.ReadUsers) && user.Id != id)
             return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to view this user.");
 
         var targetUser = await _userService.GetUserWithRepairs(id);
@@ -202,7 +202,7 @@ public class UsersController : ControllerBase
         // and, for an admin, a higher authority.
         if (user.Id != id)
         {
-            if (!_permissionService.HasPermission(user, "EditUsers"))
+            if (!_permissionService.HasPermission(user, Permission.EditUsers))
                 return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to edit this user.");
 
             if (!_permissionService.CanManageTargetUser(user, targetUser))
@@ -255,7 +255,7 @@ public class UsersController : ControllerBase
         });
     }
 
-    [RequirePermission("DeleteUsers")]
+    [RequirePermission(Permission.DeleteUsers)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
@@ -282,7 +282,7 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    [RequirePermission("GrantUsers")]
+    [RequirePermission(Permission.GrantUsers)]
     [HttpPut("grant/{id:int}")]
     public async Task<IActionResult> GrantUser(int id, UpdatePermissionsDto dto)
     {
@@ -304,31 +304,56 @@ public class UsersController : ControllerBase
         if (!_permissionService.CanManageTargetUser(user, targetUser))
             return CannotManageTargetUser();
 
-        // Check every requested name before changing anything, so a bad request changes nothing.
-        foreach (var permission in dto.PermissionsGranted.Concat(dto.PermissionsRevoked))
+        // Parse every requested name before changing anything, so a bad request changes nothing.
+        if (!TryParsePermissions(dto.PermissionsGranted, out var granted, out var invalidName) ||
+            !TryParsePermissions(dto.PermissionsRevoked, out var revoked, out invalidName))
         {
-            // Permission names are the names of the bool properties of Permissions (e.g. "ReadRepairs").
-            var property = typeof(Permissions).GetProperty(permission);
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Invalid permission: {invalidName}.");
+        }
 
-            if (property == null || property.PropertyType != typeof(bool))
-                return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Invalid permission: {permission}.");
-
-            // You can only give or take away a permission you have yourself.
+        // You can only give or take away a permission you have yourself.
+        foreach (var permission in granted.Concat(revoked))
+        {
             if (!_permissionService.HasPermission(user, permission))
                 return Problem(statusCode: StatusCodes.Status403Forbidden, detail: $"You do not have the {permission} permission yourself.");
         }
 
         targetUser.Permissions ??= new Permissions();
 
-        foreach (var permission in dto.PermissionsGranted)
-            typeof(Permissions).GetProperty(permission)!.SetValue(targetUser.Permissions, true);
+        foreach (var permission in granted)
+            _permissionService.SetPermission(targetUser.Permissions, permission, true);
 
-        foreach (var permission in dto.PermissionsRevoked)
-            typeof(Permissions).GetProperty(permission)!.SetValue(targetUser.Permissions, false);
+        foreach (var permission in revoked)
+            _permissionService.SetPermission(targetUser.Permissions, permission, false);
 
         await _context.SaveChangesAsync();
 
         return Ok(ToDto(targetUser, UserResponseOption.Permissions));
+    }
+
+    // Parses the permission names sent by the frontend (still plain strings, see UpdatePermissionsDto)
+    // into Permission values. Returns false and the offending name on the first unknown one.
+    private static bool TryParsePermissions(List<string> names, out List<Permission> permissions, out string? invalidName)
+    {
+        permissions = new List<Permission>(names.Count);
+
+        foreach (var name in names)
+        {
+            // Enum.TryParse also accepts a plain number (e.g. "3" for DeleteRepairs), so the extra
+            // ToString() check makes sure the request actually spelled out the permission's name.
+            if (!Enum.TryParse<Permission>(name, out var permission) ||
+                !Enum.IsDefined(permission) ||
+                permission.ToString() != name)
+            {
+                invalidName = name;
+                return false;
+            }
+
+            permissions.Add(permission);
+        }
+
+        invalidName = null;
+        return true;
     }
 
     [HttpPut("{id:int}/promote-admin")]
