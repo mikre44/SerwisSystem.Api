@@ -68,9 +68,6 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 
-        // Entities reference each other (User -> Repairs -> User); skip the cycles instead of failing.
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-
         // Keys of validation "errors" are serialized in camelCase, like the JSON fields they refer to.
         options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
     })
