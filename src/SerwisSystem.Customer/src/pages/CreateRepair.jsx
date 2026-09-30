@@ -176,7 +176,7 @@ function CreateRepair() {
             Numer zgłoszenia: <strong>{createdRepair.id}</strong>
           </p>
           <p className="mb-0">
-            Zapisz ten numer -- będzie potrzebny, aby{" "}
+            Zapisz ten numer — będzie potrzebny, aby{" "}
             <Link to="/check">sprawdzić status naprawy</Link>.
           </p>
         </div>
