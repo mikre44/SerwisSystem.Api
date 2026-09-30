@@ -13,9 +13,14 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    // A token that cannot load the user is useless (expired, or the account
+    // was deleted), so it is dropped instead of being sent with every request.
     getLoggedUser()
       .then(setUser)
-      .catch(() => setUser(null))
+      .catch(() => {
+        clearToken();
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -27,7 +32,14 @@ export function AuthProvider({ children }) {
     const { token } = await login(usernameOrEmail, password);
 
     saveToken(token);
-    await reloadUser();
+
+    try {
+      await reloadUser();
+    } catch (error) {
+      // Same as above: do not keep a token we could not use.
+      clearToken();
+      throw error;
+    }
   }
 
   function logout() {

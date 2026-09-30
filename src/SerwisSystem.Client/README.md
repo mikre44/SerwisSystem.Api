@@ -18,9 +18,10 @@ npm run dev
 The dev server prints its own URL; Vite defaults to `http://localhost:5173`
 (or the next free port if it's taken).
 
-The app calls the API at `http://localhost:5000/api` by default. If a
-`VITE_API_URL` environment variable is read from `.env`, set it there instead
-of editing source.
+The app calls the API at `http://localhost:5000/api` by default. To use
+another address, set `VITE_API_URL` in a `.env` file next to `package.json`
+(e.g. `VITE_API_URL=http://localhost:5080/api`) instead of editing source.
+Vite reads it when the dev server starts or the app is built.
 
 ## Scripts
 
