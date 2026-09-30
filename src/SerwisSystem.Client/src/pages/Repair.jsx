@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import EditRepairForm from "../components/EditFormComponents/EditRepairForm";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
 import DeleteRepairButton from "../components/EditFormComponents/DeleteRepairButton";
+import StatusCorrectionForm from "../components/EditFormComponents/StatusCorrectionForm";
 
 function Repair() {
   const { id } = useParams();
@@ -139,6 +140,13 @@ function Repair() {
         repair={repair}
         onUpdated={setRepair}
       />
+
+      {isAdmin && (
+        <StatusCorrectionForm
+          repair={repair}
+          onUpdated={setRepair}
+        />
+      )}
 
       {canDelete && (
         <DeleteRepairButton

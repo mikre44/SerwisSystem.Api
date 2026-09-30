@@ -139,6 +139,14 @@ export function updateRepair(id, repair) {
   });
 }
 
+// Admin-only correction of a wrongly set status.
+export function correctRepairStatus(id, status) {
+  return apiFetch(`/repairs/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
+  });
+}
+
 export function takeRepair(id) {
   return apiFetch(`/repairs/${id}/take`, { method: "POST" });
 }
