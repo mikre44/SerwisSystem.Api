@@ -113,7 +113,7 @@ public class UsersController : ControllerBase
 
 
     [RequirePermission("ReadUsers")]
-    [HttpGet]// GET api/users
+    [HttpGet]
     public async Task<IActionResult> GetUsers(
     string? search,
     string sortBy = "role",
@@ -194,7 +194,7 @@ public class UsersController : ControllerBase
     }
 
 
-    [HttpGet("{id}")]// GET api/users/**id**
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetUserById(int id)
     {
         var user = await _userService.GetCurrentUser(User);
@@ -217,7 +217,7 @@ public class UsersController : ControllerBase
     }
 
 
-    [HttpGet("logged")]//api/logged
+    [HttpGet("logged")]
     public async Task<IActionResult> GetLoggedUser()
     {
         var user = await _userService.GetCurrentUser(User);
@@ -229,7 +229,7 @@ public class UsersController : ControllerBase
     }
 
 
-    [HttpPut("{id}")]// PUT api/users/**id**]
+    [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateUser(int id, UpdateUserDto updatedUser)
     {
         var user = await _userService.GetCurrentUser(User);
@@ -276,7 +276,7 @@ public class UsersController : ControllerBase
     }
 
 
-    [HttpPut("changePassword")]
+    [HttpPut("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
     {
         var user = await _userService.GetCurrentUser(User);
@@ -310,7 +310,7 @@ public class UsersController : ControllerBase
 
 
     [RequirePermission("DeleteUsers")]
-    [HttpDelete("{id}")]// DELETE api/users/**id**
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteUser(int id)// this might stay but will be changed too 
     {
         var user = await _userService.GetCurrentUser(User);
@@ -335,7 +335,7 @@ public class UsersController : ControllerBase
 
 
     [RequirePermission("GrantUsers")]
-    [HttpPut("grant/{id}")]// PUT api/users/grant/**id**]
+    [HttpPut("grant/{id:int}")]
     public async Task<IActionResult> GrantUser(int id, UpdatePermissionsDto dto)
     {
 
@@ -395,7 +395,7 @@ public class UsersController : ControllerBase
 
 
 
-    [HttpPut("{id}/promote-admin")]
+    [HttpPut("{id:int}/promote-admin")]
     public async Task<IActionResult> PromoteToAdmin(int id)
     {
         var currentUser = await _userService.GetCurrentUser(User);
@@ -429,7 +429,7 @@ public class UsersController : ControllerBase
     }
 
 
-    [HttpPut("{id}/priority")]
+    [HttpPut("{id:int}/priority")]
     public async Task<IActionResult> UpdateAdminPriority(
     int id,
     UpdatePriorityDto dto)
@@ -501,7 +501,7 @@ public class UsersController : ControllerBase
     }
 
 
-    [HttpPut("{id}/demote-admin")]
+    [HttpPut("{id:int}/demote-admin")]
     public async Task<IActionResult> DemoteAdmin(int id)
     {
         var currentUser = await _userService.GetCurrentUser(User);
