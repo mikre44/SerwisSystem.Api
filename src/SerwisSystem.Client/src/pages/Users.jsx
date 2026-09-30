@@ -101,11 +101,16 @@ function Users() {
     setPage(newPage);
   }
 
-  function renderSortableHeader(column, label) {
+  // `className` hides less important columns on narrow screens.
+  function renderSortableHeader(column, label, className) {
     const isActive = sortBy === column;
 
     return (
-      <th scope="col" aria-sort={isActive ? (descending ? "descending" : "ascending") : "none"}>
+      <th
+        scope="col"
+        className={className}
+        aria-sort={isActive ? (descending ? "descending" : "ascending") : "none"}
+      >
         <button
           type="button"
           className="btn btn-link p-0 text-decoration-none text-reset fw-semibold d-inline-flex align-items-center gap-1"
@@ -181,26 +186,26 @@ function Users() {
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  {renderSortableHeader("id", "ID")}
+                  {renderSortableHeader("id", "ID", "d-none d-md-table-cell")}
                   {renderSortableHeader("username", "Nazwa użytkownika")}
-                  {renderSortableHeader("email", "E-mail")}
+                  {renderSortableHeader("email", "E-mail", "d-none d-sm-table-cell")}
                   {renderSortableHeader("role", "Rola")}
-                  {renderSortableHeader("priority", "Priorytet")}
-                  <th scope="col">Uprawnienia</th>
-                  {renderSortableHeader("createdAt", "Utworzono")}
+                  {renderSortableHeader("priority", "Priorytet", "d-none d-md-table-cell")}
+                  <th scope="col" className="d-none d-md-table-cell">Uprawnienia</th>
+                  {renderSortableHeader("createdAt", "Utworzono", "d-none d-lg-table-cell")}
                 </tr>
               </thead>
 
               <tbody>
                 {users.map((user) => (
                   <tr key={user.id}>
-                    <td>{user.id}</td>
+                    <td className="d-none d-md-table-cell">{user.id}</td>
 
                     <td>
                       <Link to={`/user/${user.id}`}>{user.username}</Link>
                     </td>
 
-                    <td>{user.email}</td>
+                    <td className="d-none d-sm-table-cell">{user.email}</td>
 
                     <td>
                       <span className={`badge ${roleBadgeClass(user.role)}`}>
@@ -208,9 +213,11 @@ function Users() {
                       </span>
                     </td>
 
-                    <td>{user.role === "Admin" ? user.priority : "—"}</td>
+                    <td className="d-none d-md-table-cell">
+                      {user.role === "Admin" ? user.priority : "—"}
+                    </td>
 
-                    <td>
+                    <td className="d-none d-md-table-cell">
                       {user.role === "Admin" ? (
                         <span className="text-body-secondary">—</span>
                       ) : (
@@ -220,7 +227,9 @@ function Users() {
                       )}
                     </td>
 
-                    <td>{new Date(user.createdAt).toLocaleDateString("pl-PL")}</td>
+                    <td className="d-none d-lg-table-cell">
+                      {new Date(user.createdAt).toLocaleDateString("pl-PL")}
+                    </td>
                   </tr>
                 ))}
               </tbody>
