@@ -5,11 +5,13 @@ import { useAuth } from "../context/AuthContext";
 
 import EditAdminPriority from "../components/EditFormComponents/EditAdminPriority";
 import EditAdminButton from "../components/EditFormComponents/EditAdminButton";
+import Message from "../components/Message";
 
 function Admins() {
   const { user: loggedUser } = useAuth();
 
   const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   // Changing this number runs the effect again and reloads the list
   // (a demote or a new priority changes which admins are listed and their order).
@@ -29,6 +31,11 @@ function Admins() {
         if (!ignore) {
           setError(error.message);
         }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -41,53 +48,82 @@ function Admins() {
   }
 
   return (
-    <div>
-      <h1>Admins</h1>
+    <main className="container py-4">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h1 className="h3 mb-0">
+          <i className="bi bi-shield-lock me-2" />
+          Administratorzy
+        </h1>
+      </div>
 
-      {error && <p>Error: {error}</p>}
+      <p className="text-body-secondary mb-4">
+        Im niższy numer priorytetu, tym większa władza administratora. Możesz
+        zarządzać tylko administratorami, których priorytet jest wyższy (czyli
+        mniej ważny) niż Twój.
+      </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Priority</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      <Message error={error} />
 
-        <tbody>
-          {admins.map((admin) => (
-            <tr key={admin.id}>
-              <td>
-                <Link to={`/user/${admin.id}`}>
-                  {admin.id}
-                </Link>
-              </td>
+      <div className="card shadow-sm">
+        <div className="card-body p-0">
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Ładowanie…</span>
+              </div>
+            </div>
+          ) : admins.length === 0 ? (
+            <p className="text-body-secondary text-center py-4 mb-0">
+              Brak administratorów do wyświetlenia.
+            </p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Login</th>
+                    <th>Email</th>
+                    <th>Priorytet</th>
+                    <th className="text-end">Akcje</th>
+                  </tr>
+                </thead>
 
-              <td>{admin.username}</td>
-              <td>{admin.email}</td>
+                <tbody>
+                  {admins.map((admin) => {
+                    const isSelf = admin.id === loggedUser.id;
 
-              <td>
-                <EditAdminPriority
-                  admin={admin}
-                  loggedUser={loggedUser}
-                  onUpdated={reloadAdmins}
-                />
-              </td>
+                    return (
+                      <tr key={admin.id} className={isSelf ? "table-primary" : undefined}>
+                        <td>
+                          <Link to={`/user/${admin.id}`}>{admin.username}</Link>
+                          {isSelf && (
+                            <span className="badge text-bg-primary ms-2">Ty</span>
+                          )}
+                        </td>
 
-              <td>
-                <EditAdminButton
-                  user={admin}
-                  onUpdated={reloadAdmins}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                        <td>{admin.email}</td>
+
+                        <td>
+                          <EditAdminPriority
+                            admin={admin}
+                            loggedUser={loggedUser}
+                            onUpdated={reloadAdmins}
+                          />
+                        </td>
+
+                        <td className="text-end">
+                          <EditAdminButton user={admin} onUpdated={reloadAdmins} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
   );
 }
 
