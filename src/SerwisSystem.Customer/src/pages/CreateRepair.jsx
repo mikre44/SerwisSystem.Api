@@ -152,6 +152,10 @@ function CreateRepair() {
       setCreatedRepair(repair);
       setForm(initialForm);
       setErrors({});
+
+      // The submit button is at the bottom of a long form; bring the
+      // confirmation with the repair number into view.
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setCreatedRepair(null);
       setSubmitError(error.message);
