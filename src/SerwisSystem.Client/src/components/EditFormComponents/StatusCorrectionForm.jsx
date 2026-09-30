@@ -72,8 +72,9 @@ function StatusCorrectionForm({ repair, onUpdated }) {
           ))}
         </select>
 
-        {repair.status === "InProgress" && newStatus === "Pending" && (
-          <small>Pracownik zostanie odpięty od naprawy.</small>
+        {/* The API unassigns the worker on every correction to Pending. */}
+        {newStatus === "Pending" && repair.workerUsername && (
+          <small>Pracownik {repair.workerUsername} zostanie odpięty od naprawy.</small>
         )}
 
         <button type="submit" disabled={saving}>
