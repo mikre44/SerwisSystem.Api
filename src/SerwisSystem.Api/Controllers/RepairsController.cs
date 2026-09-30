@@ -34,12 +34,79 @@ public class RepairsController : ControllerBase
     }
 
 
-    private bool IsValidPhone(string phone)
+    // Business rules that the data annotations on the DTO cannot express.
+    // Errors are added to ModelState, so ValidationProblem() returns them
+    // in the same format as the automatic [ApiController] validation.
+    private void ValidateRepairData(RepairDataDto dto)
     {
-        return System.Text.RegularExpressions.Regex.IsMatch(
-            phone,
-            @"^(\+)?\d{7,15}$"
-        );
+        // A custom product is any device outside the catalogue,
+        // so its serial number is optional and not checked.
+        if (!dto.IsCustomProduct)
+        {
+            if (!ProductCatalog.IsKnownProduct(dto.Product))
+            {
+                ModelState.AddModelError(
+                    "product", "Wybierz produkt z listy.");
+            }
+            else
+            {
+                var serialError = ProductCatalog.ValidateSerialNumber(
+                    dto.Product, dto.SerialNumber);
+
+                if (serialError != null)
+                    ModelState.AddModelError("serialNumber", serialError);
+            }
+        }
+
+        if (dto.HasWarranty && dto.PurchaseDate == null)
+        {
+            ModelState.AddModelError(
+                "purchaseDate",
+                "Purchase date is required for warranty repairs.");
+        }
+
+        if (dto.HasWarranty &&
+            string.IsNullOrWhiteSpace(dto.PurchaseInvoiceNumber))
+        {
+            ModelState.AddModelError(
+                "purchaseInvoiceNumber",
+                "Purchase invoice number is required for warranty repairs.");
+        }
+
+        if (dto.HasContract &&
+            string.IsNullOrWhiteSpace(dto.ContractNumber))
+        {
+            ModelState.AddModelError(
+                "contractNumber",
+                "Contract number is required when contract is selected.");
+        }
+    }
+
+    // Copies the fields shared by the create and edit forms.
+    private static void CopyRepairData(RepairDataDto dto, Repair repair)
+    {
+        repair.Product = dto.Product;
+        repair.IsCustomProduct = dto.IsCustomProduct;
+        repair.SerialNumber = dto.SerialNumber?.Trim() ?? "";
+        repair.Description = dto.Description;
+
+        repair.ReporterName = dto.ReporterName;
+        repair.ReporterSurname = dto.ReporterSurname;
+        repair.ReporterPhone = dto.ReporterPhone;
+        repair.ReporterEmail = dto.ReporterEmail;
+
+        repair.CompanyName = dto.CompanyName;
+        repair.CompanyAddress = dto.CompanyAddress;
+        repair.CompanyPostalCode = dto.CompanyPostalCode;
+        repair.CompanyCity = dto.CompanyCity;
+        repair.CompanyNip = dto.CompanyNip;
+
+        repair.HasWarranty = dto.HasWarranty;
+        repair.PurchaseDate = dto.PurchaseDate;
+        repair.PurchaseInvoiceNumber = dto.PurchaseInvoiceNumber;
+
+        repair.HasContract = dto.HasContract;
+        repair.ContractNumber = dto.ContractNumber;
     }
 
 
@@ -208,106 +275,26 @@ public class RepairsController : ControllerBase
     public async Task<IActionResult> CreateRepair(
         CreateRepairDto dto)
     {
-        // Warranty validation
-        if (dto.HasWarranty)
-        {
-            if (dto.PurchaseDate == null)
-            {
-                return BadRequest(
-                    "Purchase date is required for warranty repairs."
-                );
-            }
+        ValidateRepairData(dto);
 
-            if (string.IsNullOrWhiteSpace(
-                dto.PurchaseInvoiceNumber))
-            {
-                return BadRequest(
-                    "Purchase invoice number is required for warranty repairs."
-                );
-            }
-        }
-
-
-        if (!IsValidPhone(dto.ReporterPhone))// Phone number validation
-        {
-            return BadRequest(
-                "Reporter phone number must contain 9 digits, optionally with +48."
-            );
-        }
-
-        if (dto.IsCustomProduct &&
-            string.IsNullOrWhiteSpace(dto.Product))
-        {
-            return BadRequest(
-                "Product name is required when category is Other."
-            );
-        }
-
-
-        // Contract validation
-        if (dto.HasContract &&
-            string.IsNullOrWhiteSpace(dto.ContractNumber))
-        {
-            return BadRequest(
-                "Contract number is required when contract is selected."
-            );
-        }
-
-
-        // Serial number validation
-        //if (
-        //    dto.ProductCategory == ProductCategory.Monitor ||
-        //    dto.ProductCategory == ProductCategory.InteractiveBoard
-        //)
-        //{
-        //    if (string.IsNullOrWhiteSpace(dto.SerialNumber))
-        //    {
-        //        return BadRequest(
-        //            "Serial number is required for monitors and interactive boards."
-        //        );
-        //    }
-        //}
-
-
-        // Required service consent
         if (!dto.ServiceDataConsent)
         {
-            return BadRequest(
-                "Consent to process personal data for service purposes is required."
-            );
+            ModelState.AddModelError(
+                "serviceDataConsent",
+                "Consent to process personal data for service purposes is required.");
         }
+
+        if (!ModelState.IsValid)
+            return ValidationProblem();
 
 
         var repair = new Repair
         {
-            Product = dto.Product,
-            IsCustomProduct = dto.IsCustomProduct,
-            SerialNumber = dto.SerialNumber ?? "",
-            Description = dto.Description,
-
-            ReporterName = dto.ReporterName,
-            ReporterSurname = dto.ReporterSurname,
-            ReporterPhone = dto.ReporterPhone,
-            ReporterEmail = dto.ReporterEmail,
-
-            CompanyName = dto.CompanyName,
-            CompanyAddress = dto.CompanyAddress,
-            CompanyPostalCode = dto.CompanyPostalCode,
-            CompanyCity = dto.CompanyCity,
-            CompanyNip = dto.CompanyNip,
-
-            HasWarranty = dto.HasWarranty,
-            PurchaseDate = dto.PurchaseDate,
-            PurchaseInvoiceNumber = dto.PurchaseInvoiceNumber,
-
-            HasContract = dto.HasContract,
-            ContractNumber = dto.ContractNumber,
-
             ServiceDataConsent = dto.ServiceDataConsent,
-
             MarketingConsent = dto.MarketingConsent
         };
 
+        CopyRepairData(dto, repair);
 
         _context.Repairs.Add(repair);
 
@@ -384,53 +371,10 @@ public class RepairsController : ControllerBase
             return NotFound();
 
 
-        // Warranty validation
-        if (updatedRepair.HasWarranty)
-        {
-            if (updatedRepair.PurchaseDate == null)
-            {
-                return BadRequest(
-                    "Purchase date is required for warranty repairs."
-                );
-            }
+        ValidateRepairData(updatedRepair);
 
-            if (string.IsNullOrWhiteSpace(
-                updatedRepair.PurchaseInvoiceNumber))
-            {
-                return BadRequest(
-                    "Purchase invoice number is required for warranty repairs."
-                );
-            }
-        }
-
-
-        // Contract validation
-        if (updatedRepair.HasContract &&
-            string.IsNullOrWhiteSpace(
-                updatedRepair.ContractNumber))
-        {
-            return BadRequest(
-                "Contract number is required when contract is selected."
-            );
-        }
-
-
-        // Serial number validation
-        if (
-            updatedRepair.ProductCategory ==
-                ProductCategory.Monitor ||
-            updatedRepair.ProductCategory ==
-                ProductCategory.InteractiveBoard
-        )
-        {
-            if (string.IsNullOrWhiteSpace(
-                updatedRepair.SerialNumber))
-            {
-                return BadRequest(
-                    "Serial number is required for monitors and interactive boards."
-                );
-            }
-        }
+        if (!ModelState.IsValid)
+            return ValidationProblem();
 
         // If repair is manually moved into an active/final status
         // and has no worker, assign the editing user.
@@ -451,29 +395,7 @@ public class RepairsController : ControllerBase
         }
 
 
-        repair.Product = updatedRepair.Product;
-        repair.IsCustomProduct = updatedRepair.IsCustomProduct;
-        repair.SerialNumber = updatedRepair.SerialNumber ?? "";
-        repair.Description = updatedRepair.Description;
-
-        repair.ReporterName = updatedRepair.ReporterName;
-        repair.ReporterSurname = updatedRepair.ReporterSurname;
-        repair.ReporterPhone = updatedRepair.ReporterPhone;
-        repair.ReporterEmail = updatedRepair.ReporterEmail;
-
-        repair.CompanyName = updatedRepair.CompanyName;
-        repair.CompanyAddress = updatedRepair.CompanyAddress;
-        repair.CompanyPostalCode = updatedRepair.CompanyPostalCode;
-        repair.CompanyCity = updatedRepair.CompanyCity;
-        repair.CompanyNip = updatedRepair.CompanyNip;
-
-        repair.HasWarranty = updatedRepair.HasWarranty;
-        repair.PurchaseDate = updatedRepair.PurchaseDate;
-        repair.PurchaseInvoiceNumber = updatedRepair.PurchaseInvoiceNumber;
-
-
-        repair.HasContract = updatedRepair.HasContract;
-        repair.ContractNumber = updatedRepair.ContractNumber;
+        CopyRepairData(updatedRepair, repair);
 
         // Pending repairs should not have an assigned worker.
         if (repair.Status == RepairStatus.Pending)
