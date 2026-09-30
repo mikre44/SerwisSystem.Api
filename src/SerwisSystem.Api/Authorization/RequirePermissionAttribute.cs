@@ -6,7 +6,7 @@ namespace SerwisSystem.Api.Authorization;
 public class RequirePermissionAttribute : AuthorizeAttribute
 {
     // The policy name is just the enum member's name (e.g. "EditRepairs").
-    // PermissionPolicyProvider parses it back into a Permission with Enum.TryParse.
+    // PermissionPolicyProvider parses it back into a Permission with PermissionNames.TryParse.
     public RequirePermissionAttribute(Permission permission)
     {
         Policy = permission.ToString();

@@ -339,11 +339,7 @@ public class UsersController : ControllerBase
 
         foreach (var name in names)
         {
-            // Enum.TryParse also accepts a plain number (e.g. "3" for DeleteRepairs), so the extra
-            // ToString() check makes sure the request actually spelled out the permission's name.
-            if (!Enum.TryParse<Permission>(name, out var permission) ||
-                !Enum.IsDefined(permission) ||
-                permission.ToString() != name)
+            if (!PermissionNames.TryParse(name, out var permission))
             {
                 invalidName = name;
                 return false;
