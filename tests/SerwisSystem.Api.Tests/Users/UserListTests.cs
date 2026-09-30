@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using SerwisSystem.Api.Models.DTOs;
 using SerwisSystem.Api.Models.Enums;
 using SerwisSystem.Api.Tests.Infrastructure;
@@ -31,6 +32,20 @@ public class UserListTests : ApiTestBase
         Assert.True(admins.Count >= 2);
         Assert.All(page.Items.Skip(admins.Count), u => Assert.Equal(UserRole.Worker, u.Role));
         Assert.Equal(admins.Select(u => u.Priority).Order(), admins.Select(u => u.Priority));
+    }
+
+    [Fact]
+    public async Task Repairs_are_included_only_where_they_are_loaded()
+    {
+        var admin = await LoginAsAdminAsync();
+
+        var list = await (await admin.GetAsync("/api/users")).ReadJsonAsync<JsonElement>();
+        var profile = await (await admin.GetAsync("/api/users/logged")).ReadJsonAsync<JsonElement>();
+
+        // The list does not load repairs, so it leaves the field out instead of sending [].
+        Assert.All(list.GetProperty("items").EnumerateArray(),
+            user => Assert.False(user.TryGetProperty("repairs", out _)));
+        Assert.Equal(JsonValueKind.Array, profile.GetProperty("repairs").ValueKind);
     }
 
     [Fact]
