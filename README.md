@@ -179,21 +179,21 @@ rejected with `400`.
 ### Errors
 
 Every non-2xx response is an RFC 7807 `ProblemDetails` JSON body. User-facing
-text (`detail` and the messages inside `errors`) is in Polish, like the rest
-of the UI; `title` stays a fixed English string (e.g. `"Validation failed."`):
+text (`title`, `detail` and the messages inside `errors`) is in Polish, like
+the rest of the UI. A failed login, for example:
 
 ```json
 {
   "type": "...",
-  "title": "Validation failed.",
+  "title": "Unauthorized",
   "status": 401,
   "detail": "Nieprawidłowy login lub hasło.",
   "traceId": "..."
 }
 ```
 
-A validation failure (400) additionally has an `errors` object keyed by
-camelCase field name, e.g. `"errors": { "email": ["To pole jest wymagane."] }`.
+A validation failure (400) has `"title": "Błędne dane."` and an `errors` object
+keyed by camelCase field name, e.g. `"errors": { "email": ["To pole jest wymagane."] }`.
 
 - `400` — invalid input; validation failures also include `errors`.
 - `401` — not logged in, or an invalid/expired token.
