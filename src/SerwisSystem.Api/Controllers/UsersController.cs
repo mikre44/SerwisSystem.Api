@@ -65,45 +65,9 @@ public class UsersController : ControllerBase
 
         if (option == UserResponseOption.Repairs || option == UserResponseOption.All)
         {
-            var repairs = user.Repairs
-            .Select(repair => new RepairResponseDto
-            {
-                Id = repair.Id,
-
-                Status = repair.Status,
-
-                Product = repair.Product,
-                IsCustomProduct = repair.IsCustomProduct,
-                SerialNumber = repair.SerialNumber,
-                Description = repair.Description,
-
-                ReporterName = repair.ReporterName,
-                ReporterSurname = repair.ReporterSurname,
-                ReporterPhone = repair.ReporterPhone,
-                ReporterEmail = repair.ReporterEmail,
-
-                CompanyName = repair.CompanyName,
-                CompanyAddress = repair.CompanyAddress,
-                CompanyPostalCode = repair.CompanyPostalCode,
-                CompanyCity = repair.CompanyCity,
-                CompanyNip = repair.CompanyNip,
-
-                HasWarranty = repair.HasWarranty,
-                PurchaseDate = repair.PurchaseDate,
-                PurchaseInvoiceNumber = repair.PurchaseInvoiceNumber,
-
-                HasContract = repair.HasContract,
-                ContractNumber = repair.ContractNumber,
-
-                ServiceDataConsent = repair.ServiceDataConsent,
-                MarketingConsent = repair.MarketingConsent,
-
-                WorkerId = repair.UserId,
-
-                CreatedAt = repair.CreatedAt
-            })
-            .ToList();
-            respone.Repairs = repairs;
+            respone.Repairs = user.Repairs
+                .Select(RepairResponseDto.FromEntity)
+                .ToList();
         }
         return respone;
     }
