@@ -147,8 +147,11 @@ function Repair() {
         />
       )}
 
+      {/* key: opening another repair creates a fresh form; status actions on
+          this repair keep the edits that have not been saved yet. */}
       {canEdit && (
         <EditRepairForm
+          key={repair.id}
           repair={repair}
           onUpdated={setRepair}
         />
