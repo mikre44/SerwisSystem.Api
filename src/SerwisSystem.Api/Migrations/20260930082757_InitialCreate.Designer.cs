@@ -12,8 +12,8 @@ using SerwisSystem.Api.Data;
 namespace SerwisSystem.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260904075745_AddPermissionsModel")]
-    partial class AddPermissionsModel
+    [Migration("20260930082757_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,13 +33,16 @@ namespace SerwisSystem.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("DeleteRepair")
+                    b.Property<bool>("DeleteRepairs")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("DeleteUsers")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("EditRepair")
+                    b.Property<bool>("DischargeUsers")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EditRepairs")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("EditUsers")
@@ -54,10 +57,10 @@ namespace SerwisSystem.Api.Migrations
                     b.Property<bool>("ReadUsers")
                         .HasColumnType("boolean");
 
-                    b.Property<bool>("TakeRepair")
+                    b.Property<bool>("TakeRepairs")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("UserId")
+                    b.Property<int>("UserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -76,8 +79,27 @@ namespace SerwisSystem.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Address")
+                    b.Property<string>("CompanyAddress")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyCity")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyNip")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyPostalCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContractNumber")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
@@ -87,34 +109,53 @@ namespace SerwisSystem.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("HasContract")
+                        .HasColumnType("boolean");
 
-                    b.Property<int>("NIP")
-                        .HasColumnType("integer");
+                    b.Property<bool>("HasWarranty")
+                        .HasColumnType("boolean");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("IsCustomProduct")
+                        .HasColumnType("boolean");
 
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("MarketingConsent")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Product")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("SerialNumber")
-                        .HasColumnType("integer");
+                    b.Property<DateOnly?>("PurchaseDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PurchaseInvoiceNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterPhone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReporterSurname")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SerialNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("ServiceDataConsent")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Surname")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<int?>("UserId")
                         .HasColumnType("integer");
@@ -171,7 +212,8 @@ namespace SerwisSystem.Api.Migrations
                     b.HasOne("SerwisSystem.Api.Models.User", "User")
                         .WithOne("Permissions")
                         .HasForeignKey("SerwisSystem.Api.Models.Permissions", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
