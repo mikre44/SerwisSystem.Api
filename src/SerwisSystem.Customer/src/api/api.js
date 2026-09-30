@@ -48,23 +48,10 @@ function buildApiError(response, body) {
   const error = new Error(message);
 
   if (problem?.errors) {
-    error.fieldErrors = toCamelCaseKeys(problem.errors);
+    error.fieldErrors = problem.errors;
   }
 
   return error;
-}
-
-// ASP.NET validation errors are keyed by the DTO property name
-// (PascalCase); forms look them up by their camelCase field name.
-function toCamelCaseKeys(errors) {
-  const result = {};
-
-  for (const [key, value] of Object.entries(errors)) {
-    const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
-    result[camelKey] = value;
-  }
-
-  return result;
 }
 
 // Product catalogue: [{ name, serialRequired, serialHint }]. The backend is
