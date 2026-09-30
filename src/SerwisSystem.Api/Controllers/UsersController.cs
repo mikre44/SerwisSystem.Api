@@ -15,23 +15,25 @@ using System.Security.Claims;
 namespace SerwisSystem.Api.Controllers;
 
 [Authorize]
-[ApiController]// indicates that this class is an API controller
-[Route("api/[controller]")]// route for the controller so its api/repairs
+[ApiController]
+[Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly AppDbContext _context;// acces to database
-    private readonly PermissionService _permissionService; // acces to the permission service
-    private readonly UserService _userService;// pretty obvious tbh
-
+    private readonly AppDbContext _context;
+    private readonly PermissionService _permissionService;
+    private readonly UserService _userService;
+    private readonly IPasswordHasher<User> _passwordHasher;
 
     public UsersController(
         AppDbContext context,
         PermissionService permissionService,
-        UserService userService)
+        UserService userService,
+        IPasswordHasher<User> passwordHasher)
     {
         _context = context;
         _permissionService = permissionService;
         _userService = userService;
+        _passwordHasher = passwordHasher;
     }
 
     private UserResponseDto ToDto(User user, UserResponseOption option)
@@ -284,21 +286,12 @@ public class UsersController : ControllerBase
         if (user == null)
             return CurrentUserMissing();
 
-        var passwordHasher = new PasswordHasher<User>();
-
-        var result = passwordHasher.VerifyHashedPassword(
-            user,
-            user.PasswordHash,
-            dto.CurrentPassword
-        );
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
 
         if (result == PasswordVerificationResult.Failed)
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Current password is incorrect.");
 
-        user.PasswordHash = passwordHasher.HashPassword(
-            user,
-            dto.NewPassword
-        );
+        user.PasswordHash = _passwordHasher.HashPassword(user, dto.NewPassword);
 
         await _context.SaveChangesAsync();
 

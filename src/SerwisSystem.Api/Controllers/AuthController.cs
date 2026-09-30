@@ -1,4 +1,3 @@
-﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,31 +8,29 @@ using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
-using SerwisSystem.Api.Models.Enums;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-
 
 namespace SerwisSystem.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-
-public class  AuthController : ControllerBase  
+public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;// access to database
-    private readonly PasswordHasher<User> _passwordHasher;
+    private readonly AppDbContext _context;
+    private readonly IPasswordHasher<User> _passwordHasher;
     private readonly JwtOptions _jwtOptions;
 
-
-    public AuthController(AppDbContext context, IOptions<JwtOptions> jwtOptions)
+    public AuthController(
+        AppDbContext context,
+        IPasswordHasher<User> passwordHasher,
+        IOptions<JwtOptions> jwtOptions)
     {
         _context = context;
-        _passwordHasher = new PasswordHasher<User>();
+        _passwordHasher = passwordHasher;
         _jwtOptions = jwtOptions.Value;
     }
-
 
     private string GenerateToken(User user)
     {
@@ -57,8 +54,6 @@ public class  AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
-
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
@@ -113,81 +108,8 @@ public class  AuthController : ControllerBase
         var token = GenerateToken(user);
         return Ok(new
         {
-           token,
-           user.Role
+            token,
+            user.Role
         });
     }
-
-    [AllowAnonymous]
-    [HttpPost("create-first-admin")]
-    public async Task<IActionResult> CreateFirstAdmin(
-    RegisterDto dto)
-    {
-        var adminExists = await _context.Users
-            .AnyAsync(u => u.Role == UserRole.Admin);
-
-        if (adminExists)
-        {
-            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "An admin already exists.");
-        }
-
-        var existingUser = await _context.Users
-            .AnyAsync(u =>
-                u.Username == dto.Username ||
-                u.Email == dto.Email
-            );
-
-        if (existingUser)
-        {
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username or email already exists.");
-        }
-
-        var user = new User
-        {
-            Username = dto.Username,
-            Email = dto.Email,
-            Role = UserRole.Admin,
-            Priority = 1,
-        };
-
-        var hasher = new PasswordHasher<User>();
-
-        user.PasswordHash =
-            hasher.HashPassword(
-                user,
-                dto.Password
-            );
-
-        _context.Users.Add(user);
-
-        await _context.SaveChangesAsync();
-
-        var permissions = new Permissions
-        {
-            UserId = user.Id,
-
-            ReadRepairs = true,
-            TakeRepairs = true,
-            EditRepairs = true,
-            DeleteRepairs = true,
-
-            ReadUsers = true,
-            EditUsers = true,
-            DeleteUsers = true,
-            GrantUsers = true,
-            DischargeUsers = true
-        };
-
-        _context.Permissions.Add(permissions);
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new
-        {
-            message = "First admin created successfully."
-        });
-    }
-
-
 }
-

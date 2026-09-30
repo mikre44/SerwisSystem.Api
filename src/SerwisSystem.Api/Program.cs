@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
+using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Services;
 using System.Text;
 using System.Text.Json;
@@ -106,6 +108,8 @@ builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<FirstAdminSeeder>();
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(options =>
@@ -145,6 +149,12 @@ builder.Services.AddOpenApi();
 
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<FirstAdminSeeder>();
+    await seeder.SeedAsync();
+}
 
 app.UseExceptionHandler();
 
