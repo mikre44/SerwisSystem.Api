@@ -1,94 +1,143 @@
-@SerwisSystem_Api_HostAddress = http://localhost:5000 
+@SerwisSystem_Api_HostAddress = http://localhost:5000
 ### Change to your host address ^
 
-@token = YOUR_TOKEN
 
+###=====================================Login (run this first)=====================================
 
-
-### FIRST ADMIN CREATION ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-POST {{SerwisSystem_Api_HostAddress}}/api/auth/create-first-admin
+### Register a worker account (skip if you already have one)
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/register
 Content-Type: application/json
+
 {
-  "username": "admin",
-  "email": "admin@example.com",
-  "password": "YourStrongPassword123!"
+  "username": "worker1",
+  "email": "worker1@example.com",
+  "password": "Password123!"
 }
 
-###^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+### Log in. REST Client's "named request" feature lets @token below read
+### the token straight out of this response, so it never has to be pasted
+### or committed anywhere.
+# @name login
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "worker1",
+  "password": "Password123!"
+}
+
+@token = {{login.response.body.$.token}}
 
 
+###=====================================List of Product requests=====================================
 
+### Product catalogue (anonymous; the customer app builds its repair form from this)
+GET {{SerwisSystem_Api_HostAddress}}/api/products
+Accept: application/json
 
 
 ###=====================================List of Repair requests=====================================
 
 ### List of all repairs
-GET {{SerwisSystem_Api_HostAddress}}/api/repairs
+GET {{SerwisSystem_Api_HostAddress}}/api/repairs?page=1&pageSize=10
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### Append new repair
+### Create a repair (anonymous, rate limited; product name must exist in GET /api/products
+### unless isCustomProduct is true)
 POST {{SerwisSystem_Api_HostAddress}}/api/repairs
 Content-Type: application/json
-Authorization: Bearer {{token}}
 
 {
-    "serialNumber": 2,
-    "product": "iPhone 15",
-    "description": "Broken screen",
-    "name": "Jan",
-    "surname": "Kowalski",
-    "phoneNumber": "123456789",
-    "email": "jan@example.com",
-    "address": "Example 1",
-    "nip": "1234567890"
+  "product": "Monitor interaktywny myBoard Titan (Android 15)",
+  "isCustomProduct": false,
+  "serialNumber": "L241001056512345",
+  "description": "Broken screen",
+  "reporterName": "Jan",
+  "reporterSurname": "Kowalski",
+  "reporterPhone": "123456789",
+  "reporterEmail": "jan@example.com",
+  "companyName": "Example sp. z o.o.",
+  "companyAddress": "Example 1",
+  "companyPostalCode": "00-001",
+  "companyCity": "Warszawa",
+  "companyNip": "1234563218",
+  "hasWarranty": false,
+  "hasContract": false,
+  "serviceDataConsent": true,
+  "marketingConsent": false
 }
 
 
-### assign the user to repair with id ...
+### Check repair status (anonymous, rate limited; email is matched case-insensitively)
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/check
+Content-Type: application/json
 
+{
+  "id": 1,
+  "email": "jan@example.com"
+}
+
+
+### Assign the current user to a pending repair
 POST {{SerwisSystem_Api_HostAddress}}/api/repairs/18/take
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### complete the repair with id ...
+### Complete a repair that is in progress
 POST {{SerwisSystem_Api_HostAddress}}/api/repairs/18/complete
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### cancel the repair with id ...  for now users are able to discharge admins
+### Cancel a repair
 POST {{SerwisSystem_Api_HostAddress}}/api/repairs/21/cancel
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### return the repair with id ... for now users are able to discharge admins
-POST {{SSerwisSystem_Api_HostAddress}}/api/repairs/22/return
+### Return an in-progress repair to the pending queue
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/22/return
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### Update repair with id ...
+### Edit repair data (status is not part of this DTO, use PUT .../status below)
 PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/17
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-    "serialNumber": 23456,
-    "status": 0,
-    "product": "iPhone 25",
-    "description": "Screen completely shattered",
-    "name": "Jan",
-    "surname": "Kowalski",
-    "phoneNumber": "123456789",
-    "email": "jan@example.com",
-    "address": "Example 2",
-    "nip": "1234567890"
+  "product": "Laptop",
+  "isCustomProduct": true,
+  "serialNumber": "SN-12345",
+  "description": "Screen completely shattered",
+  "reporterName": "Jan",
+  "reporterSurname": "Kowalski",
+  "reporterPhone": "123456789",
+  "reporterEmail": "jan@example.com",
+  "companyName": "Example sp. z o.o.",
+  "companyAddress": "Example 2",
+  "companyPostalCode": "00-002",
+  "companyCity": "Warszawa",
+  "companyNip": "1234563218",
+  "hasWarranty": false,
+  "hasContract": false
 }
+
+
+### Correct a repair's status (Admin role only; only specific transitions are allowed,
+### e.g. Pending -> Cancelled, see README)
+PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/17/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "Cancelled"
+}
+
 
 ### Delete repair with id ...
 DELETE {{SerwisSystem_Api_HostAddress}}/api/repairs/20
@@ -119,77 +168,67 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-    "Username": "jonh76",
-    "email": "jonh67@example.com"
+  "username": "john76",
+  "email": "john67@example.com"
 }
 
-### Delete user - here for now
+### Change own password
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/change-password
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "currentPassword": "Password123!",
+  "newPassword": "NewPassword456!"
+}
+
+### Delete user
 DELETE {{SerwisSystem_Api_HostAddress}}/api/users/9
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### Edit user permissions 
+### Grant / revoke permissions
 # ===========================
-# All of the permissions:
-#         "ReadRepairs",
-#         "TakeRepairs",
-#         "EditRepairs",
-#         "DeleteRepairs",
-#         "ReadUsers",
-#         "EditUsers",
-#         "DeleteUsers",
-#         "GrantUsers",
-#         "DischargeUsers"
+# All permissions:
+#   ReadRepairs, TakeRepairs, EditRepairs, DeleteRepairs,
+#   ReadUsers, EditUsers, DeleteUsers, GrantUsers, DischargeUsers
 # ===========================
 PUT {{SerwisSystem_Api_HostAddress}}/api/users/grant/17
 Content-Type: application/json
 Authorization: Bearer {{token}}
+
 {
-    "permissionsGranted": [
-       "GrantUsers",
-        "ReadRepairs",
-        "TakeRepairs",
-        "EditRepairs",
-        "DeleteRepairs",
-        "ReadUsers",
-        "EditUsers",
-        "DeleteUsers",
-        "DischargeUsers"
-    ],
-    "permissionsRevoked": [
-
-    ]
+  "permissionsGranted": [
+    "ReadRepairs",
+    "TakeRepairs"
+  ],
+  "permissionsRevoked": []
 }
-###
 
-###=====================================List of Authorization requests=====================================
 
-### register user
-POST {{SerwisSystem_Api_HostAddress}}/api/auth/register
+###=====================================List of Admin management requests=====================================
+
+### List admins, ordered by priority (Admin only)
+GET {{SerwisSystem_Api_HostAddress}}/api/users/admins
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Promote a worker to admin (Admin only)
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/13/promote-admin
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Change an admin's priority; lower number = more authority (Admin only)
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/13/priority
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-    "username": "Mike2",
-    "email": "Mike2@gmail.com",
-    "password": "password123"
+  "priority": 2
 }
 
-### login user
-POST {{SerwisSystem_Api_HostAddress}}/api/auth/login
-Content-Type: application/json
-
-{
-    "UsernameOrEmail": "Mike1",
-    "password": "password123"
-}
-
-### create admin
-POST {{SerwisSystem_Api_HostAddress}}/api/auth/createAdmin
-Content-Type: application/json
-
-{
-    "username": "John4",
-    "email": "john4@gmail.com",
-    "password": "password123"
-}
+### Demote an admin back to worker (Admin only)
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/13/demote-admin
+Accept: application/json
+Authorization: Bearer {{token}}
