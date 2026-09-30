@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
@@ -71,33 +72,31 @@ public class  AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
-        var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username already exists.");
 
-        if (existingUsername != null)
-            return BadRequest("Username already exists");
-        else if (existingEmail != null)
-            return BadRequest("Email already exists");
-        
+        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Email already exists.");
+
         var user = new User
         {
             Username = dto.Username,
-            Email = dto.Email
+            Email = dto.Email,
+            Permissions = new Permissions()
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
 
-
-        var permissions = new Permissions
-        {
-            User = user
-        };
-
-        user.Permissions = permissions;
-
         _context.Users.Add(user);
 
-        await _context.SaveChangesAsync();
-
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Another request took the same username or email between the checks above and this insert.
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username or email already exists.");
+        }
 
         return Ok(new
         {
@@ -113,14 +112,12 @@ public class  AuthController : ControllerBase
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail);
 
-        if (user == null)
-            return BadRequest("Username not found");
-
-
-        var result =_passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password); // put it here to make the code more readable
-
-        if (result == PasswordVerificationResult.Failed)
-            return BadRequest("Invalid password");
+        // The same answer for an unknown user and a wrong password, so nobody can probe which accounts exist.
+        if (user == null ||
+            _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password) == PasswordVerificationResult.Failed)
+        {
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Invalid credentials.");
+        }
 
         var token = GenerateToken(user);
         return Ok(new
@@ -140,9 +137,7 @@ public class  AuthController : ControllerBase
 
         if (adminExists)
         {
-            return BadRequest(
-                "An admin already exists."
-            );
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "An admin already exists.");
         }
 
         var existingUser = await _context.Users
@@ -153,9 +148,7 @@ public class  AuthController : ControllerBase
 
         if (existingUser)
         {
-            return BadRequest(
-                "Username or email already exists."
-            );
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username or email already exists.");
         }
 
         var user = new User

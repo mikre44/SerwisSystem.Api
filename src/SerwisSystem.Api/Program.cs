@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Services;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 
@@ -47,42 +49,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 
-builder.Services.AddControllers()//options for controllers
- .AddJsonOptions(options =>
-  {
-      options.JsonSerializerOptions.ReferenceHandler =
-          System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;// this is to prevent the error of circular reference when serializing the data to json (loops) without it any relation breaks
-  })
-  .ConfigureApiBehaviorOptions(options =>
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
     {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+
+        // Entities reference each other (User -> Repairs -> User); skip the cycles instead of failing.
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+
+        // Keys of validation "errors" are serialized in camelCase, like the JSON fields they refer to.
+        options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // Automatic model validation returns the same ProblemDetails shape as every other error.
         options.InvalidModelStateResponseFactory = context =>
         {
-            var errors = context.ModelState
-                .Where(x => x.Value?.Errors.Count > 0)
-                .ToDictionary(
-                    x => x.Key,
-                    x => x.Value!.Errors
-                        .Select(e => e.ErrorMessage)
-                        .ToArray()
-                );
+            var problemDetailsFactory = context.HttpContext.RequestServices
+                .GetRequiredService<ProblemDetailsFactory>();
 
-            return new BadRequestObjectResult(new
-            {
-                status = 400,
-                message = "Validation failed.",
-                errors
-            });
+            var problem = problemDetailsFactory.CreateValidationProblemDetails(
+                context.HttpContext,
+                context.ModelState,
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Validation failed.");
+
+            return new BadRequestObjectResult(problem);
         };
-    })
-   .AddJsonOptions(options =>
-   {
-       options.JsonSerializerOptions.Converters.Add(
-           new JsonStringEnumConverter()
-       );
-
-       options.JsonSerializerOptions.ReferenceHandler =
-           ReferenceHandler.IgnoreCycles;
-   });
+    });
 
 
 builder.Services.AddDbContext<AppDbContext>(options =>// options for database context
@@ -101,7 +95,20 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddScoped<EmailService>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails(); 
+builder.Services.AddProblemDetails(options =>
+{
+    // Responses produced by middleware (JWT challenge, authorization, rate limiter) have no message of
+    // their own, so give them a readable "detail" that the frontend can show.
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Detail ??= context.ProblemDetails.Status switch
+        {
+            StatusCodes.Status401Unauthorized => "You must be logged in.",
+            StatusCodes.Status403Forbidden => "You do not have permission to do this.",
+            _ => null
+        };
+    };
+});
 
 builder.Services.AddOpenApi();
 
@@ -109,6 +116,10 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+
+// Turns empty error responses (401 from JWT, 403 from authorization, 404 for unknown routes)
+// into ProblemDetails bodies.
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
