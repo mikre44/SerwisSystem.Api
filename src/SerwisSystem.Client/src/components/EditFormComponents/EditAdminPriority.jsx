@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { updateAdminPriority } from "../../api/api";
 import { canManageUser } from "../../permissions";
-import Message from "../Message";
 
 function EditAdminPriority({ admin, loggedUser, onUpdated }) {
   const [priority, setPriority] = useState(admin.priority);
@@ -22,7 +21,7 @@ function EditAdminPriority({ admin, loggedUser, onUpdated }) {
       await updateAdminPriority(admin.id, Number(priority));
 
       setError("");
-      setSuccess("Priorytet został zaktualizowany.");
+      setSuccess("Zapisano");
       onUpdated();
     } catch (error) {
       setSuccess("");
@@ -68,7 +67,16 @@ function EditAdminPriority({ admin, loggedUser, onUpdated }) {
         </button>
       </form>
 
-      <Message error={error} success={success} />
+      {/* Small inline feedback: a full alert would stretch the table row. */}
+      {error && (
+        <div className="small text-danger mt-1" role="alert">{error}</div>
+      )}
+      {success && (
+        <div className="small text-success mt-1" role="status">
+          <i className="bi bi-check-circle me-1" aria-hidden="true" />
+          Zapisano
+        </div>
+      )}
     </div>
   );
 }
