@@ -81,10 +81,10 @@ function Admins() {
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th>Login</th>
-                    <th>Email</th>
-                    <th>Priorytet</th>
-                    <th className="text-end">Akcje</th>
+                    <th scope="col">Nazwa użytkownika</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col">Priorytet</th>
+                    <th scope="col" className="text-end">Akcje</th>
                   </tr>
                 </thead>
 

@@ -124,7 +124,7 @@ function Users() {
                 id="users-search"
                 type="search"
                 className="form-control"
-                placeholder="Nazwa użytkownika, e-mail, rola…"
+                placeholder="Nazwa użytkownika lub e-mail…"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
