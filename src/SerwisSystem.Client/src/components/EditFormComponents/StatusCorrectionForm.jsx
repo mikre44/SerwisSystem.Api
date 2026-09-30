@@ -51,36 +51,48 @@ function StatusCorrectionForm({ repair, onUpdated }) {
   }
 
   return (
-    <div>
-      <h2>Korekta statusu</h2>
+    <div className="card shadow-sm">
+      <div className="card-body">
+        <h2 className="h6 card-title">Korekta statusu</h2>
 
-      <Message error={error} success={success} />
+        <Message error={error} success={success} />
 
-      <form onSubmit={handleSubmit}>
-        <p>Obecny status: {STATUS_LABELS[repair.status]}</p>
+        <form onSubmit={handleSubmit}>
+          <p className="small text-body-secondary mb-2">
+            Obecny status: <strong>{STATUS_LABELS[repair.status]}</strong>
+          </p>
 
-        <label htmlFor="status-correction">Nowy status</label>
-        <select
-          id="status-correction"
-          value={newStatus}
-          onChange={(event) => setSelectedStatus(event.target.value)}
-        >
-          {allowedStatuses.map((status) => (
-            <option key={status} value={status}>
-              {STATUS_LABELS[status]}
-            </option>
-          ))}
-        </select>
+          <div className="mb-2">
+            <label htmlFor="status-correction" className="form-label">
+              Nowy status
+            </label>
+            <select
+              id="status-correction"
+              className="form-select form-select-sm"
+              value={newStatus}
+              onChange={(event) => setSelectedStatus(event.target.value)}
+            >
+              {allowedStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {STATUS_LABELS[status]}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* The API unassigns the worker on every correction to Pending. */}
-        {newStatus === "Pending" && repair.workerUsername && (
-          <small>Pracownik {repair.workerUsername} zostanie odpięty od naprawy.</small>
-        )}
+          {/* The API unassigns the worker on every correction to Pending. */}
+          {newStatus === "Pending" && repair.workerUsername && (
+            <p className="small text-body-secondary">
+              Pracownik {repair.workerUsername} zostanie odpięty od naprawy.
+            </p>
+          )}
 
-        <button type="submit" disabled={saving}>
-          {saving ? "Zapisywanie..." : "Zmień status"}
-        </button>
-      </form>
+          <button type="submit" className="btn btn-outline-primary btn-sm" disabled={saving}>
+            {saving && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
+            {saving ? "Zapisywanie…" : "Zmień status"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

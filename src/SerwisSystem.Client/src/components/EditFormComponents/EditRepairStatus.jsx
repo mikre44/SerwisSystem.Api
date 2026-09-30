@@ -16,6 +16,7 @@ function EditRepairStatus({ repair, onUpdated }) {
   const { user } = useAuth();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const isAdmin = user.role === "Admin";
 
@@ -31,6 +32,8 @@ function EditRepairStatus({ repair, onUpdated }) {
     (isAdmin || isMyRepair);
 
   async function runAction(action, successMessage) {
+    setBusy(true);
+
     try {
       const updatedRepair = await action(repair.id);
 
@@ -40,40 +43,63 @@ function EditRepairStatus({ repair, onUpdated }) {
     } catch (error) {
       setSuccess("");
       setError(error.message);
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
     <div>
-      <Message
-        error={error}
-        success={success}
-      />
+      <Message error={error} success={success} />
 
-      {canTake && (
-        <button onClick={() => runAction(takeRepair, "Repair taken successfully.")}>
-          Take
-        </button>
-      )}
-
-      {canWorkOnRepair && (
-        <>
-          <button onClick={() => runAction(completeRepair, "Repair completed successfully.")}>
-            Complete
-          </button>
-
-          <ConfirmButton
-            message="Are you sure you want to cancel this repair?"
-            onConfirm={() => runAction(cancelRepair, "Repair cancelled successfully.")}
+      <div className="d-flex flex-wrap gap-2">
+        {canTake && (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={busy}
+            onClick={() => runAction(takeRepair, "Naprawa została przyjęta.")}
           >
-            Cancel
-          </ConfirmButton>
-
-          <button onClick={() => runAction(returnRepair, "Repair returned successfully.")}>
-            Return
+            {busy && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
+            <i className="bi bi-play-fill me-1" aria-hidden="true" />
+            Przyjmij
           </button>
-        </>
-      )}
+        )}
+
+        {canWorkOnRepair && (
+          <>
+            <button
+              type="button"
+              className="btn btn-success btn-sm"
+              disabled={busy}
+              onClick={() => runAction(completeRepair, "Naprawa została zakończona.")}
+            >
+              <i className="bi bi-check2-circle me-1" aria-hidden="true" />
+              Zakończ
+            </button>
+
+            <ConfirmButton
+              className="btn btn-outline-danger btn-sm"
+              message="Czy na pewno anulować tę naprawę?"
+              onConfirm={() => runAction(cancelRepair, "Naprawa została anulowana.")}
+              disabled={busy}
+            >
+              <i className="bi bi-x-circle me-1" aria-hidden="true" />
+              Anuluj
+            </ConfirmButton>
+
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              disabled={busy}
+              onClick={() => runAction(returnRepair, "Naprawa została zwrócona.")}
+            >
+              <i className="bi bi-arrow-counterclockwise me-1" aria-hidden="true" />
+              Zwróć
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
