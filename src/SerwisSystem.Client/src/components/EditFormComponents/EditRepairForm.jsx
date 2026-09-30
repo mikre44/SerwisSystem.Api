@@ -192,14 +192,25 @@ function validateForm(form, serialRequired) {
   return errors;
 }
 
-// One labelled input with its validation messages.
-function TextField({ name, label, value, onChange, errors, ...inputProps }) {
+// One labelled Bootstrap input with its validation messages.
+// This is the only place that styles a text/date/email/tel input in this form.
+function TextField({ name, label, value, onChange, errors, className = "col-md-6", ...inputProps }) {
   const id = `repair-${name}`;
+  const hasError = Boolean(errors && errors.length > 0);
 
   return (
-    <div>
-      <label htmlFor={id}>{label}</label>
-      <input id={id} name={name} value={value} onChange={onChange} {...inputProps} />
+    <div className={className}>
+      <label htmlFor={id} className="form-label">
+        {label}
+      </label>
+      <input
+        id={id}
+        name={name}
+        value={value}
+        onChange={onChange}
+        className={`form-control${hasError ? " is-invalid" : ""}`}
+        {...inputProps}
+      />
       <FieldError messages={errors} />
     </div>
   );
@@ -279,215 +290,259 @@ function RepairDataForm({ repair, products, onUpdated }) {
       <Message error={error} success={success} />
 
       <form onSubmit={handleSubmit} noValidate>
-        <h3>Urządzenie</h3>
+        <h3 className="h6 text-uppercase text-body-secondary border-bottom pb-2 mb-3">
+          Urządzenie
+        </h3>
 
-        <div>
-          <label htmlFor="repair-product">Produkt</label>
-          <select
-            id="repair-product"
-            name="selectedProduct"
-            value={form.selectedProduct}
-            onChange={handleProductChange}
-          >
-            <option value="">Wybierz produkt</option>
+        <div className="row g-3 mb-4">
+          <div className="col-md-6">
+            <label htmlFor="repair-product" className="form-label">
+              Produkt
+            </label>
+            <select
+              id="repair-product"
+              name="selectedProduct"
+              className={`form-select${!isCustomProduct && fieldErrors.product ? " is-invalid" : ""}`}
+              value={form.selectedProduct}
+              onChange={handleProductChange}
+            >
+              <option value="">Wybierz produkt</option>
 
-            {products.map((product) => (
-              <option key={product.name} value={product.name}>
-                {product.name}
-              </option>
-            ))}
+              {products.map((product) => (
+                <option key={product.name} value={product.name}>
+                  {product.name}
+                </option>
+              ))}
 
-            <option value={CUSTOM_PRODUCT}>Inny</option>
-          </select>
-          {!isCustomProduct && <FieldError messages={fieldErrors.product} />}
+              <option value={CUSTOM_PRODUCT}>Inny</option>
+            </select>
+            {!isCustomProduct && <FieldError messages={fieldErrors.product} />}
+          </div>
+
+          {isCustomProduct && (
+            <TextField
+              name="customProduct"
+              label="Nazwa urządzenia"
+              value={form.customProduct}
+              onChange={handleChange}
+              errors={fieldErrors.product}
+            />
+          )}
+
+          <TextField
+            name="serialNumber"
+            label={serialRequired ? "Numer seryjny" : "Numer seryjny (opcjonalnie)"}
+            placeholder={catalogueProduct?.serialHint ?? ""}
+            value={form.serialNumber}
+            onChange={handleChange}
+            errors={fieldErrors.serialNumber}
+          />
+
+          <div className="col-12">
+            <label htmlFor="repair-description" className="form-label">
+              Opis usterki
+            </label>
+            <textarea
+              id="repair-description"
+              name="description"
+              rows={3}
+              className={`form-control${fieldErrors.description ? " is-invalid" : ""}`}
+              value={form.description}
+              onChange={handleChange}
+            />
+            <FieldError messages={fieldErrors.description} />
+          </div>
         </div>
 
-        {isCustomProduct && (
+        <h3 className="h6 text-uppercase text-body-secondary border-bottom pb-2 mb-3">
+          Zgłaszający
+        </h3>
+
+        <div className="row g-3 mb-4">
           <TextField
-            name="customProduct"
-            label="Nazwa urządzenia"
-            value={form.customProduct}
+            name="reporterName"
+            label="Imię"
+            value={form.reporterName}
             onChange={handleChange}
-            errors={fieldErrors.product}
+            errors={fieldErrors.reporterName}
           />
-        )}
 
-        <TextField
-          name="serialNumber"
-          label={serialRequired ? "Numer seryjny" : "Numer seryjny (opcjonalnie)"}
-          placeholder={catalogueProduct?.serialHint ?? ""}
-          value={form.serialNumber}
-          onChange={handleChange}
-          errors={fieldErrors.serialNumber}
-        />
-
-        <div>
-          <label htmlFor="repair-description">Opis usterki</label>
-          <textarea
-            id="repair-description"
-            name="description"
-            value={form.description}
+          <TextField
+            name="reporterSurname"
+            label="Nazwisko"
+            value={form.reporterSurname}
             onChange={handleChange}
+            errors={fieldErrors.reporterSurname}
           />
-          <FieldError messages={fieldErrors.description} />
+
+          <TextField
+            name="reporterPhone"
+            label="Telefon"
+            type="tel"
+            value={form.reporterPhone}
+            onChange={handleChange}
+            errors={fieldErrors.reporterPhone}
+          />
+
+          <TextField
+            name="reporterEmail"
+            label="E-mail"
+            type="email"
+            value={form.reporterEmail}
+            onChange={handleChange}
+            errors={fieldErrors.reporterEmail}
+          />
         </div>
 
-        <h3>Dane osoby zgłaszającej</h3>
+        <h3 className="h6 text-uppercase text-body-secondary border-bottom pb-2 mb-3">
+          Firma
+        </h3>
 
-        <TextField
-          name="reporterName"
-          label="Imię"
-          value={form.reporterName}
-          onChange={handleChange}
-          errors={fieldErrors.reporterName}
-        />
-
-        <TextField
-          name="reporterSurname"
-          label="Nazwisko"
-          value={form.reporterSurname}
-          onChange={handleChange}
-          errors={fieldErrors.reporterSurname}
-        />
-
-        <TextField
-          name="reporterPhone"
-          label="Telefon"
-          type="tel"
-          value={form.reporterPhone}
-          onChange={handleChange}
-          errors={fieldErrors.reporterPhone}
-        />
-
-        <TextField
-          name="reporterEmail"
-          label="E-mail"
-          type="email"
-          value={form.reporterEmail}
-          onChange={handleChange}
-          errors={fieldErrors.reporterEmail}
-        />
-
-        <h3>Dane firmy</h3>
-
-        <TextField
-          name="companyName"
-          label="Nazwa firmy"
-          value={form.companyName}
-          onChange={handleChange}
-          errors={fieldErrors.companyName}
-        />
-
-        <TextField
-          name="companyAddress"
-          label="Adres"
-          value={form.companyAddress}
-          onChange={handleChange}
-          errors={fieldErrors.companyAddress}
-        />
-
-        <TextField
-          name="companyPostalCode"
-          label="Kod pocztowy"
-          placeholder="00-000"
-          value={form.companyPostalCode}
-          onChange={handleChange}
-          errors={fieldErrors.companyPostalCode}
-        />
-
-        <TextField
-          name="companyCity"
-          label="Miasto"
-          value={form.companyCity}
-          onChange={handleChange}
-          errors={fieldErrors.companyCity}
-        />
-
-        <TextField
-          name="companyNip"
-          label="NIP"
-          inputMode="numeric"
-          maxLength={10}
-          value={form.companyNip}
-          onChange={handleNipChange}
-          errors={fieldErrors.companyNip}
-        />
-
-        <h3>Gwarancja</h3>
-
-        <label>
-          <input
-            type="checkbox"
-            name="hasWarranty"
-            checked={form.hasWarranty}
-            onChange={handleChange}
-          />
-          Naprawa gwarancyjna
-        </label>
-
-        {form.hasWarranty && (
-          <>
-            <TextField
-              name="purchaseDate"
-              label="Data zakupu"
-              type="date"
-              value={form.purchaseDate}
-              onChange={handleChange}
-              errors={fieldErrors.purchaseDate}
-            />
-
-            <TextField
-              name="purchaseInvoiceNumber"
-              label="Numer faktury"
-              value={form.purchaseInvoiceNumber}
-              onChange={handleChange}
-              errors={fieldErrors.purchaseInvoiceNumber}
-            />
-          </>
-        )}
-
-        <h3>Umowa</h3>
-
-        <label>
-          <input
-            type="checkbox"
-            name="hasContract"
-            checked={form.hasContract}
-            onChange={handleChange}
-          />
-          Zgłoszenie w ramach umowy
-        </label>
-
-        {form.hasContract && (
+        <div className="row g-3 mb-4">
           <TextField
-            name="contractNumber"
-            label="Numer umowy"
-            value={form.contractNumber}
+            name="companyName"
+            label="Nazwa firmy"
+            value={form.companyName}
             onChange={handleChange}
-            errors={fieldErrors.contractNumber}
+            errors={fieldErrors.companyName}
           />
-        )}
 
-        <h3>Zgody</h3>
+          <TextField
+            name="companyAddress"
+            label="Adres"
+            value={form.companyAddress}
+            onChange={handleChange}
+            errors={fieldErrors.companyAddress}
+          />
 
-        <p>
-          Zgoda na przetwarzanie danych w celu realizacji serwisu:{" "}
-          <strong>{repair.serviceDataConsent ? "Tak" : "Nie"}</strong>
-        </p>
+          <TextField
+            name="companyPostalCode"
+            label="Kod pocztowy"
+            placeholder="00-000"
+            value={form.companyPostalCode}
+            onChange={handleChange}
+            errors={fieldErrors.companyPostalCode}
+          />
 
-        <p>
-          Zgoda marketingowa:{" "}
-          <strong>{repair.marketingConsent ? "Tak" : "Nie"}</strong>
-        </p>
+          <TextField
+            name="companyCity"
+            label="Miasto"
+            value={form.companyCity}
+            onChange={handleChange}
+            errors={fieldErrors.companyCity}
+          />
 
-        <small>
+          <TextField
+            name="companyNip"
+            label="NIP"
+            inputMode="numeric"
+            maxLength={10}
+            value={form.companyNip}
+            onChange={handleNipChange}
+            errors={fieldErrors.companyNip}
+          />
+        </div>
+
+        <h3 className="h6 text-uppercase text-body-secondary border-bottom pb-2 mb-3">
+          Gwarancja i umowa
+        </h3>
+
+        <div className="row g-3 mb-4">
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="repair-hasWarranty"
+                name="hasWarranty"
+                checked={form.hasWarranty}
+                onChange={handleChange}
+              />
+              <label className="form-check-label" htmlFor="repair-hasWarranty">
+                Naprawa gwarancyjna
+              </label>
+            </div>
+          </div>
+
+          {form.hasWarranty && (
+            <>
+              <TextField
+                name="purchaseDate"
+                label="Data zakupu"
+                type="date"
+                value={form.purchaseDate}
+                onChange={handleChange}
+                errors={fieldErrors.purchaseDate}
+              />
+
+              <TextField
+                name="purchaseInvoiceNumber"
+                label="Numer faktury"
+                value={form.purchaseInvoiceNumber}
+                onChange={handleChange}
+                errors={fieldErrors.purchaseInvoiceNumber}
+              />
+            </>
+          )}
+
+          <div className="col-12">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="repair-hasContract"
+                name="hasContract"
+                checked={form.hasContract}
+                onChange={handleChange}
+              />
+              <label className="form-check-label" htmlFor="repair-hasContract">
+                Zgłoszenie w ramach umowy
+              </label>
+            </div>
+          </div>
+
+          {form.hasContract && (
+            <TextField
+              name="contractNumber"
+              label="Numer umowy"
+              value={form.contractNumber}
+              onChange={handleChange}
+              errors={fieldErrors.contractNumber}
+            />
+          )}
+        </div>
+
+        <h3 className="h6 text-uppercase text-body-secondary border-bottom pb-2 mb-3">
+          Zgody
+        </h3>
+
+        <div className="row g-3 mb-3">
+          <div className="col-md-6">
+            <div className="text-body-secondary small">
+              Zgoda na przetwarzanie danych w celu realizacji serwisu
+            </div>
+            <div>
+              <strong>{repair.serviceDataConsent ? "Tak" : "Nie"}</strong>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="text-body-secondary small">Zgoda marketingowa</div>
+            <div>
+              <strong>{repair.marketingConsent ? "Tak" : "Nie"}</strong>
+            </div>
+          </div>
+        </div>
+
+        <p className="small text-body-secondary">
           Zgody udzielone przez klienta nie mogą być zmieniane przez
           pracowników ani administratorów.
-        </small>
+        </p>
 
         <div>
-          <button type="submit" disabled={saving}>
-            {saving ? "Zapisywanie..." : "Zapisz zmiany"}
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
+            {saving ? "Zapisywanie…" : "Zapisz zmiany"}
           </button>
         </div>
       </form>
@@ -502,20 +557,32 @@ function EditRepairForm({ repair, onUpdated }) {
   const { products, loading, error } = useProducts();
 
   return (
-    <div>
-      <h2>Edytuj naprawę</h2>
+    <div className="card shadow-sm">
+      <div className="card-body">
+        <h2 className="h5 card-title">Edytuj naprawę</h2>
 
-      {loading && <p>Ładowanie listy produktów...</p>}
+        {loading && (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Ładowanie…</span>
+            </div>
+          </div>
+        )}
 
-      {error && <p>Nie udało się pobrać listy produktów: {error}</p>}
+        {error && (
+          <p className="text-danger">
+            Nie udało się pobrać listy produktów: {error}
+          </p>
+        )}
 
-      {!loading && !error && (
-        <RepairDataForm
-          repair={repair}
-          products={products}
-          onUpdated={onUpdated}
-        />
-      )}
+        {!loading && !error && (
+          <RepairDataForm
+            repair={repair}
+            products={products}
+            onUpdated={onUpdated}
+          />
+        )}
+      </div>
     </div>
   );
 }
