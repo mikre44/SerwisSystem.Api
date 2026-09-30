@@ -1,8 +1,11 @@
-* {
-  box-sizing: border-box;
-}
+/* App-specific tweaks on top of Bootstrap. Keep this file small:
+   prefer Bootstrap utility classes in JSX. */
 
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-}  
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* Table rows that open a details page. */
+.table-clickable tbody tr {
+  cursor: pointer;
+}
