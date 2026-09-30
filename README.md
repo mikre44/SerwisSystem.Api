@@ -75,6 +75,11 @@ Notes:
 dotnet ef database update --project src/SerwisSystem.Api
 ```
 
+> All migrations were squashed into a single `InitialCreate` on this branch.
+> If you have an existing local database from before the squash, drop it
+> first (`dotnet ef database drop --project src/SerwisSystem.Api`) and then
+> run `dotnet ef database update` again.
+
 ### 3. Run the API
 
 ```bash
