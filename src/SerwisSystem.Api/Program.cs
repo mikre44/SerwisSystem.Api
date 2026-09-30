@@ -103,6 +103,7 @@ builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<FirstAdminSeeder>();
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 
