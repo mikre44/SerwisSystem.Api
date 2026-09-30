@@ -36,7 +36,7 @@ public class UsersController : ControllerBase
 
     private UserResponseDto ToDto(User user, UserResponseOption option)
     {
-        var respone =  new UserResponseDto
+        var response = new UserResponseDto
         {
             Id = user.Id,
             Username = user.Username,
@@ -61,20 +61,17 @@ public class UsersController : ControllerBase
                 GrantUsers = user.Permissions.GrantUsers,
                 DischargeUsers = user.Permissions.DischargeUsers
             };
-            respone.Permissions = permissions;
+            response.Permissions = permissions;
         }
 
         if (option == UserResponseOption.Repairs || option == UserResponseOption.All)
         {
-            respone.Repairs = user.Repairs
+            response.Repairs = user.Repairs
                 .Select(RepairResponseDto.FromEntity)
                 .ToList();
         }
-        return respone;
+        return response;
     }
-
-
-
 
     [RequirePermission("ReadUsers")]
     [HttpGet]
