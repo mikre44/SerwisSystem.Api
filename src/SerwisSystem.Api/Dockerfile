@@ -17,11 +17,9 @@ WORKDIR /app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-# The base image runs as root by default; drop to an unprivileged user.
-RUN adduser --disabled-password --home /app --gecos "" appuser
-
 COPY --from=build /app/publish .
-RUN chown -R appuser /app
-USER appuser
+
+# The .NET images ship a non-root "app" user; do not run the API as root.
+USER $APP_UID
 
 ENTRYPOINT ["dotnet", "SerwisSystem.Api.dll"]
