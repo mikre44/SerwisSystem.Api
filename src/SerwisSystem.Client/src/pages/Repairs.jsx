@@ -84,8 +84,9 @@ function Repairs() {
     if (sortBy === column) {
       setDescending(!descending);
     } else {
+      // A newly chosen column starts A→Z, the same as on the users list.
       setSortBy(column);
-      setDescending(true);
+      setDescending(false);
     }
 
     setPage(1);
