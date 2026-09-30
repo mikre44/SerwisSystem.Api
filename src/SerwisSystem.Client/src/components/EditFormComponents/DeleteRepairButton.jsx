@@ -28,11 +28,14 @@ function DeleteRepairButton({ repairId, onDeleted }) {
       <Message error={error} />
 
       <ConfirmButton
-        message="Are you sure you want to delete this repair?"
+        className="btn btn-outline-danger btn-sm"
+        message="Czy na pewno usunąć tę naprawę? Tej operacji nie można cofnąć."
         onConfirm={handleDelete}
         disabled={deleting}
       >
-        {deleting ? "Deleting..." : "Delete repair"}
+        {deleting && <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />}
+        <i className="bi bi-trash me-1" aria-hidden="true" />
+        {deleting ? "Usuwanie…" : "Usuń naprawę"}
       </ConfirmButton>
     </div>
   );
