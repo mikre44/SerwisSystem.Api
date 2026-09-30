@@ -1,4 +1,4 @@
-﻿using SerwisSystem.Api.Models.Enums;
+using SerwisSystem.Api.Models.Enums;
 
 namespace SerwisSystem.Api.Models.DTOs;
 
@@ -40,8 +40,6 @@ public class RepairResponseDto
 
     public string CompanyNip { get; set; } = "";
 
-    public string CompanyPhone { get; set; } = "";
-
 
     // Warranty
 
@@ -70,8 +68,52 @@ public class RepairResponseDto
 
     public int? WorkerId { get; set; }
 
+    // Filled only when the worker (Repair.User) was loaded with the repair.
     public string? WorkerUsername { get; set; }
 
 
     public DateTime CreatedAt { get; set; }
+
+
+    // The only place that maps a Repair to the response,
+    // so every endpoint returns the same shape.
+    public static RepairResponseDto FromEntity(Repair repair)
+    {
+        return new RepairResponseDto
+        {
+            Id = repair.Id,
+            Status = repair.Status,
+
+            Product = repair.Product,
+            IsCustomProduct = repair.IsCustomProduct,
+            SerialNumber = repair.SerialNumber,
+            Description = repair.Description,
+
+            ReporterName = repair.ReporterName,
+            ReporterSurname = repair.ReporterSurname,
+            ReporterPhone = repair.ReporterPhone,
+            ReporterEmail = repair.ReporterEmail,
+
+            CompanyName = repair.CompanyName,
+            CompanyAddress = repair.CompanyAddress,
+            CompanyPostalCode = repair.CompanyPostalCode,
+            CompanyCity = repair.CompanyCity,
+            CompanyNip = repair.CompanyNip,
+
+            HasWarranty = repair.HasWarranty,
+            PurchaseDate = repair.PurchaseDate,
+            PurchaseInvoiceNumber = repair.PurchaseInvoiceNumber,
+
+            HasContract = repair.HasContract,
+            ContractNumber = repair.ContractNumber,
+
+            ServiceDataConsent = repair.ServiceDataConsent,
+            MarketingConsent = repair.MarketingConsent,
+
+            WorkerId = repair.UserId,
+            WorkerUsername = repair.User?.Username,
+
+            CreatedAt = repair.CreatedAt
+        };
+    }
 }

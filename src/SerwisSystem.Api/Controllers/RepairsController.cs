@@ -34,54 +34,6 @@ public class RepairsController : ControllerBase
     }
 
 
-    // Converts Repair entity to RepairResponseDto
-    private RepairResponseDto ToDto(Repair repair)
-    {
-        var repairResponse = new RepairResponseDto
-        {
-            Id = repair.Id,
-
-            Status = repair.Status,
-
-            Product = repair.Product,
-            IsCustomProduct = repair.IsCustomProduct,
-            SerialNumber = repair.SerialNumber,
-            Description = repair.Description,
-
-            ReporterName = repair.ReporterName,
-            ReporterSurname = repair.ReporterSurname,
-            ReporterPhone = repair.ReporterPhone,
-            ReporterEmail = repair.ReporterEmail,
-
-            CompanyName = repair.CompanyName,
-            CompanyAddress = repair.CompanyAddress,
-            CompanyPostalCode = repair.CompanyPostalCode,
-            CompanyCity = repair.CompanyCity,
-            CompanyNip = repair.CompanyNip,
-
-            HasWarranty = repair.HasWarranty,
-            PurchaseDate = repair.PurchaseDate,
-            PurchaseInvoiceNumber = repair.PurchaseInvoiceNumber,
-
-            HasContract = repair.HasContract,
-            ContractNumber = repair.ContractNumber,
-
-            ServiceDataConsent = repair.ServiceDataConsent,
-            MarketingConsent = repair.MarketingConsent,
-
-            WorkerId = repair.UserId,
-
-            CreatedAt = repair.CreatedAt
-        };
-
-        if (repair.User != null)
-        {
-            repairResponse.WorkerUsername = repair.User.Username;
-        }
-
-        return repairResponse;
-    }
-
     private bool IsValidPhone(string phone)
     {
         return System.Text.RegularExpressions.Regex.IsMatch(
@@ -219,7 +171,7 @@ public class RepairsController : ControllerBase
 
         return Ok(new
         {
-            Items = repairs.Select(ToDto),
+            Items = repairs.Select(RepairResponseDto.FromEntity),
 
             Page = page,
             PageSize = pageSize,
@@ -245,7 +197,7 @@ public class RepairsController : ControllerBase
         if (repair == null)
             return NotFound();
 
-        return Ok(ToDto(repair));
+        return Ok(RepairResponseDto.FromEntity(repair));
     }
 
 
@@ -381,7 +333,7 @@ public class RepairsController : ControllerBase
         return CreatedAtAction(
             nameof(GetRepair),
             new { id = repair.Id },
-            ToDto(repair)
+            RepairResponseDto.FromEntity(repair)
         );
     }
 
@@ -534,7 +486,7 @@ public class RepairsController : ControllerBase
         await _context.SaveChangesAsync();
 
 
-        return Ok(ToDto(repair));
+        return Ok(RepairResponseDto.FromEntity(repair));
     }
 
 
@@ -610,7 +562,7 @@ public class RepairsController : ControllerBase
         await _context.SaveChangesAsync();
 
 
-        return Ok(ToDto(repair));
+        return Ok(RepairResponseDto.FromEntity(repair));
     }
 
 
@@ -666,7 +618,7 @@ public class RepairsController : ControllerBase
         await _context.SaveChangesAsync();
 
 
-        return Ok(ToDto(repair));
+        return Ok(RepairResponseDto.FromEntity(repair));
     }
 
 
@@ -723,7 +675,7 @@ public class RepairsController : ControllerBase
         await _context.SaveChangesAsync();
 
 
-        return Ok(ToDto(repair));
+        return Ok(RepairResponseDto.FromEntity(repair));
     }
 
 
@@ -731,8 +683,9 @@ public class RepairsController : ControllerBase
     [HttpPost("{id}/return")]
     public async Task<IActionResult> ReturnRepair(int id)
     {
-        var repair =
-            await _context.Repairs.FindAsync(id);
+        var repair = await _context.Repairs
+            .Include(r => r.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
         if (repair == null)
             return NotFound();
@@ -774,12 +727,13 @@ public class RepairsController : ControllerBase
 
 
         repair.UserId = null;
+        repair.User = null;
         repair.Status = RepairStatus.Pending;
 
 
         await _context.SaveChangesAsync();
 
 
-        return Ok(ToDto(repair));
+        return Ok(RepairResponseDto.FromEntity(repair));
     }
 }
