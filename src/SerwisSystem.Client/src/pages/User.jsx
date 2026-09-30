@@ -89,7 +89,7 @@ function User() {
         <h1 className="h3 mb-0 d-flex align-items-center gap-2">
           <i className="bi bi-person" aria-hidden="true" />
           {user.username}
-          <span className={`badge ${isAdmin ? "text-bg-dark" : "text-bg-light border"}`}>
+          <span className={`badge fs-6 ${isAdmin ? "text-bg-dark" : "text-bg-light border"}`}>
             {isAdmin ? "Administrator" : "Pracownik"}
           </span>
         </h1>

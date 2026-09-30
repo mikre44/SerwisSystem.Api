@@ -74,7 +74,8 @@ function Navbar() {
               </span>
             </span>
 
-            <NavLink to="/user" className="btn btn-outline-light btn-sm" onClick={closeMenu}>
+            {/* `end`: only "/user" itself is "my account", not other users' "/user/:id" pages. */}
+            <NavLink to="/user" end className="btn btn-outline-light btn-sm" onClick={closeMenu}>
               Moje konto
             </NavLink>
 

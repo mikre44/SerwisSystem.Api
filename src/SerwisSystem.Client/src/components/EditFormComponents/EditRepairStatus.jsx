@@ -12,7 +12,9 @@ import {
 
 // Workflow buttons (take / complete / cancel / return).
 // Every action returns the updated repair, which is passed to onUpdated(updatedRepair).
-function EditRepairStatus({ repair, onUpdated }) {
+// `compact` is for a table row: no success alert (the row's status badge already
+// changes) and a one-line error, so the row does not grow into a large box.
+function EditRepairStatus({ repair, onUpdated, compact = false }) {
   const { user } = useAuth();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -48,11 +50,24 @@ function EditRepairStatus({ repair, onUpdated }) {
     }
   }
 
+  const hasActions = canTake || canWorkOnRepair;
+
   return (
     <div>
-      <Message error={error} success={success} />
+      {compact ? (
+        error && <div className="small text-danger mb-1">{error}</div>
+      ) : (
+        <Message error={error} success={success} />
+      )}
 
-      <div className="d-flex flex-wrap gap-2">
+      {!hasActions && !compact && (
+        <p className="small text-body-secondary mb-0">
+          Brak dostępnych akcji dla tej naprawy.
+        </p>
+      )}
+
+      {/* text-nowrap: buttons may move to the next line, but a label never breaks. */}
+      <div className="d-flex flex-wrap gap-2 text-nowrap">
         {canTake && (
           <button
             type="button"

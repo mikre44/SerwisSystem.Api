@@ -25,8 +25,9 @@ async function apiFetch(endpoint, options = {}) {
     return null;
   }
 
+  // Errors come as "application/problem+json", so match any JSON media type.
   const contentType = response.headers.get("content-type");
-  const body = contentType?.includes("application/json")
+  const body = contentType?.includes("json")
     ? await response.json()
     : await response.text();
 

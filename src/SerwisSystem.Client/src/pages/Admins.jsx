@@ -81,10 +81,10 @@ function Admins() {
               <table className="table table-hover align-middle mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th>Login</th>
-                    <th>Email</th>
-                    <th>Priorytet</th>
-                    <th className="text-end">Akcje</th>
+                    <th scope="col">Nazwa użytkownika</th>
+                    <th scope="col" className="d-none d-md-table-cell">E-mail</th>
+                    <th scope="col">Priorytet</th>
+                    <th scope="col" className="text-end">Akcje</th>
                   </tr>
                 </thead>
 
@@ -101,9 +101,9 @@ function Admins() {
                           )}
                         </td>
 
-                        <td>{admin.email}</td>
+                        <td className="d-none d-md-table-cell">{admin.email}</td>
 
-                        <td>
+                        <td style={{ minWidth: "8rem" }}>
                           <EditAdminPriority
                             admin={admin}
                             loggedUser={loggedUser}
@@ -111,7 +111,7 @@ function Admins() {
                           />
                         </td>
 
-                        <td className="text-end">
+                        <td className="text-end text-nowrap">
                           <EditAdminButton user={admin} onUpdated={reloadAdmins} />
                         </td>
                       </tr>
