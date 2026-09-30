@@ -1,29 +1,28 @@
 import { Link } from "react-router-dom";
+import StatusBadge from "../StatusBadge";
 
+// Compact list of repairs linked to a user. Headless (no card of its own) so
+// it can be dropped into any card body — the user detail page and the
+// logged-in user's own profile page both use it this way.
 function UserRepairs({ repairs }) {
   if (!repairs || repairs.length === 0) {
     return (
-      <div>
-        <h2>Repairs</h2>
-        <p>No repairs assigned.</p>
-      </div>
+      <p className="text-body-secondary text-center py-4 mb-0">
+        Brak przypisanych napraw.
+      </p>
     );
   }
 
   return (
-    <div>
-      <h2>Repairs</h2>
-
-      <table>
-        <thead>
+    <div className="table-responsive">
+      <table className="table table-hover table-sm align-middle mb-0">
+        <thead className="table-light">
           <tr>
-            <th>ID</th>
-            <th>Serial number</th>
-            <th>Product</th>
-            <th>Reporter</th>
-            <th>Address</th>
-            <th>Status</th>
-            <th>Created</th>
+            <th scope="col">ID</th>
+            <th scope="col">Produkt</th>
+            <th scope="col">Zgłaszający</th>
+            <th scope="col">Status</th>
+            <th scope="col">Utworzono</th>
           </tr>
         </thead>
 
@@ -31,37 +30,20 @@ function UserRepairs({ repairs }) {
           {repairs.map((repair) => (
             <tr key={repair.id}>
               <td>
-                <Link to={`/repair/${repair.id}`}>
-                  #{repair.id}
-                </Link>
+                <Link to={`/repair/${repair.id}`}>#{repair.id}</Link>
+              </td>
+
+              <td>{repair.product}</td>
+
+              <td>
+                {repair.reporterName} {repair.reporterSurname}
               </td>
 
               <td>
-                {repair.serialNumber || "-"}
+                <StatusBadge status={repair.status} />
               </td>
 
-              <td>
-                {repair.product}
-              </td>
-
-              <td>
-                {repair.reporterName}{" "}
-                {repair.reporterSurname}
-              </td>
-
-              <td>
-                {repair.companyAddress}
-              </td>
-
-              <td>
-                {repair.status}
-              </td>
-
-              <td>
-                {new Date(
-                  repair.createdAt
-                ).toLocaleDateString()}
-              </td>
+              <td>{new Date(repair.createdAt).toLocaleDateString("pl-PL")}</td>
             </tr>
           ))}
         </tbody>
