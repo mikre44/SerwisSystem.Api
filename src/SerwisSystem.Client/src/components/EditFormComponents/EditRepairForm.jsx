@@ -39,10 +39,16 @@ function isFutureDate(isoDate) {
 }
 
 // Form state built from a repair returned by the API.
-function toFormState(repair) {
+// The API accepts only exact catalogue names when isCustomProduct is false,
+// so a product that is not (or no longer) in the catalogue is edited as a custom one.
+function toFormState(repair, products) {
+  const product = repair.product ?? "";
+  const inCatalogue = products.some((item) => item.name === product);
+  const isCustom = product !== "" && (repair.isCustomProduct || !inCatalogue);
+
   return {
-    selectedProduct: repair.isCustomProduct ? CUSTOM_PRODUCT : repair.product,
-    customProduct: repair.isCustomProduct ? repair.product : "",
+    selectedProduct: isCustom ? CUSTOM_PRODUCT : product,
+    customProduct: isCustom ? product : "",
     serialNumber: repair.serialNumber ?? "",
     description: repair.description ?? "",
 
@@ -199,13 +205,10 @@ function TextField({ name, label, value, onChange, errors, ...inputProps }) {
   );
 }
 
-// Edits the data of a repair (not its status).
-// The parent renders it with key={repair.id}, so another repair gets a fresh form.
-// After saving, onUpdated(updatedRepair) receives the repair returned by the API.
-function EditRepairForm({ repair, onUpdated }) {
-  const { products, error: productsError } = useProducts();
-
-  const [form, setForm] = useState(() => toFormState(repair));
+// The form itself. Its state is seeded from the product catalogue,
+// so EditRepairForm renders it only after the catalogue has loaded.
+function RepairDataForm({ repair, products, onUpdated }) {
+  const [form, setForm] = useState(() => toFormState(repair, products));
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -260,7 +263,7 @@ function EditRepairForm({ repair, onUpdated }) {
       const updatedRepair = await updateRepair(repair.id, toUpdateRequest(form));
 
       // The API may normalise values (e.g. the e-mail), so show what was saved.
-      setForm(toFormState(updatedRepair));
+      setForm(toFormState(updatedRepair, products));
       setSuccess("Dane naprawy zostały zapisane.");
       onUpdated(updatedRepair);
     } catch (error) {
@@ -272,14 +275,8 @@ function EditRepairForm({ repair, onUpdated }) {
   }
 
   return (
-    <div>
-      <h2>Edytuj naprawę</h2>
-
+    <>
       <Message error={error} success={success} />
-
-      {productsError && (
-        <p>Nie udało się pobrać listy produktów: {productsError}</p>
-      )}
 
       <form onSubmit={handleSubmit} noValidate>
         <h3>Urządzenie</h3>
@@ -494,6 +491,31 @@ function EditRepairForm({ repair, onUpdated }) {
           </button>
         </div>
       </form>
+    </>
+  );
+}
+
+// Edits the data of a repair (not its status).
+// The parent renders it with key={repair.id}, so another repair gets a fresh form.
+// After saving, onUpdated(updatedRepair) receives the repair returned by the API.
+function EditRepairForm({ repair, onUpdated }) {
+  const { products, loading, error } = useProducts();
+
+  return (
+    <div>
+      <h2>Edytuj naprawę</h2>
+
+      {loading && <p>Ładowanie listy produktów...</p>}
+
+      {error && <p>Nie udało się pobrać listy produktów: {error}</p>}
+
+      {!loading && !error && (
+        <RepairDataForm
+          repair={repair}
+          products={products}
+          onUpdated={onUpdated}
+        />
+      )}
     </div>
   );
 }
