@@ -174,8 +174,8 @@ function Repairs() {
               Product{getSortIndicator("product")}
             </th>
 
-            <th onClick={() => handleSort("surname")}>
-              Reporter{getSortIndicator("surname")}
+            <th onClick={() => handleSort("reporterSurname")}>
+              Reporter{getSortIndicator("reporterSurname")}
             </th>
 
             <th onClick={() => handleSort("address")}>
