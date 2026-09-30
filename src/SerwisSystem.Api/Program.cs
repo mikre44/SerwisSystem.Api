@@ -104,6 +104,7 @@ builder.Services.AddSingleton<
     IAuthorizationPolicyProvider,
     PermissionPolicyProvider>();
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();

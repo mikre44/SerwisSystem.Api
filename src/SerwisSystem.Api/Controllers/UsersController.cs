@@ -128,7 +128,6 @@ public class UsersController : ControllerBase
 
         var query = _context.Users
             .Include(u => u.Permissions)
-            .Include(u => u.Repairs)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -207,10 +206,7 @@ public class UsersController : ControllerBase
         if (!_permissionService.HasPermission(user, "ReadUsers") && user.Id != id)
             return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to view this user.");
 
-        var targetUser = await _context.Users
-            .Include(u => u.Permissions)
-            .Include(u => u.Repairs)
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _userService.GetUserWithRepairs(id);
 
         if (targetUser == null)
             return UserNotFound();
@@ -222,7 +218,13 @@ public class UsersController : ControllerBase
     [HttpGet("logged")]
     public async Task<IActionResult> GetLoggedUser()
     {
-        var user = await _userService.GetCurrentUser(User);
+        var currentUser = await _userService.GetCurrentUser(User);
+
+        if (currentUser == null)
+            return CurrentUserMissing();
+
+        // GetCurrentUser skips the repairs; the profile page is one of the few places that shows them.
+        var user = await _userService.GetUserWithRepairs(currentUser.Id);
 
         if (user == null)
             return CurrentUserMissing();
