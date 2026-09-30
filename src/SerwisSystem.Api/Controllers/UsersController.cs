@@ -2,35 +2,36 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
 using SerwisSystem.Api.Models.Enums;
 using SerwisSystem.Api.Services;
-using System.Security.Claims;
-
 
 namespace SerwisSystem.Api.Controllers;
 
 [Authorize]
-[ApiController]// indicates that this class is an API controller
-[Route("api/[controller]")]// route for the controller so its api/repairs
+[ApiController]
+[Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly AppDbContext _context;// acces to database
-    private readonly PermissionService _permissionService; // acces to the permission service
-    private readonly UserService _userService;// pretty obvious tbh
-
+    private readonly AppDbContext _context;
+    private readonly PermissionService _permissionService;
+    private readonly UserService _userService;
+    private readonly IPasswordHasher<User> _passwordHasher;
 
     public UsersController(
         AppDbContext context,
         PermissionService permissionService,
-        UserService userService)
+        UserService userService,
+        IPasswordHasher<User> passwordHasher)
     {
         _context = context;
         _permissionService = permissionService;
         _userService = userService;
+        _passwordHasher = passwordHasher;
     }
 
     private UserResponseDto ToDto(User user, UserResponseOption option)
@@ -76,20 +77,19 @@ public class UsersController : ControllerBase
 
 
     [RequirePermission("ReadUsers")]
-    [HttpGet]// GET api/users
+    [HttpGet]
     public async Task<IActionResult> GetUsers(
-    string? search,
-    string sortBy = "role",
-    bool descending = false,
-    int page = 1,
-    int pageSize = 10)
+        string? search,
+        string sortBy = "role",
+        bool descending = false,
+        int page = 1,
+        int pageSize = 10)
     {
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
         var query = _context.Users
             .Include(u => u.Permissions)
-            .Include(u => u.Repairs)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -100,8 +100,7 @@ public class UsersController : ControllerBase
                 u.Username.ToLower().Contains(search) ||
                 u.Email.ToLower().Contains(search) ||
                 u.Role.ToString().ToLower().Contains(search) ||
-                u.CreatedAt.ToString().Contains(search)
-            );
+                u.CreatedAt.ToString().Contains(search));
         }
 
         query = sortBy.ToLower() switch
@@ -145,118 +144,111 @@ public class UsersController : ControllerBase
 
         return Ok(new
         {
-            Items = users.Select(u =>
-                ToDto(u, UserResponseOption.Permissions)),
+            Items = users.Select(u => ToDto(u, UserResponseOption.Permissions)),
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling(
-                totalCount / (double)pageSize
-            )
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         });
     }
 
-
-    [HttpGet("{id}")]// GET api/users/**id**
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetUserById(int id)
     {
         var user = await _userService.GetCurrentUser(User);
 
         if (user == null)
-            return Unauthorized();
+            return CurrentUserMissing();
 
         if (!_permissionService.HasPermission(user, "ReadUsers") && user.Id != id)
-            return Forbid();
+            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to view this user.");
 
-        var targetUser = await _context.Users
-            .Include(u => u.Permissions)
-            .Include(u => u.Repairs)
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _userService.GetUserWithRepairs(id);
 
         if (targetUser == null)
-            return NotFound();
+            return UserNotFound();
 
         return Ok(ToDto(targetUser, UserResponseOption.All));
     }
 
-
-    [HttpGet("logged")]//api/logged
+    [HttpGet("logged")]
     public async Task<IActionResult> GetLoggedUser()
     {
-        var user = await _userService.GetCurrentUser(User);
+        var currentUser = await _userService.GetCurrentUser(User);
+
+        if (currentUser == null)
+            return CurrentUserMissing();
+
+        // GetCurrentUser skips the repairs; the profile page is one of the few places that shows them.
+        var user = await _userService.GetUserWithRepairs(currentUser.Id);
 
         if (user == null)
-            return Unauthorized();
+            return CurrentUserMissing();
 
         return Ok(ToDto(user, UserResponseOption.All));
     }
 
-
-    [HttpPut("{id}")]// PUT api/users/**id**]
+    [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateUser(int id, UpdateUserDto updatedUser)
     {
         var user = await _userService.GetCurrentUser(User);
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
-
-
         if (user == null)
-            return Unauthorized();
+            return CurrentUserMissing();
+
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
-            return NotFound();
+            return UserNotFound();
 
-        if (!_permissionService.HasPermission(user, "EditUsers") && user.Id != id)
-            return Forbid();
+        // Everyone may edit their own account; editing someone else needs EditUsers
+        // and, for an admin, a higher authority.
+        if (user.Id != id)
+        {
+            if (!_permissionService.HasPermission(user, "EditUsers"))
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You do not have permission to edit this user.");
 
+            if (!_permissionService.CanManageTargetUser(user, targetUser))
+                return CannotManageTargetUser();
+        }
 
-        if (!_permissionService.CanManageTargetUser(user, targetUser))
-            return Forbid();
+        // "u.Id != id" lets the user keep their own username while changing only the email (and vice versa).
+        if (await _context.Users.AnyAsync(u => u.Username == updatedUser.Username && u.Id != id))
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username already exists.");
 
-
-        var existingUsername = await _context.Users.FirstOrDefaultAsync(u => u.Username == updatedUser.Username && u.Id != id);
-        //this checks if the new username is already used, and if it is checks if its ur username (u might want to only change the email)
-
-        var existingEmail = await _context.Users.FirstOrDefaultAsync(u => u.Email == updatedUser.Email && u.Id != id);
-
-
-        if (existingUsername != null)
-            return BadRequest("Username already exists");
-        else if (existingEmail != null)
-            return BadRequest("Email already exists");
+        if (await _context.Users.AnyAsync(u => u.Email == updatedUser.Email && u.Id != id))
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Email already exists.");
 
         targetUser.Username = updatedUser.Username;
         targetUser.Email = updatedUser.Email;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Another request took the same username or email between the checks above and this update.
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username or email already exists.");
+        }
+
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
-
-    [HttpPut("changePassword")]
+    [HttpPut("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
     {
         var user = await _userService.GetCurrentUser(User);
 
         if (user == null)
-            return Unauthorized();
+            return CurrentUserMissing();
 
-        var passwordHasher = new PasswordHasher<User>();
-
-        var result = passwordHasher.VerifyHashedPassword(
-            user,
-            user.PasswordHash,
-            dto.CurrentPassword
-        );
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
 
         if (result == PasswordVerificationResult.Failed)
-            return BadRequest("Current password is incorrect.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Current password is incorrect.");
 
-        user.PasswordHash = passwordHasher.HashPassword(
-            user,
-            dto.NewPassword
-        );
+        user.PasswordHash = _passwordHasher.HashPassword(user, dto.NewPassword);
 
         await _context.SaveChangesAsync();
 
@@ -266,24 +258,26 @@ public class UsersController : ControllerBase
         });
     }
 
-
     [RequirePermission("DeleteUsers")]
-    [HttpDelete("{id}")]// DELETE api/users/**id**
-    public async Task<IActionResult> DeleteUser(int id)// this might stay but will be changed too 
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _userService.GetCurrentUser(User);
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
-
-
         if (user == null)
-            return Unauthorized();
-        if (targetUser == null)
-            return NotFound();
+            return CurrentUserMissing();
 
+        if (user.Id == id)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot delete your own account.");
+
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+
+        if (targetUser == null)
+            return UserNotFound();
+
+        // Deleting an admin needs an admin with a higher authority, so the top admin is never deleted.
         if (!_permissionService.CanManageTargetUser(user, targetUser))
-            return Forbid();
+            return CannotManageTargetUser();
 
         _context.Users.Remove(targetUser);
 
@@ -291,90 +285,76 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-
     [RequirePermission("GrantUsers")]
-    [HttpPut("grant/{id}")]// PUT api/users/grant/**id**]
+    [HttpPut("grant/{id:int}")]
     public async Task<IActionResult> GrantUser(int id, UpdatePermissionsDto dto)
     {
-
         var user = await _userService.GetCurrentUser(User);
-        if (user == null)
-            return Unauthorized();
-        
-        if (user.Permissions == null && user.Role != UserRole.Admin)
-            return BadRequest("Current user has no permissions.");
 
-        if (user.Id == id)// user cant change his own 
-            return Forbid();
+        if (user == null)
+            return CurrentUserMissing();
+
+        if (user.Id == id)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot change your own permissions.");
 
         var targetUser = await _context.Users
             .Include(u => u.Permissions)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
-            return NotFound();
+            return UserNotFound();
 
-        if (targetUser.Permissions == null)
-            return BadRequest("Target user has no permissions.");
+        if (!_permissionService.CanManageTargetUser(user, targetUser))
+            return CannotManageTargetUser();
 
-
-        foreach (var permission in dto.PermissionsGranted)
+        // Check every requested name before changing anything, so a bad request changes nothing.
+        foreach (var permission in dto.PermissionsGranted.Concat(dto.PermissionsRevoked))
         {
-
-            if (!_permissionService.HasPermission(user, permission))
-                return Forbid();
-
-            var property = typeof(Permissions).GetProperty(permission);// converts string to actual property in Permissions.cs
-
-            if (property == null || property.PropertyType != typeof(bool))// checking if its actually bool not some user id or smth
-                return BadRequest($"Invalid permission: {permission}");
-
-            property.SetValue(targetUser.Permissions, true );// the guy who thought about it is insane or genius
-        }
-
-        foreach (var permission in dto.PermissionsRevoked)
-        {
-            if (!_permissionService.HasPermission(user, permission))
-                return Forbid();
-
+            // Permission names are the names of the bool properties of Permissions (e.g. "ReadRepairs").
             var property = typeof(Permissions).GetProperty(permission);
 
             if (property == null || property.PropertyType != typeof(bool))
-                return BadRequest($"Invalid permission: {permission}");
+                return Problem(statusCode: StatusCodes.Status400BadRequest, detail: $"Invalid permission: {permission}.");
 
-            property.SetValue(targetUser.Permissions, false);
+            // You can only give or take away a permission you have yourself.
+            if (!_permissionService.HasPermission(user, permission))
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: $"You do not have the {permission} permission yourself.");
         }
 
+        targetUser.Permissions ??= new Permissions();
+
+        foreach (var permission in dto.PermissionsGranted)
+            typeof(Permissions).GetProperty(permission)!.SetValue(targetUser.Permissions, true);
+
+        foreach (var permission in dto.PermissionsRevoked)
+            typeof(Permissions).GetProperty(permission)!.SetValue(targetUser.Permissions, false);
 
         await _context.SaveChangesAsync();
 
         return Ok(ToDto(targetUser, UserResponseOption.Permissions));
     }
 
-
-
-    [HttpPut("{id}/promote-admin")]
+    [HttpPut("{id:int}/promote-admin")]
     public async Task<IActionResult> PromoteToAdmin(int id)
     {
         var currentUser = await _userService.GetCurrentUser(User);
 
         if (currentUser == null)
-            return Unauthorized();
+            return CurrentUserMissing();
 
         if (currentUser.Role != UserRole.Admin)
-            return Forbid();
+            return AdminOnly();
 
         if (currentUser.Id == id)
-            return BadRequest("You cannot promote yourself.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot promote yourself.");
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
-            return NotFound();
+            return UserNotFound();
 
         if (targetUser.Role == UserRole.Admin)
-            return BadRequest("User is already an admin.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "User is already an admin.");
 
         targetUser.Role = UserRole.Admin;
 
@@ -386,49 +366,38 @@ public class UsersController : ControllerBase
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
-
-    [HttpPut("{id}/priority")]
-    public async Task<IActionResult> UpdateAdminPriority(
-    int id,
-    UpdatePriorityDto dto)
+    [HttpPut("{id:int}/priority")]
+    public async Task<IActionResult> UpdateAdminPriority(int id, UpdatePriorityDto dto)
     {
         var currentUser = await _userService.GetCurrentUser(User);
 
         if (currentUser == null)
-            return Unauthorized();
+            return CurrentUserMissing();
 
         if (currentUser.Role != UserRole.Admin)
-            return Forbid();
+            return AdminOnly();
 
         if (currentUser.Id == id)
-            return BadRequest("You cannot change your own priority.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot change your own priority.");
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
-            return NotFound();
+            return UserNotFound();
 
         if (targetUser.Role != UserRole.Admin)
-            return BadRequest("Target user is not an admin.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Target user is not an admin.");
 
-        if (!_permissionService.CanManageTargetUser(
-            currentUser,
-            targetUser))
-        {
-            return Forbid();
-        }
+        if (!_permissionService.CanManageTargetUser(currentUser, targetUser))
+            return CannotManageTargetUser();
 
-        if (dto.Priority < currentUser.Priority)//smaller priority - higher authority
+        // The same rule as CanManageTargetUser: after the change you must still have more authority
+        // (a lower number) than the admin you are editing.
+        if (dto.Priority <= currentUser.Priority)
         {
-            return BadRequest(
-                "You cannot give an admin higher authority than yourself."
-            );
-        }
-
-        if (dto.Priority < 1)
-        {
-            return BadRequest("Priority must be at least 1.");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"Priority must be greater than your own ({currentUser.Priority}).");
         }
 
         targetUser.Priority = dto.Priority;
@@ -438,17 +407,16 @@ public class UsersController : ControllerBase
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
-
     [HttpGet("admins")]
     public async Task<IActionResult> GetAdmins()
     {
         var currentUser = await _userService.GetCurrentUser(User);
 
         if (currentUser == null)
-            return Unauthorized();
+            return CurrentUserMissing();
 
         if (currentUser.Role != UserRole.Admin)
-            return Forbid();
+            return AdminOnly();
 
         var admins = await _context.Users
             .Where(u => u.Role == UserRole.Admin)
@@ -456,45 +424,51 @@ public class UsersController : ControllerBase
             .ThenBy(u => u.Username)
             .ToListAsync();
 
-        return Ok(admins.Select(u =>
-            ToDto(u, UserResponseOption.OnlyUser)));
+        return Ok(admins.Select(u => ToDto(u, UserResponseOption.OnlyUser)));
     }
 
-
-    [HttpPut("{id}/demote-admin")]
+    [HttpPut("{id:int}/demote-admin")]
     public async Task<IActionResult> DemoteAdmin(int id)
     {
         var currentUser = await _userService.GetCurrentUser(User);
 
         if (currentUser == null)
-            return Unauthorized();
+            return CurrentUserMissing();
 
         if (currentUser.Role != UserRole.Admin)
-            return Forbid();
+            return AdminOnly();
 
         if (currentUser.Id == id)
-            return BadRequest("You cannot demote yourself.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot demote yourself.");
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
-            return NotFound();
+            return UserNotFound();
 
         if (targetUser.Role != UserRole.Admin)
-            return BadRequest("Target user is not an admin.");
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "Target user is not an admin.");
 
         if (!_permissionService.CanManageTargetUser(currentUser, targetUser))
-            return Forbid();
+            return CannotManageTargetUser();
 
         targetUser.Role = UserRole.Worker;
         targetUser.Priority = 0;
 
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(
-            targetUser,
-            UserResponseOption.OnlyUser
-        ));
+        return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
+
+    private ObjectResult CurrentUserMissing() =>
+        Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Your account no longer exists.");
+
+    private ObjectResult UserNotFound() =>
+        Problem(statusCode: StatusCodes.Status404NotFound, detail: "User not found.");
+
+    private ObjectResult AdminOnly() =>
+        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Only an admin can do this.");
+
+    private ObjectResult CannotManageTargetUser() =>
+        Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You cannot manage an admin with the same or higher authority.");
 }
