@@ -1,0 +1,86 @@
+// Base URL is configurable per environment (see .env.local / README);
+// http://localhost:5000/api matches the API's default dev port.
+const DEFAULT_API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
+
+async function apiFetch(endpoint, options = {}) {
+  let response;
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch {
+    // fetch rejects on network errors (server down, no connection, CORS);
+    // the browser's own message ("Failed to fetch") is not user-friendly.
+    throw new Error(
+      "Nie można połączyć się z serwerem. Spróbuj ponownie później."
+    );
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  // Errors come as "application/problem+json", so match any JSON media type.
+  const contentType = response.headers.get("content-type");
+  const body = contentType?.includes("json")
+    ? await response.json()
+    : await response.text();
+
+  if (!response.ok) {
+    throw buildApiError(response, body);
+  }
+
+  return body;
+}
+
+// The API returns RFC 7807 ProblemDetails for every error. Pick the most
+// specific message available, and never let an empty body become "Error: ".
+function buildApiError(response, body) {
+  if (response.status === 429) {
+    return new Error(
+      "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie."
+    );
+  }
+
+  const problem = typeof body === "object" && body !== null ? body : null;
+
+  const message =
+    problem?.detail ||
+    problem?.title ||
+    (typeof body === "string" && body) ||
+    `${response.status} ${response.statusText}`;
+
+  const error = new Error(message);
+
+  if (problem?.errors) {
+    error.fieldErrors = problem.errors;
+  }
+
+  return error;
+}
+
+// Product catalogue: [{ name, serialRequired, serialHint }]. The backend is
+// now the single source of truth for which products need a serial number
+// and how to validate it (see validation/repairForm.js).
+export function getProducts() {
+  return apiFetch("/products");
+}
+
+export function createRepair(repair) {
+  return apiFetch("/repairs", {
+    method: "POST",
+    body: JSON.stringify(repair),
+  });
+}
+
+export function checkRepair({ id, email }) {
+  return apiFetch("/repairs/check", {
+    method: "POST",
+    body: JSON.stringify({ id, email }),
+  });
+}

@@ -1,0 +1,11 @@
+/* App-specific tweaks on top of Bootstrap. Keep this file small:
+   prefer Bootstrap utility classes in JSX. */
+
+body {
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* Table rows that open a details page. */
+.table-clickable tbody tr {
+  cursor: pointer;
+}
