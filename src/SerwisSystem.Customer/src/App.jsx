@@ -1,16 +1,13 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import Navbar from "./components/Navbar";
 import CreateRepair from "./pages/CreateRepair";
 import CheckRepair from "./pages/CheckRepair";
 
 function App() {
   return (
     <BrowserRouter>
-      <nav>
-        <Link to="/">Create repair</Link>
-        {" | "}
-        <Link to="/check">Check repair</Link>
-      </nav>
+      <Navbar />
 
       <Routes>
         <Route path="/" element={<CreateRepair />} />

@@ -1,16 +1,34 @@
-# React + Vite
+# SerwisSystem.Customer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The public part of SerwisSystem: a React (Vite) app customers use to report
+a device repair and later check its status. It requires no login and talks
+only to the anonymous, rate-limited endpoints of the SerwisSystem API
+(`POST /api/repairs`, `POST /api/repairs/check`, `GET /api/products`).
 
-Currently, two official plugins are available:
+## Getting started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm ci
+npm run dev
+```
 
-## React Compiler
+The dev server runs at http://localhost:5174.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Configuration
 
-## Expanding the ESLint configuration
+The API base URL (including the `/api` path) is read from the
+`VITE_API_URL` environment variable, e.g. in a `.env.local` file:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```
+VITE_API_URL=http://localhost:5000/api
+```
+
+If unset, it defaults to `http://localhost:5000/api`, which matches the
+API's default dev port.
+
+## Scripts
+
+- `npm run dev` -- start the dev server
+- `npm run build` -- production build
+- `npm run lint` -- run ESLint
+- `npm run preview` -- preview the production build locally
