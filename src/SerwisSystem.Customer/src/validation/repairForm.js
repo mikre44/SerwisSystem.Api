@@ -8,7 +8,10 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POSTAL_CODE_REGEX = /^\d{2}-\d{3}$/;
 const NIP_WEIGHTS = [6, 5, 7, 2, 3, 4, 5, 6, 7];
 
-export const CUSTOM_PRODUCT_VALUE = "Other";
+// Local sentinel for the "custom product" option in the select; matches the
+// value used for the same purpose in the staff app (EditRepairForm.jsx).
+// Never sent to the API as-is -- see isCustomProduct below.
+export const CUSTOM_PRODUCT_VALUE = "custom";
 
 // Polish NIP (tax id) checksum: the last digit must equal a weighted sum
 // of the first nine digits, mod 11.

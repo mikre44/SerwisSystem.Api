@@ -4,13 +4,22 @@ const DEFAULT_API_URL = "http://localhost:5000/api";
 const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
 
 async function apiFetch(endpoint, options = {}) {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch {
+    // fetch rejects on network errors (server down, no connection, CORS);
+    // the browser's own message ("Failed to fetch") is not user-friendly.
+    throw new Error(
+      "Nie można połączyć się z serwerem. Spróbuj ponownie później."
+    );
+  }
 
   if (response.status === 204) {
     return null;
@@ -48,23 +57,10 @@ function buildApiError(response, body) {
   const error = new Error(message);
 
   if (problem?.errors) {
-    error.fieldErrors = toCamelCaseKeys(problem.errors);
+    error.fieldErrors = problem.errors;
   }
 
   return error;
-}
-
-// ASP.NET validation errors are keyed by the DTO property name
-// (PascalCase); forms look them up by their camelCase field name.
-function toCamelCaseKeys(errors) {
-  const result = {};
-
-  for (const [key, value] of Object.entries(errors)) {
-    const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
-    result[camelKey] = value;
-  }
-
-  return result;
 }
 
 // Product catalogue: [{ name, serialRequired, serialHint }]. The backend is

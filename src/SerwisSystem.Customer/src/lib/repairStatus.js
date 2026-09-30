@@ -1,5 +1,6 @@
-// Polish labels for RepairStatus values, matching the staff app
-// (SerwisSystem.Client/src/components/EditFormComponents/EditRepairForm.jsx).
+// Polish labels for RepairStatus values. Kept in sync with the staff app's
+// own copy in SerwisSystem.Client/src/repairStatuses.js -- both apps show
+// the same labels for the same statuses.
 export const STATUS_LABELS = {
   Pending: "Oczekująca",
   InProgress: "W trakcie",
