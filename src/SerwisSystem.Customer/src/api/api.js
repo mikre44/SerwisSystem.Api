@@ -4,13 +4,22 @@ const DEFAULT_API_URL = "http://localhost:5000/api";
 const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
 
 async function apiFetch(endpoint, options = {}) {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  let response;
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch {
+    // fetch rejects on network errors (server down, no connection, CORS);
+    // the browser's own message ("Failed to fetch") is not user-friendly.
+    throw new Error(
+      "Nie można połączyć się z serwerem. Spróbuj ponownie później."
+    );
+  }
 
   if (response.status === 204) {
     return null;
