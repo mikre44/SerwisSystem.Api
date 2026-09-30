@@ -1,36 +1,41 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getRepair } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 
 import EditRepairForm from "../components/EditFormComponents/EditRepairForm";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
 import DeleteRepairButton from "../components/EditFormComponents/DeleteRepairButton";
+import StatusCorrectionForm from "../components/EditFormComponents/StatusCorrectionForm";
 
 function Repair() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [repair, setRepair] = useState(null);
   const [error, setError] = useState("");
 
-  const canDelete =
-  user.role === "Admin" ||
-  user.permissions?.deleteRepairs;
-
-  async function loadRepair() {
-    try {
-      const data = await getRepair(id);
-
-      setRepair(data);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
-
   useEffect(() => {
-    loadRepair();
+    // Ignore a late response if the user has already opened another repair.
+    let ignore = false;
+
+    getRepair(id)
+      .then((data) => {
+        if (!ignore) {
+          setRepair(data);
+          setError("");
+        }
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setError(error.message);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [id]);
 
   if (error) {
@@ -41,9 +46,9 @@ function Repair() {
     return <p>Loading repair...</p>;
   }
 
-  const canEdit =
-    user.role === "Admin" ||
-    user.permissions?.editRepairs;
+  const isAdmin = user.role === "Admin";
+  const canEdit = isAdmin || user.permissions?.editRepairs;
+  const canDelete = isAdmin || user.permissions?.deleteRepairs;
 
   return (
     <div>
@@ -52,7 +57,8 @@ function Repair() {
       <h2>Repair information</h2>
 
       <p>Status: {repair.status}</p>
-      <p> Product: {repair.product} 
+      <p>
+        Product: {repair.product}
         {repair.isCustomProduct && " (nie z listy)"}
       </p>
       <p>Serial number: {repair.serialNumber || "None"}</p>
@@ -132,8 +138,15 @@ function Repair() {
 
       <EditRepairStatus
         repair={repair}
-        onUpdated={loadRepair}
+        onUpdated={setRepair}
       />
+
+      {isAdmin && (
+        <StatusCorrectionForm
+          repair={repair}
+          onUpdated={setRepair}
+        />
+      )}
 
       {canDelete && (
         <DeleteRepairButton
@@ -142,10 +155,13 @@ function Repair() {
         />
       )}
 
+      {/* key: opening another repair creates a fresh form; status actions on
+          this repair keep the edits that have not been saved yet. */}
       {canEdit && (
         <EditRepairForm
+          key={repair.id}
           repair={repair}
-          onUpdated={loadRepair}
+          onUpdated={setRepair}
         />
       )}
     </div>

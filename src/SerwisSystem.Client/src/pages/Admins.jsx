@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  getAdmins,
-  demoteAdmin,
-  updateAdminPriority,
-} from "../api/api";
-
+import { getAdmins } from "../api/api";
 import { useAuth } from "../context/AuthContext";
 
 import EditAdminPriority from "../components/EditFormComponents/EditAdminPriority";
@@ -16,29 +11,40 @@ function Admins() {
 
   const [admins, setAdmins] = useState([]);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  async function loadAdmins() {
-    try {
-      const data = await getAdmins();
-
-      setAdmins(data);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
+  // Changing this number runs the effect again and reloads the list
+  // (a demote or a new priority changes which admins are listed and their order).
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    loadAdmins();
-  }, []);
+    let ignore = false;
+
+    getAdmins()
+      .then((data) => {
+        if (!ignore) {
+          setAdmins(data);
+          setError("");
+        }
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setError(error.message);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [reloadKey]);
+
+  function reloadAdmins() {
+    setReloadKey((key) => key + 1);
+  }
 
   return (
     <div>
       <h1>Admins</h1>
 
       {error && <p>Error: {error}</p>}
-      {success && <p>{success}</p>}
 
       <table>
         <thead>
@@ -52,35 +58,33 @@ function Admins() {
         </thead>
 
         <tbody>
-          {admins.map((admin) => {
+          {admins.map((admin) => (
+            <tr key={admin.id}>
+              <td>
+                <Link to={`/user/${admin.id}`}>
+                  {admin.id}
+                </Link>
+              </td>
 
-            return (
-              <tr key={admin.id}>
-                <td>
-                  <Link to={`/user/${admin.id}`}>
-                    {admin.id}
-                  </Link>
-                </td>
+              <td>{admin.username}</td>
+              <td>{admin.email}</td>
 
-                <td>{admin.username}</td>
-                <td>{admin.email}</td>
-
-                <td>
-                  <EditAdminPriority
-                    admin={admin}
-                    loggedUser={loggedUser}
-                    onUpdated={loadAdmins}
-                  />
-                </td>
-                <td>
-                  <EditAdminButton
-                  user={admin}
-                  onUpdated={loadAdmins}
+              <td>
+                <EditAdminPriority
+                  admin={admin}
+                  loggedUser={loggedUser}
+                  onUpdated={reloadAdmins}
                 />
-                </td>
-              </tr>
-            );
-          })}
+              </td>
+
+              <td>
+                <EditAdminButton
+                  user={admin}
+                  onUpdated={reloadAdmins}
+                />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
