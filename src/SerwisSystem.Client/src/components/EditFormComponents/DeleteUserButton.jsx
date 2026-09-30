@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteUser } from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+import { canManageUser, hasPermission } from "../../permissions";
 import ConfirmButton from "../ConfirmButton";
 import Message from "../Message";
 
@@ -14,9 +15,12 @@ function DeleteUserButton({ user }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Same checks as DELETE /users/{id}: never yourself, DeleteUsers,
+  // and an admin only with a higher authority.
   const canDelete =
     loggedUser.id !== user.id &&
-    (loggedUser.role === "Admin" || loggedUser.permissions?.deleteUsers);
+    hasPermission(loggedUser, "deleteUsers") &&
+    canManageUser(loggedUser, user);
 
   async function handleDelete() {
     try {

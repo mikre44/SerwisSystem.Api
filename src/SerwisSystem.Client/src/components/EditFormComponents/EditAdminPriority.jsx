@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { updateAdminPriority } from "../../api/api";
+import { canManageUser } from "../../permissions";
 import Message from "../Message";
 
 function EditAdminPriority({ admin, loggedUser, onUpdated }) {
@@ -8,10 +9,10 @@ function EditAdminPriority({ admin, loggedUser, onUpdated }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // A lower number means more authority; only a strictly higher authority may change it.
+  // Only a strictly higher authority may change it, and never your own.
   const canManage =
     loggedUser.id !== admin.id &&
-    loggedUser.priority < admin.priority;
+    canManageUser(loggedUser, admin);
 
   async function handleSubmit(event) {
     event.preventDefault();

@@ -34,3 +34,16 @@ export const PERMISSION_GROUPS = [
 export function hasPermission(user, key) {
   return user.role === "Admin" || Boolean(user.permissions?.[key]);
 }
+
+// Mirrors PermissionService.CanManageTargetUser in the API: may loggedUser edit,
+// delete, demote or change the permissions of targetUser? A lower priority number
+// means more authority, so an admin can be managed only by an admin with a strictly
+// lower number. Workers can be managed by anyone with the matching permission.
+// Actions on your own account are checked separately by each caller.
+export function canManageUser(loggedUser, targetUser) {
+  if (targetUser.role !== "Admin") {
+    return true;
+  }
+
+  return loggedUser.role === "Admin" && loggedUser.priority < targetUser.priority;
+}
