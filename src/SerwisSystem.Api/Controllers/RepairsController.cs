@@ -21,6 +21,16 @@ public class RepairsController : ControllerBase
     private readonly EmailService _emailService;
     private readonly ILogger<RepairsController> _logger;
 
+    // Status corrections an admin can make with PUT {id}/status.
+    // Everyday work uses take / complete / cancel / return instead.
+    private static readonly Dictionary<RepairStatus, RepairStatus[]> AllowedStatusChanges = new()
+    {
+        [RepairStatus.Pending] = [RepairStatus.Cancelled],
+        [RepairStatus.InProgress] = [RepairStatus.Pending, RepairStatus.Cancelled],
+        [RepairStatus.Completed] = [RepairStatus.InProgress],   // reopen, worker is kept
+        [RepairStatus.Cancelled] = [RepairStatus.Pending],
+    };
+
     public RepairsController(
         AppDbContext context,
         PermissionService permissionService,
@@ -253,11 +263,6 @@ public class RepairsController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> EditRepair(int id, UpdateRepairDto updatedRepair)
     {
-        var user = await _userService.GetCurrentUser(User);
-
-        if (user == null)
-            return CurrentUserNotFound();
-
         var repair = await FindRepairWithWorker(id);
 
         if (repair == null)
@@ -268,30 +273,58 @@ public class RepairsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem();
 
-        // If repair is manually moved into an active/final status
-        // and has no worker, assign the editing user.
-        if (
-            updatedRepair.Status == RepairStatus.Completed ||
-            updatedRepair.Status == RepairStatus.Cancelled ||
-            updatedRepair.Status == RepairStatus.InProgress
-        )
-        {
-            repair.UserId ??= user.Id;
-        }
-
-        if (updatedRepair.Status != null)
-        {
-            repair.Status = (RepairStatus)updatedRepair.Status;
-        }
-
         CopyRepairData(updatedRepair, repair);
 
-        // Pending repairs should not have an assigned worker.
-        if (repair.Status == RepairStatus.Pending)
+        await _context.SaveChangesAsync();
+
+        return Ok(RepairResponseDto.FromEntity(repair));
+    }
+
+
+    // PUT api/repairs/{id}/status
+    // Lets an admin correct a mistake, e.g. reopen a repair
+    // that was completed by accident.
+    [HttpPut("{id:int}/status")]
+    public async Task<IActionResult> ChangeRepairStatus(int id, UpdateRepairStatusDto dto)
+    {
+        var user = await _userService.GetCurrentUser(User);
+
+        if (user == null)
+            return CurrentUserNotFound();
+
+        // The role is read from the database, not from the token,
+        // so a demoted admin loses this right immediately.
+        if (user.Role != UserRole.Admin)
         {
-            repair.UserId = null;
-            repair.User = null;
+            return Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                detail: "Only an admin can change the repair status.");
         }
+
+        var repair = await FindRepairWithWorker(id);
+
+        if (repair == null)
+            return RepairNotFound();
+
+        // Never null here: [Required] is checked before the action runs.
+        var newStatus = dto.Status!.Value;
+
+        if (!AllowedStatusChanges[repair.Status].Contains(newStatus))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"Status change from {repair.Status} to {newStatus} is not allowed.");
+        }
+
+        // A pending repair waits in the queue without a worker,
+        // so that anyone can take it again.
+        if (newStatus == RepairStatus.Pending)
+        {
+            repair.User = null;
+            repair.UserId = null;
+        }
+
+        repair.Status = newStatus;
 
         await _context.SaveChangesAsync();
 
