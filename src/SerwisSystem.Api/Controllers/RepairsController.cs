@@ -259,7 +259,7 @@ public class RepairsController : ControllerBase
     [HttpPost("check")]
     public async Task<IActionResult> CheckRepair(CheckRepairDto dto)
     {
-        var email = NormalizeEmail(dto.Email);
+        var email = EmailNormalizer.Normalize(dto.Email);
 
         // ToLower() on the column also matches repairs
         // saved before emails were normalised.
@@ -629,7 +629,7 @@ public class RepairsController : ControllerBase
         repair.ReporterName = dto.ReporterName;
         repair.ReporterSurname = dto.ReporterSurname;
         repair.ReporterPhone = dto.ReporterPhone;
-        repair.ReporterEmail = NormalizeEmail(dto.ReporterEmail);
+        repair.ReporterEmail = EmailNormalizer.Normalize(dto.ReporterEmail);
 
         repair.CompanyName = dto.CompanyName;
         repair.CompanyAddress = dto.CompanyAddress;
@@ -643,12 +643,5 @@ public class RepairsController : ControllerBase
 
         repair.HasContract = dto.HasContract;
         repair.ContractNumber = dto.ContractNumber;
-    }
-
-    // People type the same address in different letter case,
-    // so emails are stored and compared in lower case.
-    private static string NormalizeEmail(string email)
-    {
-        return email.Trim().ToLowerInvariant();
     }
 }

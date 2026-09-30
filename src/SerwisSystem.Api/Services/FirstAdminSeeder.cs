@@ -57,7 +57,9 @@ public class FirstAdminSeeder
             return;
         }
 
-        if (await _context.Users.AnyAsync(u => u.Username == username || u.Email == email))
+        email = EmailNormalizer.Normalize(email);
+
+        if (await _context.Users.AnyAsync(u => u.Username == username || u.Email.ToLower() == email))
         {
             _logger.LogWarning(
                 "Cannot create the first admin: username '{Username}' or email '{Email}' is already taken.",

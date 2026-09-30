@@ -229,11 +229,14 @@ public class UsersController : ControllerBase
         if (await _context.Users.AnyAsync(u => u.Username == updatedUser.Username && u.Id != id))
             return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ta nazwa użytkownika jest już zajęta.");
 
-        if (await _context.Users.AnyAsync(u => u.Email == updatedUser.Email && u.Id != id))
+        var email = EmailNormalizer.Normalize(updatedUser.Email);
+
+        // ToLower() on the column also matches accounts saved before emails were normalised.
+        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == email && u.Id != id))
             return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ten adres e-mail jest już zajęty.");
 
         targetUser.Username = updatedUser.Username;
-        targetUser.Email = updatedUser.Email;
+        targetUser.Email = email;
 
         try
         {

@@ -9,6 +9,7 @@ using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
+using SerwisSystem.Api.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -64,13 +65,16 @@ public class AuthController : ControllerBase
         if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
             return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ta nazwa użytkownika jest już zajęta.");
 
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+        var email = EmailNormalizer.Normalize(dto.Email);
+
+        // ToLower() on the column also matches accounts saved before emails were normalised.
+        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == email))
             return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ten adres e-mail jest już zajęty.");
 
         var user = new User
         {
             Username = dto.Username,
-            Email = dto.Email,
+            Email = email,
             Permissions = new Permissions()
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
@@ -101,7 +105,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail);
+        // The username must match exactly; the email in any letter case.
+        var email = EmailNormalizer.Normalize(dto.UsernameOrEmail);
+
+        var user = await _context.Users.FirstOrDefaultAsync(u =>
+            u.Username == dto.UsernameOrEmail || u.Email.ToLower() == email);
 
         // The same answer for an unknown user and a wrong password, so nobody can probe which accounts exist.
         if (user == null ||
