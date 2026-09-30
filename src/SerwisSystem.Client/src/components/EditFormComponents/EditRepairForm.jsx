@@ -502,7 +502,7 @@ function EditRepairForm({ repair, onUpdated }) {
       setError("");
       setSuccess("");
 
-      await updateRepair(
+      const updatedRepair = await updateRepair(
         repair.id,
         {
           status,
@@ -577,7 +577,7 @@ function EditRepairForm({ repair, onUpdated }) {
         "Dane naprawy zostały zapisane."
       );
 
-      await onUpdated();
+      onUpdated(updatedRepair);
     } catch (error) {
       setSuccess("");
       setError(error.message);

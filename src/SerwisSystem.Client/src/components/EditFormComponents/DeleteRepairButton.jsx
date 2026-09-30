@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { deleteRepair } from "../../api/api";
 import ConfirmButton from "../ConfirmButton";
+import Message from "../Message";
 
-function DeleteRepairButton({ repairId }) {
-  const navigate = useNavigate();
-
+// The parent decides what happens after deletion (e.g. navigate back to the list).
+function DeleteRepairButton({ repairId, onDeleted }) {
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
@@ -17,7 +16,7 @@ function DeleteRepairButton({ repairId }) {
 
       await deleteRepair(repairId);
 
-      navigate("/repairs");
+      onDeleted();
     } catch (error) {
       setError(error.message);
       setDeleting(false);
@@ -26,20 +25,14 @@ function DeleteRepairButton({ repairId }) {
 
   return (
     <div>
-      {error && (
-        <p>
-          Error: {error}
-        </p>
-      )}
+      <Message error={error} />
 
       <ConfirmButton
         message="Are you sure you want to delete this repair?"
         onConfirm={handleDelete}
         disabled={deleting}
       >
-        {deleting
-          ? "Deleting..."
-          : "Delete repair"}
+        {deleting ? "Deleting..." : "Delete repair"}
       </ConfirmButton>
     </div>
   );

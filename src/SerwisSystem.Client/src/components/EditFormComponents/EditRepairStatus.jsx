@@ -10,6 +10,8 @@ import {
   returnRepair,
 } from "../../api/api";
 
+// Workflow buttons (take / complete / cancel / return).
+// Every action returns the updated repair, which is passed to onUpdated(updatedRepair).
 function EditRepairStatus({ repair, onUpdated }) {
   const { user } = useAuth();
   const [error, setError] = useState("");
@@ -30,12 +32,11 @@ function EditRepairStatus({ repair, onUpdated }) {
 
   async function runAction(action, successMessage) {
     try {
-      await action(repair.id);
+      const updatedRepair = await action(repair.id);
 
       setError("");
       setSuccess(successMessage);
-
-      await onUpdated();
+      onUpdated(updatedRepair);
     } catch (error) {
       setSuccess("");
       setError(error.message);

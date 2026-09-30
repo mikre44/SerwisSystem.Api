@@ -1,7 +1,10 @@
 import { Fragment, useEffect, useState } from "react";
-import { Link, useNavigate  } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getRepairs } from "../api/api";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
+
+const PAGE_SIZE = 10;
+const STATUSES = ["Pending", "InProgress", "Completed", "Cancelled"];
 
 function Repairs() {
   const navigate = useNavigate();
@@ -9,46 +12,58 @@ function Repairs() {
   const [repairs, setRepairs] = useState([]);
   const [error, setError] = useState("");
 
+  // `search` follows the input; `appliedSearch` changes only when the form is submitted.
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [statuses, setStatuses] = useState([]);
-  const [mine, setMine] = useState(false);  
+  const [mine, setMine] = useState(false);
   const [sortBy, setSortBy] = useState("createdAt");
   const [descending, setDescending] = useState(true);
 
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  async function loadRepairs() {
-    try {
-      const data = await getRepairs({
-        page,
-        pageSize,
-        search,
-        statuses,
-        mine,
-        sortBy,
-        descending,
+  useEffect(() => {
+    // Ignore a late response if the filters changed in the meantime.
+    let ignore = false;
+
+    getRepairs({
+      page,
+      pageSize: PAGE_SIZE,
+      search: appliedSearch,
+      statuses,
+      mine,
+      sortBy,
+      descending,
+    })
+      .then((data) => {
+        if (ignore) {
+          return;
+        }
+
+        setRepairs(data.items);
+        setTotalPages(data.totalPages);
+        setTotalCount(data.totalCount);
+        setError("");
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setError(error.message);
+        }
       });
 
-      setRepairs(data.items);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.totalCount);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
-
+    return () => {
+      ignore = true;
+    };
+  }, [page, appliedSearch, statuses, mine, sortBy, descending]);
 
   function handleSearch(event) {
     event.preventDefault();
 
+    setAppliedSearch(search.trim());
     setPage(1);
-    loadRepairs();
   }
-
 
   function handleSort(column) {
     if (sortBy === column) {
@@ -61,7 +76,6 @@ function Repairs() {
     setPage(1);
   }
 
-
   function getSortIndicator(column) {
     if (sortBy !== column) {
       return "";
@@ -70,21 +84,25 @@ function Repairs() {
     return descending ? " ▼" : " ▲";
   }
 
-
-  function handleStatusChange(status){
-    setStatuses(statuses => statuses.includes(status) // checks if changed status was on, yes - removes it, no - adds it
-    ? statuses.filter(item => item !== status) 
-    : [...statuses, status]);
+  function handleStatusChange(status) {
+    // Toggle: remove the status if it is selected, add it otherwise.
+    setStatuses((current) =>
+      current.includes(status)
+        ? current.filter((item) => item !== status)
+        : [...current, status]
+    );
 
     setPage(1);
   }
 
-
-  useEffect(() => {
-    loadRepairs();
-  }, [page, sortBy, descending, statuses, mine]);
-
-
+  // Workflow actions return the updated repair, so only that row is replaced.
+  function handleRepairUpdated(updatedRepair) {
+    setRepairs((current) =>
+      current.map((repair) =>
+        repair.id === updatedRepair.id ? updatedRepair : repair
+      )
+    );
+  }
 
   return (
     <div>
@@ -94,7 +112,8 @@ function Repairs() {
 
       <form onSubmit={handleSearch}>
         <input
-          type="text"
+          type="search"
+          aria-label="Search repairs"
           placeholder="Search repairs..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -104,12 +123,11 @@ function Repairs() {
           Search
         </button>
       </form>
-      
 
-      <div>
-        <p>Status:</p>
+      <fieldset>
+        <legend>Status</legend>
 
-        {["Pending", "InProgress", "Completed", "Cancelled"].map((status) => (
+        {STATUSES.map((status) => (
           <label key={status}>
             <input
               type="checkbox"
@@ -120,8 +138,7 @@ function Repairs() {
             {status}
           </label>
         ))}
-      </div>
-
+      </fieldset>
 
       <div>
         <label>
@@ -146,39 +163,33 @@ function Repairs() {
         <thead>
           <tr>
             <th onClick={() => handleSort("id")}>
-              ID {sortBy === "id" && (descending ? "▼" : "▲")}
+              ID{getSortIndicator("id")}
             </th>
 
             <th onClick={() => handleSort("serialNumber")}>
-              Serial number{" "}
-              {sortBy === "serialNumber" && (descending ? "▼" : "▲")}
+              Serial number{getSortIndicator("serialNumber")}
             </th>
 
             <th onClick={() => handleSort("product")}>
-              Product{" "}
-              {sortBy === "product" && (descending ? "▼" : "▲")}
+              Product{getSortIndicator("product")}
             </th>
 
             <th onClick={() => handleSort("surname")}>
-              Reporter{" "}
-              {sortBy === "surname" && (descending ? "▼" : "▲")}
+              Reporter{getSortIndicator("surname")}
             </th>
 
             <th onClick={() => handleSort("address")}>
-              Address{" "}
-              {sortBy === "address" && (descending ? "▼" : "▲")}
+              Address{getSortIndicator("address")}
             </th>
 
             <th onClick={() => handleSort("status")}>
-              Status{" "}
-              {sortBy === "status" && (descending ? "▼" : "▲")}
+              Status{getSortIndicator("status")}
             </th>
 
             <th>Worker</th>
 
             <th onClick={() => handleSort("createdAt")}>
-              Created{" "}
-              {sortBy === "createdAt" && (descending ? "▼" : "▲")}
+              Created{getSortIndicator("createdAt")}
             </th>
           </tr>
         </thead>
@@ -222,7 +233,7 @@ function Repairs() {
                 <td colSpan="8">
                   <EditRepairStatus
                     repair={repair}
-                    onUpdated={loadRepairs}
+                    onUpdated={handleRepairUpdated}
                   />
                 </td>
               </tr>
@@ -234,7 +245,8 @@ function Repairs() {
       <div>
         <button
           disabled={page <= 1}
-          onClick={() => setPage(page - 1)}>
+          onClick={() => setPage(page - 1)}
+        >
           Previous
         </button>
 
@@ -245,7 +257,8 @@ function Repairs() {
 
         <button
           disabled={page >= totalPages}
-          onClick={() => setPage(page + 1)}>
+          onClick={() => setPage(page + 1)}
+        >
           Next
         </button>
       </div>
