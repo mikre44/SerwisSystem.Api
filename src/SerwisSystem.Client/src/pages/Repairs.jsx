@@ -5,32 +5,11 @@ import { STATUS_LABELS } from "../repairStatuses";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
 import StatusBadge from "../components/StatusBadge";
 import Message from "../components/Message";
+import Pagination from "../components/Pagination";
+import SortButton from "../components/SortButton";
 
 const STATUSES = ["Pending", "InProgress", "Completed", "Cancelled"];
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-// One sortable column header. The icon shows the active sort direction,
-// or a faint hint that the column can be sorted at all.
-function SortButton({ column, label, sortBy, descending, onSort }) {
-  const isActive = sortBy === column;
-  const icon = isActive
-    ? descending
-      ? "bi-sort-down"
-      : "bi-sort-up"
-    : "bi-sort-down opacity-25";
-
-  return (
-    <button
-      type="button"
-      className="btn btn-link btn-sm p-0 text-body fw-semibold text-decoration-none d-inline-flex align-items-center gap-1"
-      onClick={() => onSort(column)}
-      aria-sort={isActive ? (descending ? "descending" : "ascending") : "none"}
-    >
-      {label}
-      <i className={`bi ${icon}`} aria-hidden="true" />
-    </button>
-  );
-}
 
 function Repairs() {
   const navigate = useNavigate();
@@ -348,39 +327,7 @@ function Repairs() {
                 </select>
               </div>
 
-              <nav aria-label="Strony wyników">
-                <ul className="pagination pagination-sm mb-0">
-                  <li className={`page-item ${page <= 1 ? "disabled" : ""}`}>
-                    <button
-                      type="button"
-                      className="page-link"
-                      onClick={() => setPage(page - 1)}
-                      disabled={page <= 1}
-                    >
-                      <i className="bi bi-chevron-left" aria-hidden="true" />
-                      <span className="visually-hidden">Poprzednia strona</span>
-                    </button>
-                  </li>
-
-                  <li className="page-item disabled">
-                    <span className="page-link">
-                      Strona {page} z {totalPages}
-                    </span>
-                  </li>
-
-                  <li className={`page-item ${page >= totalPages ? "disabled" : ""}`}>
-                    <button
-                      type="button"
-                      className="page-link"
-                      onClick={() => setPage(page + 1)}
-                      disabled={page >= totalPages}
-                    >
-                      <span className="visually-hidden">Następna strona</span>
-                      <i className="bi bi-chevron-right" aria-hidden="true" />
-                    </button>
-                  </li>
-                </ul>
-              </nav>
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
             </div>
           </div>
         )}
