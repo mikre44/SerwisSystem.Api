@@ -2,8 +2,9 @@
 
 The public part of SerwisSystem: a React (Vite) app customers use to report
 a device repair and later check its status. It requires no login and talks
-only to the anonymous, rate-limited endpoints of the SerwisSystem API
-(`POST /api/repairs`, `POST /api/repairs/check`, `GET /api/products`).
+only to anonymous endpoints of the SerwisSystem API: `POST /api/repairs` and
+`POST /api/repairs/check` (both rate-limited per IP), and `GET /api/products`
+(not rate-limited).
 
 ## Getting started
 
@@ -12,7 +13,10 @@ npm ci
 npm run dev
 ```
 
-The dev server runs at http://localhost:5174.
+The dev server always runs at `http://localhost:5174` (`vite.config.js` sets
+`strictPort: true`): if that port is already taken, Vite fails to start
+instead of picking another one — the API's CORS policy only allows this exact
+origin (see the root README).
 
 ## Configuration
 

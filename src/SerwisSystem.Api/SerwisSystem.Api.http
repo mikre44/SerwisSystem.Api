@@ -3,6 +3,9 @@
 
 
 ###=====================================Login (run this first)=====================================
+### Register and login share the "public" rate-limiting policy with the repair
+### endpoints below (10 requests/minute per IP by default); a 429 here just means
+### you ran this file too many times in a row.
 
 ### Register a worker account (skip if you already have one)
 POST {{SerwisSystem_Api_HostAddress}}/api/auth/register
@@ -105,12 +108,14 @@ Authorization: Bearer {{token}}
 
 
 ### Edit repair data (status is not part of this DTO, use PUT .../status below)
+### isCustomProduct: true means the product is not in GET /api/products,
+### so the serial number is optional and not format-checked.
 PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/17
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "product": "Laptop",
+  "product": "Ekran dotykowy - inny model",
   "isCustomProduct": true,
   "serialNumber": "SN-12345",
   "description": "Screen completely shattered",
