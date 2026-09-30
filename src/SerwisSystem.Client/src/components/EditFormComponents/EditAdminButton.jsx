@@ -44,17 +44,21 @@ function EditAdminButton({ user, onUpdated }) {
 
       {isAdmin ? (
         <ConfirmButton
-          message={`Demote ${user.username} to Worker?`}
-          onConfirm={() => runAction(demoteAdmin, "Admin demoted successfully.")}
+          message={`Odebrać uprawnienia administratora użytkownikowi ${user.username}?`}
+          onConfirm={() => runAction(demoteAdmin, "Administrator został zdegradowany do pracownika.")}
+          className="btn btn-outline-danger btn-sm"
         >
-          Demote
+          <i className="bi bi-shield-minus me-1" aria-hidden="true" />
+          Degraduj
         </ConfirmButton>
       ) : (
         <ConfirmButton
-          message={`Promote ${user.username} to Admin?`}
-          onConfirm={() => runAction(promoteAdmin, "User promoted to Admin.")}
+          message={`Nadać uprawnienia administratora użytkownikowi ${user.username}?`}
+          onConfirm={() => runAction(promoteAdmin, "Użytkownikowi nadano uprawnienia administratora.")}
+          className="btn btn-outline-primary btn-sm"
         >
-          Promote to Admin
+          <i className="bi bi-shield-plus me-1" aria-hidden="true" />
+          Awansuj na admina
         </ConfirmButton>
       )}
     </div>
