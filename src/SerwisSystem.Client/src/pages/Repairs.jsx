@@ -22,7 +22,7 @@ function SortButton({ column, label, sortBy, descending, onSort }) {
   return (
     <button
       type="button"
-      className="btn btn-link btn-sm p-0 text-body fw-semibold text-decoration-none d-inline-flex align-items-center gap-1"
+      className="btn btn-link p-0 text-body fw-bold text-decoration-none d-inline-flex align-items-center gap-1"
       onClick={() => onSort(column)}
       aria-sort={isActive ? (descending ? "descending" : "ascending") : "none"}
     >
@@ -249,7 +249,7 @@ function Repairs() {
                       <SortButton column="serialNumber" label="Numer seryjny" sortBy={sortBy} descending={descending} onSort={handleSort} />
                     </th>
 
-                    <th scope="col">
+                    <th scope="col" className="d-none d-sm-table-cell">
                       <SortButton column="reporterSurname" label="Zgłaszający" sortBy={sortBy} descending={descending} onSort={handleSort} />
                     </th>
 
@@ -291,7 +291,7 @@ function Repairs() {
 
                       <td className="d-none d-md-table-cell">{repair.serialNumber || "—"}</td>
 
-                      <td>
+                      <td className="d-none d-sm-table-cell">
                         {repair.reporterName} {repair.reporterSurname}
                       </td>
 
@@ -310,7 +310,7 @@ function Repairs() {
                       </td>
 
                       <td onClick={(event) => event.stopPropagation()}>
-                        <EditRepairStatus repair={repair} onUpdated={handleRepairUpdated} />
+                        <EditRepairStatus repair={repair} onUpdated={handleRepairUpdated} compact />
                       </td>
                     </tr>
                   ))}
