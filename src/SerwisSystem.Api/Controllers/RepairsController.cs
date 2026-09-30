@@ -48,7 +48,7 @@ public class RepairsController : ControllerBase
 
 
     // GET api/repairs
-    [RequirePermission("ReadRepairs")]
+    [RequirePermission(Permission.ReadRepairs)]
     [HttpGet]
     public async Task<IActionResult> GetRepairs(
         string? search,
@@ -180,7 +180,7 @@ public class RepairsController : ControllerBase
 
 
     // GET api/repairs/{id}
-    [RequirePermission("ReadRepairs")]
+    [RequirePermission(Permission.ReadRepairs)]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetRepair(int id)
     {
@@ -276,7 +276,7 @@ public class RepairsController : ControllerBase
 
 
     // PUT api/repairs/{id}
-    [RequirePermission("EditRepairs")]
+    [RequirePermission(Permission.EditRepairs)]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> EditRepair(int id, UpdateRepairDto updatedRepair)
     {
@@ -350,7 +350,7 @@ public class RepairsController : ControllerBase
 
 
     // DELETE api/repairs/{id}
-    [RequirePermission("DeleteRepairs")]
+    [RequirePermission(Permission.DeleteRepairs)]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteRepair(int id)
     {
@@ -367,7 +367,7 @@ public class RepairsController : ControllerBase
 
 
     // POST api/repairs/{id}/take
-    [RequirePermission("TakeRepairs")]
+    [RequirePermission(Permission.TakeRepairs)]
     [HttpPost("{id:int}/take")]
     public async Task<IActionResult> TakeRepair(int id)
     {
@@ -443,7 +443,7 @@ public class RepairsController : ControllerBase
 
 
     // POST api/repairs/{id}/cancel
-    [RequirePermission("EditRepairs")]
+    [RequirePermission(Permission.EditRepairs)]
     [HttpPost("{id:int}/cancel")]
     public async Task<IActionResult> CancelRepair(int id)
     {
@@ -510,7 +510,7 @@ public class RepairsController : ControllerBase
         }
 
         if (user.Id != repair.UserId &&
-            !_permissionService.HasPermission(user, "DischargeUsers"))
+            !_permissionService.HasPermission(user, Permission.DischargeUsers))
         {
             return Problem(
                 statusCode: StatusCodes.Status403Forbidden,

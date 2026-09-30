@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using SerwisSystem.Api.Models.Enums;
 
 namespace SerwisSystem.Api.Authorization;
 
 public class PermissionRequirement : IAuthorizationRequirement
 {
-    public string Permission { get; }
+    public Permission Permission { get; }
 
-    public PermissionRequirement(string permission)
+    public PermissionRequirement(Permission permission)
     {
         Permission = permission;
     }
