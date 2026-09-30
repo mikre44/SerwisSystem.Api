@@ -77,7 +77,7 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetUsers(
         string? search,
-        string sortBy = "role",
+        string sortBy = "priority",
         bool descending = false,
         int page = 1,
         int pageSize = 10)
@@ -100,7 +100,9 @@ public class UsersController : ControllerBase
                 u.CreatedAt.ToString().Contains(search));
         }
 
-        query = sortBy.ToLower() switch
+        // An unknown key is an error in the client, so it gets a 400
+        // instead of a silent fallback to the default order.
+        IQueryable<User>? sortedQuery = sortBy.ToLowerInvariant() switch
         {
             "id" => descending
                 ? query.OrderByDescending(u => u.Id)
@@ -114,23 +116,37 @@ public class UsersController : ControllerBase
                 ? query.OrderByDescending(u => u.Email)
                 : query.OrderBy(u => u.Email),
 
+            // Admins first (ascending) or workers first (descending).
             "role" => descending
-                ? query.OrderByDescending(u => u.Role == UserRole.Admin)
-                    .ThenByDescending(u => u.Role == UserRole.Admin ? u.Priority : 0)
-                    .ThenByDescending(u => u.Username)
-                : query.OrderByDescending(u => u.Role == UserRole.Admin)
-                    .ThenBy(u => u.Role == UserRole.Admin ? u.Priority : 0)
+                ? query.OrderByDescending(u => u.Role == UserRole.Admin ? 0 : 1)
+                    .ThenBy(u => u.Username)
+                : query.OrderBy(u => u.Role == UserRole.Admin ? 0 : 1)
+                    .ThenBy(u => u.Username),
+
+            // Workers have no priority (0 in the database), so they are sorted as the lowest authority:
+            // top admin first when ascending, workers first when descending.
+            "priority" => descending
+                ? query.OrderByDescending(u => u.Role == UserRole.Admin ? u.Priority : int.MaxValue)
+                    .ThenBy(u => u.Username)
+                : query.OrderBy(u => u.Role == UserRole.Admin ? u.Priority : int.MaxValue)
                     .ThenBy(u => u.Username),
 
             "createdat" => descending
                 ? query.OrderByDescending(u => u.CreatedAt)
                 : query.OrderBy(u => u.CreatedAt),
 
-            _ => query
-                .OrderBy(u => u.Role == UserRole.Admin ? 0 : 1)
-                .ThenBy(u => u.Role == UserRole.Admin ? u.Priority : 0)
-                .ThenBy(u => u.Username)
+            _ => null
         };
+
+        if (sortedQuery == null)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                detail: $"Nieznana wartość sortBy '{sortBy}'. Dozwolone wartości: " +
+                        "id, username, email, role, priority, createdAt.");
+        }
+
+        query = sortedQuery;
 
         var totalCount = await query.CountAsync();
 
