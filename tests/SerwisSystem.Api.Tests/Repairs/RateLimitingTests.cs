@@ -28,4 +28,22 @@ public class RateLimitingTests
         var problem = await rejected.ReadProblemAsync();
         Assert.Equal("Zbyt wiele żądań. Spróbuj ponownie za chwilę.", problem.Detail);
     }
+
+    [Fact]
+    public async Task Login_is_rate_limited_to_slow_down_password_guessing()
+    {
+        await using var factory = new ApiFactory { PublicPermitLimit = null };
+        var client = factory.CreateClient();
+        var login = new LoginDto { UsernameOrEmail = ApiFactory.AdminUsername, Password = "wrong-password" };
+
+        for (var i = 0; i < 10; i++)
+        {
+            var allowed = await client.PostJsonAsync("/api/auth/login", login);
+            Assert.Equal(HttpStatusCode.Unauthorized, allowed.StatusCode);
+        }
+
+        var rejected = await client.PostJsonAsync("/api/auth/login", login);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
+    }
 }

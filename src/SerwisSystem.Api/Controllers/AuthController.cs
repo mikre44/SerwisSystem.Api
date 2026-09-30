@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -55,6 +56,8 @@ public class AuthController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    // Rate limited, because anyone can call it without logging in.
+    [EnableRateLimiting("public")]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
@@ -93,6 +96,8 @@ public class AuthController : ControllerBase
         });
     }
 
+    // Rate limited to slow down guessing passwords.
+    [EnableRateLimiting("public")]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {

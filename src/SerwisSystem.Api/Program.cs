@@ -127,8 +127,9 @@ builder.Services.AddProblemDetails(options =>
     };
 });
 
-// Anonymous endpoints (e.g. reporting a repair) are open to everyone, so limit how often
-// one client IP can call them. Endpoints opt in with [EnableRateLimiting("public")].
+// Anonymous endpoints (reporting a repair, checking its status, login, register) are open to everyone,
+// so limit how often one client IP can call them. Endpoints opt in with [EnableRateLimiting("public")]
+// and share one budget per IP.
 // The limit can be changed in configuration (integration tests raise it, because they create many repairs).
 var publicPermitLimit = builder.Configuration.GetValue("RateLimiting:PublicPermitLimit", 10);
 

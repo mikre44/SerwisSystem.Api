@@ -29,7 +29,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     // The database is created once per test run, even when a test starts a second factory.
     private static readonly Lazy<Task> DatabaseCreated = new(RecreateDatabaseAsync);
 
-    // Every test creates repairs through the rate-limited public endpoint, so the limit is raised.
+    // Tests register, log in and create repairs through the rate-limited public endpoints
+    // many times a minute, so the limit is raised.
     // null keeps the limit from appsettings.json (used by the test that checks the limit itself).
     public int? PublicPermitLimit { get; init; } = 10_000;
 
