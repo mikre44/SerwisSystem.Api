@@ -67,6 +67,22 @@ public class RepairWorkflowTests : ApiTestBase
     }
 
     [Fact]
+    public async Task Repair_without_a_serial_number_returns_null_serial_number()
+    {
+        var data = ValidRepair();
+        data.Product = "Meble";
+        data.SerialNumber = null;
+        var repair = await CreateRepairAsync(data);
+        var worker = await CreateWorkerAsync("ReadRepairs");
+
+        var response = await worker.Client.GetAsync($"/api/repairs/{repair.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var details = await response.ReadJsonAsync<RepairResponseDto>();
+        Assert.Null(details.SerialNumber);
+    }
+
+    [Fact]
     public async Task Edit_changes_the_data_but_ignores_a_status_in_the_body()
     {
         var repair = await CreateRepairAsync();

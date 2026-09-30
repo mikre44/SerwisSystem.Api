@@ -5,8 +5,8 @@ namespace SerwisSystem.Api.Models.DTOs;
 
 public class UpdateRepairStatusDto
 {
-    // Nullable on purpose: [Required] on a plain enum never fails,
+    // Nullable on purpose: [Required(ErrorMessage = ValidationMessages.Required)] on a plain enum never fails,
     // because a missing value silently becomes the first member (Pending).
-    [Required]
+    [Required(ErrorMessage = ValidationMessages.Required)]
     public RepairStatus? Status { get; set; }
 }

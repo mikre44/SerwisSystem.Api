@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using SerwisSystem.Api.Models.Enums;
 
 namespace SerwisSystem.Api.Authorization;
 
+// Builds a policy for every [RequirePermission] attribute. The policy name is the permission's name.
 public class PermissionPolicyProvider : DefaultAuthorizationPolicyProvider
 {
     public PermissionPolicyProvider(IOptions<AuthorizationOptions> options) : base(options)
@@ -13,17 +13,9 @@ public class PermissionPolicyProvider : DefaultAuthorizationPolicyProvider
 
     public override Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
-        // policyName comes from [RequirePermission], so it should always be a valid enum name.
-        // An unknown name (e.g. a leftover from a rename) returns null instead of silently
-        // denying or allowing access, which surfaces the mistake immediately. Enum.TryParse also
-        // accepts a plain number (e.g. "3" for DeleteRepairs), so the ToString() check makes sure
-        // policyName actually was the permission's name.
-        if (!Enum.TryParse<Permission>(policyName, out var permission) ||
-            !Enum.IsDefined(permission) ||
-            permission.ToString() != policyName)
-        {
-            return Task.FromResult<AuthorizationPolicy?>(null);
-        }
+        // Other names (e.g. policies registered with AddPolicy) are left to the default provider.
+        if (!PermissionNames.TryParse(policyName, out var permission))
+            return base.GetPolicyAsync(policyName);
 
         var policy = new AuthorizationPolicyBuilder()
             .AddRequirements(new PermissionRequirement(permission))

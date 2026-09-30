@@ -46,8 +46,23 @@ public class RepairStatusCorrectionTests : ApiTestBase
         {
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var problem = await response.ReadProblemAsync();
-            Assert.Equal($"Status change from {from} to {to} is not allowed.", problem.Detail);
+            Assert.EndsWith("jest niedozwolona.", problem.Detail);
         }
+    }
+
+    [Fact]
+    public async Task Rejected_change_names_both_statuses_in_polish()
+    {
+        var admin = await LoginAsAdminAsync();
+        var repairId = await CreateRepairWithStatusAsync(admin, RepairStatus.Completed);
+
+        var response = await admin.PutJsonAsync(
+            $"/api/repairs/{repairId}/status",
+            new UpdateRepairStatusDto { Status = RepairStatus.Pending });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.ReadProblemAsync();
+        Assert.Equal("Zmiana statusu z „Zakończona” na „Oczekująca” jest niedozwolona.", problem.Detail);
     }
 
     [Fact]

@@ -59,7 +59,7 @@ public class AdminPriorityTests : ApiTestBase
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var problem = await response.ReadProblemAsync();
-        Assert.Equal("You cannot delete your own account.", problem.Detail);
+        Assert.Equal("Nie możesz usunąć własnego konta.", problem.Detail);
     }
 
     // The first admin (priority 1) promotes a new worker, who gets priority 2.

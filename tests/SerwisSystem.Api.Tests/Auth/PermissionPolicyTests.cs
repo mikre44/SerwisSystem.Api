@@ -21,7 +21,7 @@ public class PermissionPolicyTests : ApiTestBase
 
         var problem = await response.ReadProblemAsync();
         Assert.Equal(401, problem.Status);
-        Assert.Equal("You must be logged in.", problem.Detail);
+        Assert.Equal("Musisz być zalogowany.", problem.Detail);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class PermissionPolicyTests : ApiTestBase
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         var problem = await response.ReadProblemAsync();
-        Assert.Equal("You do not have permission to do this.", problem.Detail);
+        Assert.Equal("Nie masz uprawnień do tej operacji.", problem.Detail);
     }
 
     [Fact]

@@ -7,67 +7,67 @@ namespace SerwisSystem.Api.Models.DTOs;
 public abstract class RepairDataDto
 {
     // A name from ProductCatalog, or any name when IsCustomProduct is true.
-    [Required]
-    [MaxLength(200)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(200, ErrorMessage = ValidationMessages.MaxLength)]
     public string Product { get; set; } = "";
 
     public bool IsCustomProduct { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(100, ErrorMessage = ValidationMessages.MaxLength)]
     public string? SerialNumber { get; set; }
 
-    [Required]
-    [MaxLength(1000)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(1000, ErrorMessage = ValidationMessages.MaxLength)]
     public string Description { get; set; } = "";
 
 
     // Reporting person
 
-    [Required]
-    [MaxLength(100)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(100, ErrorMessage = ValidationMessages.MaxLength)]
     public string ReporterName { get; set; } = "";
 
-    [Required]
-    [MaxLength(100)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(100, ErrorMessage = ValidationMessages.MaxLength)]
     public string ReporterSurname { get; set; } = "";
 
-    [Required]
+    [Required(ErrorMessage = ValidationMessages.Required)]
     [RegularExpression(
         @"^(\+)?\d{7,15}$",
-        ErrorMessage = "Invalid phone number."
+        ErrorMessage = "Nieprawidłowy numer telefonu."
     )]
     public string ReporterPhone { get; set; } = "";
 
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [EmailAddress(ErrorMessage = ValidationMessages.Email)]
     public string ReporterEmail { get; set; } = "";
 
 
     // Company
 
-    [Required]
-    [MaxLength(200)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(200, ErrorMessage = ValidationMessages.MaxLength)]
     public string CompanyName { get; set; } = "";
 
-    [Required]
-    [MaxLength(200)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(200, ErrorMessage = ValidationMessages.MaxLength)]
     public string CompanyAddress { get; set; } = "";
 
-    [Required]
+    [Required(ErrorMessage = ValidationMessages.Required)]
     [RegularExpression(
         @"^\d{2}-\d{3}$",
-        ErrorMessage = "Postal code must have format XX-XXX."
+        ErrorMessage = "Kod pocztowy musi mieć format XX-XXX."
     )]
     public string CompanyPostalCode { get; set; } = "";
 
-    [Required]
-    [MaxLength(100)]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [MaxLength(100, ErrorMessage = ValidationMessages.MaxLength)]
     public string CompanyCity { get; set; } = "";
 
-    [Required]
+    [Required(ErrorMessage = ValidationMessages.Required)]
     [RegularExpression(
         @"^\d{10}$",
-        ErrorMessage = "NIP must contain exactly 10 digits."
+        ErrorMessage = "NIP musi składać się z 10 cyfr."
     )]
     public string CompanyNip { get; set; } = "";
 
@@ -78,7 +78,7 @@ public abstract class RepairDataDto
 
     public DateOnly? PurchaseDate { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(100, ErrorMessage = ValidationMessages.MaxLength)]
     public string? PurchaseInvoiceNumber { get; set; }
 
 
@@ -86,6 +86,6 @@ public abstract class RepairDataDto
 
     public bool HasContract { get; set; }
 
-    [MaxLength(100)]
+    [MaxLength(100, ErrorMessage = ValidationMessages.MaxLength)]
     public string? ContractNumber { get; set; }
 }

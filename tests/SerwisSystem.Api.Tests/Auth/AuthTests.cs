@@ -57,6 +57,45 @@ public class AuthTests : ApiTestBase
     }
 
     [Fact]
+    public async Task Email_is_saved_in_lower_case_and_matched_in_any_case()
+    {
+        var username = UniqueName("user");
+        var typedEmail = $" {username}.Kowalski@Example.COM ";
+        var client = CreateAnonymousClient();
+
+        var registerResponse = await client.PostJsonAsync("/api/auth/register", new RegisterDto
+        {
+            Username = username,
+            Email = typedEmail,
+            Password = "Secret123!"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, registerResponse.StatusCode);
+        var registered = await registerResponse.ReadJsonAsync<RegisterResponse>();
+        Assert.Equal($"{username}.kowalski@example.com", registered.Email);
+
+        var loginResponse = await client.PostJsonAsync("/api/auth/login", new LoginDto
+        {
+            UsernameOrEmail = typedEmail.ToUpperInvariant(),
+            Password = "Secret123!"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+
+        // The same address in different letter case is still the same address.
+        var duplicateResponse = await client.PostJsonAsync("/api/auth/register", new RegisterDto
+        {
+            Username = UniqueName("user"),
+            Email = registered.Email,
+            Password = "Secret123!"
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, duplicateResponse.StatusCode);
+        var problem = await duplicateResponse.ReadProblemAsync();
+        Assert.Equal("Ten adres e-mail jest już zajęty.", problem.Detail);
+    }
+
+    [Fact]
     public async Task Register_with_a_taken_username_returns_409()
     {
         var username = UniqueName("user");
@@ -71,7 +110,25 @@ public class AuthTests : ApiTestBase
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var problem = await response.ReadProblemAsync();
-        Assert.Equal("Username already exists.", problem.Detail);
+        Assert.Equal("Ta nazwa użytkownika jest już zajęta.", problem.Detail);
+    }
+
+    [Fact]
+    public async Task Validation_errors_are_returned_in_polish_per_field()
+    {
+        var response = await CreateAnonymousClient().PostJsonAsync("/api/auth/register", new RegisterDto
+        {
+            Username = "",
+            Email = "not-an-email",
+            Password = "123"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.ReadValidationProblemAsync();
+        Assert.Equal("Błędne dane.", problem.Title);
+        Assert.Equal(["To pole jest wymagane."], problem.Errors["username"]);
+        Assert.Equal(["Nieprawidłowy adres e-mail."], problem.Errors["email"]);
+        Assert.Equal(["Minimum 6 znaków."], problem.Errors["password"]);
     }
 
     [Fact]
@@ -98,7 +155,7 @@ public class AuthTests : ApiTestBase
 
         var wrongPasswordProblem = await wrongPassword.ReadProblemAsync();
         var unknownUserProblem = await unknownUser.ReadProblemAsync();
-        Assert.Equal("Invalid credentials.", wrongPasswordProblem.Detail);
+        Assert.Equal("Nieprawidłowy login lub hasło.", wrongPasswordProblem.Detail);
         Assert.Equal(wrongPasswordProblem.Detail, unknownUserProblem.Detail);
     }
 

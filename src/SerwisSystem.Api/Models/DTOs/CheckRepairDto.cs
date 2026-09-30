@@ -6,10 +6,10 @@ namespace SerwisSystem.Api.Models.DTOs;
 // and the email address given in the form.
 public class CheckRepairDto
 {
-    [Range(1, int.MaxValue)]
+    [Range(1, int.MaxValue, ErrorMessage = "Nieprawidłowy numer naprawy.")]
     public int Id { get; set; }
 
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = ValidationMessages.Required)]
+    [EmailAddress(ErrorMessage = ValidationMessages.Email)]
     public string Email { get; set; } = "";
 }

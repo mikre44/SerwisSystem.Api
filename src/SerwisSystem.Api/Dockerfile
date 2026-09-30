@@ -8,10 +8,8 @@ WORKDIR /src
 COPY SerwisSystem.Api.csproj ./
 RUN dotnet restore SerwisSystem.Api.csproj
 
+# publish also builds the project, so a separate "dotnet build" step is not needed.
 COPY . .
-RUN dotnet build SerwisSystem.Api.csproj -c Release -o /app/build
-
-FROM build AS publish
 RUN dotnet publish SerwisSystem.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
@@ -22,7 +20,7 @@ ENV ASPNETCORE_URLS=http://+:8080
 # The base image runs as root by default; drop to an unprivileged user.
 RUN adduser --disabled-password --home /app --gecos "" appuser
 
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 RUN chown -R appuser /app
 USER appuser
 

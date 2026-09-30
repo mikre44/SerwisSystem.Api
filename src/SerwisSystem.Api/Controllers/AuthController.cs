@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -8,6 +9,7 @@ using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
+using SerwisSystem.Api.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -55,19 +57,24 @@ public class AuthController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    // Rate limited, because anyone can call it without logging in.
+    [EnableRateLimiting("public")]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
         if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ta nazwa użytkownika jest już zajęta.");
 
-        if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Email already exists.");
+        var email = EmailNormalizer.Normalize(dto.Email);
+
+        // ToLower() on the column also matches accounts saved before emails were normalised.
+        if (await _context.Users.AnyAsync(u => u.Email.ToLower() == email))
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Ten adres e-mail jest już zajęty.");
 
         var user = new User
         {
             Username = dto.Username,
-            Email = dto.Email,
+            Email = email,
             Permissions = new Permissions()
         };
         user.PasswordHash = _passwordHasher.HashPassword(user, dto.Password);
@@ -81,7 +88,7 @@ public class AuthController : ControllerBase
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             // Another request took the same username or email between the checks above and this insert.
-            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Username or email already exists.");
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: "Nazwa użytkownika lub adres e-mail jest już zajęty.");
         }
 
         return Ok(new
@@ -93,16 +100,22 @@ public class AuthController : ControllerBase
         });
     }
 
+    // Rate limited to slow down guessing passwords.
+    [EnableRateLimiting("public")]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail);
+        // The username must match exactly; the email in any letter case.
+        var email = EmailNormalizer.Normalize(dto.UsernameOrEmail);
+
+        var user = await _context.Users.FirstOrDefaultAsync(u =>
+            u.Username == dto.UsernameOrEmail || u.Email.ToLower() == email);
 
         // The same answer for an unknown user and a wrong password, so nobody can probe which accounts exist.
         if (user == null ||
             _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password) == PasswordVerificationResult.Failed)
         {
-            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Invalid credentials.");
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "Nieprawidłowy login lub hasło.");
         }
 
         var token = GenerateToken(user);

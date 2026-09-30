@@ -12,12 +12,14 @@ public class Repair
 
     public bool IsCustomProduct { get; set; }
 
+    // Empty when the product has no serial number.
     public string SerialNumber { get; set; } = "";
 
     public string Description { get; set; } = "";
 
 
-    //Reporting person
+    // Reporting person
+
     public string ReporterName { get; set; } = "";
 
     public string ReporterSurname { get; set; } = "";
@@ -27,7 +29,7 @@ public class Repair
     public string ReporterEmail { get; set; } = "";
 
 
-    //Company
+    // Company
 
     public string CompanyName { get; set; } = "";
 
@@ -40,7 +42,7 @@ public class Repair
     public string CompanyNip { get; set; } = "";
 
 
-    //Warranty
+    // Warranty
 
     public bool HasWarranty { get; set; }
 
@@ -49,21 +51,21 @@ public class Repair
     public string? PurchaseInvoiceNumber { get; set; }
 
 
-    //Contract
+    // Contract
 
     public bool HasContract { get; set; }
 
     public string? ContractNumber { get; set; }
 
 
-    //Consents
+    // Consents
 
     public bool ServiceDataConsent { get; set; }
 
     public bool MarketingConsent { get; set; }
 
 
-    //Assigned worker
+    // Assigned worker (null while the repair waits in the queue)
 
     public int? UserId { get; set; }
 
