@@ -1,10 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace SerwisSystem.Api.Models.DTOs;
 
+// The customer proves they reported the repair with its id
+// and the email address given in the form.
 public class CheckRepairDto
 {
-    [Required]
+    [Range(1, int.MaxValue)]
     public int Id { get; set; }
 
     [Required]

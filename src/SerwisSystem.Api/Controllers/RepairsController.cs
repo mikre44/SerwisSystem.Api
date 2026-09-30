@@ -228,10 +228,11 @@ public class RepairsController : ControllerBase
                 repair.Id);
         }
 
+        // The caller is anonymous, so it gets only the public view of the repair.
         return CreatedAtAction(
             nameof(GetRepair),
             new { id = repair.Id },
-            RepairResponseDto.FromEntity(repair));
+            PublicRepairResponseDto.FromEntity(repair));
     }
 
 
@@ -241,20 +242,19 @@ public class RepairsController : ControllerBase
     [HttpPost("check")]
     public async Task<IActionResult> CheckRepair(CheckRepairDto dto)
     {
+        var email = NormalizeEmail(dto.Email);
+
+        // ToLower() on the column also matches repairs
+        // saved before emails were normalised.
         var repair = await _context.Repairs
             .FirstOrDefaultAsync(r =>
                 r.Id == dto.Id &&
-                r.ReporterEmail == dto.Email);
+                r.ReporterEmail.ToLower() == email);
 
         if (repair == null)
             return RepairNotFound();
 
-        return Ok(new PublicRepairResponseDto
-        {
-            Product = repair.Product,
-            Status = repair.Status.ToString(),
-            CreatedAt = repair.CreatedAt
-        });
+        return Ok(PublicRepairResponseDto.FromEntity(repair));
     }
 
 
@@ -591,7 +591,7 @@ public class RepairsController : ControllerBase
         repair.ReporterName = dto.ReporterName;
         repair.ReporterSurname = dto.ReporterSurname;
         repair.ReporterPhone = dto.ReporterPhone;
-        repair.ReporterEmail = dto.ReporterEmail;
+        repair.ReporterEmail = NormalizeEmail(dto.ReporterEmail);
 
         repair.CompanyName = dto.CompanyName;
         repair.CompanyAddress = dto.CompanyAddress;
@@ -605,5 +605,12 @@ public class RepairsController : ControllerBase
 
         repair.HasContract = dto.HasContract;
         repair.ContractNumber = dto.ContractNumber;
+    }
+
+    // People type the same address in different letter case,
+    // so emails are stored and compared in lower case.
+    private static string NormalizeEmail(string email)
+    {
+        return email.Trim().ToLowerInvariant();
     }
 }
