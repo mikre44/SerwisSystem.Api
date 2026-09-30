@@ -1,6 +1,7 @@
 import { clearToken, getToken } from "./auth";
 
-const API_URL = "http://localhost:5000/api";
+// Set VITE_API_URL in a .env file to use another API address (Vite reads it at build time).
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Thrown for every failed request. `fieldErrors` holds validation messages
 // per field (`{ serialNumber: ["..."] }`) so forms can show them next to inputs.
@@ -40,7 +41,10 @@ function redirectToLogin() {
 }
 
 async function apiFetch(endpoint, options = {}) {
-  const token = getToken();
+  // Login and register never need a token. Not sending one there also means
+  // a 401 from them (e.g. a wrong password) is never mistaken for an expired session.
+  const isAuthRequest = endpoint.startsWith("/auth/");
+  const token = isAuthRequest ? null : getToken();
 
   let response;
 
@@ -55,7 +59,7 @@ async function apiFetch(endpoint, options = {}) {
     });
   } catch {
     // fetch() only rejects when the server cannot be reached at all.
-    throw new ApiError("Cannot connect to the server.", 0);
+    throw new ApiError("Nie można połączyć się z serwerem.", 0);
   }
 
   const body = await readBody(response);
@@ -69,7 +73,7 @@ async function apiFetch(endpoint, options = {}) {
   if (response.status === 401 && token) {
     clearToken();
     redirectToLogin();
-    throw new ApiError("Your session has expired. Please log in again.", 401);
+    throw new ApiError("Sesja wygasła. Zaloguj się ponownie.", 401);
   }
 
   throw new ApiError(

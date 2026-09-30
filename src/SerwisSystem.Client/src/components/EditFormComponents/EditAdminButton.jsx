@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { demoteAdmin, promoteAdmin } from "../../api/api";
 import { useAuth } from "../../context/AuthContext";
+import { canManageUser } from "../../permissions";
 import ConfirmButton from "../ConfirmButton";
 import Message from "../Message";
 
@@ -17,11 +18,9 @@ function EditAdminButton({ user, onUpdated }) {
   }
 
   const isAdmin = user.role === "Admin";
-  // A lower priority number means more authority; only a strictly
-  // higher authority may demote another admin (the API checks the same).
-  const canDemote = loggedUser.priority < user.priority;
 
-  if (isAdmin && !canDemote) {
+  // Only a strictly higher authority may demote another admin (the API checks the same).
+  if (isAdmin && !canManageUser(loggedUser, user)) {
     return null;
   }
 

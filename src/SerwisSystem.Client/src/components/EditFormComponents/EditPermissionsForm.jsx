@@ -1,120 +1,110 @@
 import { useState } from "react";
 import { updatePermissions } from "../../api/api";
+import { useAuth } from "../../context/AuthContext";
+import {
+  PERMISSION_GROUPS,
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
+  hasPermission,
+} from "../../permissions";
 import Message from "../Message";
 
-// Drives the submit logic (which permissions are granted vs. revoked).
-const permissionNames = [
-  "ReadRepairs",
-  "TakeRepairs",
-  "EditRepairs",
-  "DeleteRepairs",
-  "ReadUsers",
-  "EditUsers",
-  "DeleteUsers",
-  "GrantUsers",
-  "DischargeUsers",
-];
+// The API sends permissions in camelCase ("readRepairs"), but the grant
+// endpoint expects the enum names ("ReadRepairs").
+function toApiName(key) {
+  return key[0].toUpperCase() + key.slice(1);
+}
 
-// Same permissions, grouped and labelled in Polish for the toggle grid below.
-const REPAIR_PERMISSIONS = [
-  { key: "ReadRepairs", label: "Odczyt napraw" },
-  { key: "TakeRepairs", label: "Przyjmowanie napraw" },
-  { key: "EditRepairs", label: "Edycja napraw" },
-  { key: "DeleteRepairs", label: "Usuwanie napraw" },
-];
-
-const USER_PERMISSIONS = [
-  { key: "ReadUsers", label: "Odczyt użytkowników" },
-  { key: "EditUsers", label: "Edycja użytkowników" },
-  { key: "DeleteUsers", label: "Usuwanie użytkowników" },
-  { key: "GrantUsers", label: "Nadawanie uprawnień" },
-  { key: "DischargeUsers", label: "Odbieranie uprawnień" },
-];
+function readPermissions(user) {
+  return Object.fromEntries(
+    PERMISSION_KEYS.map((key) => [key, user.permissions?.[key] ?? false])
+  );
+}
 
 // Edits a user's permission flags. Headless (no card of its own) — the page
 // that uses it provides the surrounding card and title.
 function EditPermissionsForm({ user, onUpdated }) {
-  const [permissions, setPermissions] = useState({
-    ReadRepairs: user.permissions?.readRepairs ?? false,
-    TakeRepairs: user.permissions?.takeRepairs ?? false,
-    EditRepairs: user.permissions?.editRepairs ?? false,
-    DeleteRepairs: user.permissions?.deleteRepairs ?? false,
-    ReadUsers: user.permissions?.readUsers ?? false,
-    EditUsers: user.permissions?.editUsers ?? false,
-    DeleteUsers: user.permissions?.deleteUsers ?? false,
-    GrantUsers: user.permissions?.grantUsers ?? false,
-    DischargeUsers: user.permissions?.dischargeUsers ?? false,
-  });
+  const { user: loggedUser } = useAuth();
+  const [permissions, setPermissions] = useState(() => readPermissions(user));
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [info, setInfo] = useState("");
 
-  function handleChange(permission) {
+  function handleChange(key) {
     setPermissions({
       ...permissions,
-      [permission]: !permissions[permission],
+      [key]: !permissions[key],
     });
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const permissionsGranted = [];
-    const permissionsRevoked = [];
+    setError("");
+    setSuccess("");
+    setInfo("");
 
-    for (const permission of permissionNames) {
-      if (permissions[permission]) {
-        permissionsGranted.push(permission);
-      } else {
-        permissionsRevoked.push(permission);
-      }
+    // Send only the switches that differ from what the user has now. The API
+    // lets you grant or revoke only permissions you hold yourself, so sending
+    // all of them would fail for anyone who is not an admin.
+    const current = readPermissions(user);
+    const changedKeys = PERMISSION_KEYS.filter((key) => permissions[key] !== current[key]);
+
+    if (changedKeys.length === 0) {
+      setInfo("Nie zmieniono żadnych uprawnień.");
+      return;
     }
+
+    const permissionsGranted = changedKeys.filter((key) => permissions[key]).map(toApiName);
+    const permissionsRevoked = changedKeys.filter((key) => !permissions[key]).map(toApiName);
 
     try {
       await updatePermissions(user.id, permissionsGranted, permissionsRevoked);
 
-      setError("");
       setSuccess("Uprawnienia zostały zaktualizowane.");
 
       await onUpdated();
     } catch (error) {
-      setSuccess("");
       setError(error.message);
     }
   }
 
-  function renderGroup(title, items) {
-    return (
-      <div className="col-sm-6">
-        <h3 className="h6 text-body-secondary text-uppercase mb-3">{title}</h3>
+  return (
+    <form onSubmit={handleSubmit}>
+      <Message error={error} success={success} info={info} />
 
-        {items.map(({ key, label }) => (
-          <div className="form-check form-switch mb-2" key={key}>
-            <input
-              className="form-check-input"
-              type="checkbox"
-              role="switch"
-              id={`permission-${user.id}-${key}`}
-              checked={permissions[key]}
-              onChange={() => handleChange(key)}
-            />
-            <label className="form-check-label" htmlFor={`permission-${user.id}-${key}`}>
-              {label}
-            </label>
+      <div className="row g-4">
+        {PERMISSION_GROUPS.map((group) => (
+          <div className="col-sm-6" key={group.title}>
+            <h3 className="h6 text-body-secondary text-uppercase mb-3">{group.title}</h3>
+
+            {group.keys.map((key) => (
+              <div className="form-check form-switch mb-2" key={key}>
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id={`permission-${user.id}-${key}`}
+                  checked={permissions[key]}
+                  onChange={() => handleChange(key)}
+                  // Same rule as the API: you can change only a permission you have yourself.
+                  disabled={!hasPermission(loggedUser, key)}
+                />
+                <label className="form-check-label" htmlFor={`permission-${user.id}-${key}`}>
+                  {PERMISSION_LABELS[key]}
+                </label>
+              </div>
+            ))}
           </div>
         ))}
       </div>
-    );
-  }
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <Message error={error} success={success} />
-
-      <div className="row g-4">
-        {renderGroup("Naprawy", REPAIR_PERMISSIONS)}
-        {renderGroup("Użytkownicy", USER_PERMISSIONS)}
-      </div>
+      {loggedUser.role !== "Admin" && (
+        <p className="form-text mb-0">
+          Możesz nadawać i odbierać tylko te uprawnienia, które sam posiadasz.
+        </p>
+      )}
 
       <button type="submit" className="btn btn-primary mt-3">
         <i className="bi bi-check-lg me-2" aria-hidden="true" />

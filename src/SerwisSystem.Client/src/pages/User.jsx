@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getUser } from "../api/api";
 import { useAuth } from "../context/AuthContext";
+import { canManageUser, hasPermission } from "../permissions";
 
 import UserInfo from "../components/UserInfoComponents/UserInfo";
 import UserPermissions from "../components/UserInfoComponents/UserPermissions";
@@ -11,6 +12,7 @@ import EditPermissionsForm from "../components/EditFormComponents/EditPermission
 import DeleteUserButton from "../components/EditFormComponents/DeleteUserButton";
 import EditAdminButton from "../components/EditFormComponents/EditAdminButton";
 import EditAdminPriority from "../components/EditFormComponents/EditAdminPriority";
+import Message from "../components/Message";
 
 function User() {
   const { id } = useParams();
@@ -50,7 +52,7 @@ function User() {
   if (error) {
     return (
       <main className="container py-4">
-        <div className="alert alert-danger">{error}</div>
+        <Message error={error} />
       </main>
     );
   }
@@ -67,19 +69,21 @@ function User() {
     );
   }
 
+  // The flags below mirror the checks in the API's UsersController.
   const isAdmin = user.role === "Admin";
+  const isSelf = loggedUser.id === user.id;
+  const canManage = canManageUser(loggedUser, user);
 
-  const canEditUser =
-    loggedUser.id === user.id ||
-    loggedUser.role === "Admin" ||
-    loggedUser.permissions?.editUsers;
+  // Everyone may edit their own data; someone else needs EditUsers
+  // and, for an admin, a higher authority.
+  const canEditUser = isSelf || (hasPermission(loggedUser, "editUsers") && canManage);
 
+  // Nobody changes their own permissions, and an admin already has all of them.
   const canGrantPermissions =
-    loggedUser.role === "Admin" || loggedUser.permissions?.grantUsers;
+    !isSelf && !isAdmin && hasPermission(loggedUser, "grantUsers");
 
-  // Mirrors EditAdminButton's own "not self" check, so we never show an
-  // admin-actions card that would end up empty on a viewer's own profile.
-  const showAdminActions = loggedUser.role === "Admin" && loggedUser.id !== user.id;
+  // Promote / demote / priority: an admin looking at someone they can manage.
+  const showAdminActions = loggedUser.role === "Admin" && !isSelf && canManage;
 
   // key={user.id}: the forms copy the user into their own state,
   // so opening another user must create fresh forms.
@@ -118,7 +122,11 @@ function User() {
               <h2 className="h5 card-title mb-0">Uprawnienia</h2>
             </div>
             <div className="card-body">
-              {canGrantPermissions ? (
+              {isAdmin ? (
+                <p className="text-body-secondary mb-0">
+                  Administrator ma automatycznie wszystkie uprawnienia.
+                </p>
+              ) : canGrantPermissions ? (
                 <EditPermissionsForm key={user.id} user={user} onUpdated={reloadUser} />
               ) : (
                 <UserPermissions permissions={user.permissions} />

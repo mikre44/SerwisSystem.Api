@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { hasPermission } from "../../permissions";
 import Message from "../Message";
 import ConfirmButton from "../ConfirmButton";
 
@@ -20,18 +21,32 @@ function EditRepairStatus({ repair, onUpdated, compact = false }) {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Each flag mirrors the matching action in the API's RepairsController,
+  // so a button is shown only when the request would be allowed.
   const isAdmin = user.role === "Admin";
+  const isMyRepair = repair.workerId === user.id;
+  const isInProgress = repair.status === "InProgress";
 
+  // take: TakeRepairs, and only a pending repair nobody has taken yet.
   const canTake =
     repair.status === "Pending" &&
-    !repair.workerUsername &&
-    (isAdmin || user.permissions?.takeRepairs);
+    repair.workerId == null &&
+    hasPermission(user, "takeRepairs");
 
-  const isMyRepair = repair.workerId === user.id;
+  // complete: the assigned worker or an admin.
+  const canComplete = isInProgress && (isAdmin || isMyRepair);
 
-  const canWorkOnRepair =
-    repair.status === "InProgress" &&
+  // cancel: EditRepairs AND (the assigned worker or an admin);
+  // completed and cancelled repairs cannot be cancelled.
+  const canCancel =
+    (repair.status === "Pending" || isInProgress) &&
+    hasPermission(user, "editRepairs") &&
     (isAdmin || isMyRepair);
+
+  // return: the assigned worker or anyone with DischargeUsers (admins have it too).
+  const canReturn = isInProgress && (isMyRepair || hasPermission(user, "dischargeUsers"));
+
+  const hasAnyAction = canTake || canComplete || canCancel || canReturn;
 
   async function runAction(action, successMessage) {
     setBusy(true);
@@ -50,8 +65,6 @@ function EditRepairStatus({ repair, onUpdated, compact = false }) {
     }
   }
 
-  const hasActions = canTake || canWorkOnRepair;
-
   return (
     <div>
       {compact ? (
@@ -60,9 +73,9 @@ function EditRepairStatus({ repair, onUpdated, compact = false }) {
         <Message error={error} success={success} />
       )}
 
-      {!hasActions && !compact && (
+      {!hasAnyAction && (
         <p className="small text-body-secondary mb-0">
-          Brak dostępnych akcji dla tej naprawy.
+          {compact ? "Brak akcji" : "Brak dostępnych akcji dla tej naprawy."}
         </p>
       )}
 
@@ -81,38 +94,40 @@ function EditRepairStatus({ repair, onUpdated, compact = false }) {
           </button>
         )}
 
-        {canWorkOnRepair && (
-          <>
-            <button
-              type="button"
-              className="btn btn-success btn-sm"
-              disabled={busy}
-              onClick={() => runAction(completeRepair, "Naprawa została zakończona.")}
-            >
-              <i className="bi bi-check2-circle me-1" aria-hidden="true" />
-              Zakończ
-            </button>
+        {canComplete && (
+          <button
+            type="button"
+            className="btn btn-success btn-sm"
+            disabled={busy}
+            onClick={() => runAction(completeRepair, "Naprawa została zakończona.")}
+          >
+            <i className="bi bi-check2-circle me-1" aria-hidden="true" />
+            Zakończ
+          </button>
+        )}
 
-            <ConfirmButton
-              className="btn btn-outline-danger btn-sm"
-              message="Czy na pewno anulować tę naprawę?"
-              onConfirm={() => runAction(cancelRepair, "Naprawa została anulowana.")}
-              disabled={busy}
-            >
-              <i className="bi bi-x-circle me-1" aria-hidden="true" />
-              Anuluj
-            </ConfirmButton>
+        {canCancel && (
+          <ConfirmButton
+            className="btn btn-outline-danger btn-sm"
+            message="Czy na pewno anulować tę naprawę?"
+            onConfirm={() => runAction(cancelRepair, "Naprawa została anulowana.")}
+            disabled={busy}
+          >
+            <i className="bi bi-x-circle me-1" aria-hidden="true" />
+            Anuluj
+          </ConfirmButton>
+        )}
 
-            <button
-              type="button"
-              className="btn btn-outline-secondary btn-sm"
-              disabled={busy}
-              onClick={() => runAction(returnRepair, "Naprawa została zwrócona.")}
-            >
-              <i className="bi bi-arrow-counterclockwise me-1" aria-hidden="true" />
-              Zwróć
-            </button>
-          </>
+        {canReturn && (
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            disabled={busy}
+            onClick={() => runAction(returnRepair, "Naprawa została zwrócona do kolejki.")}
+          >
+            <i className="bi bi-arrow-counterclockwise me-1" aria-hidden="true" />
+            Zwróć
+          </button>
         )}
       </div>
     </div>
