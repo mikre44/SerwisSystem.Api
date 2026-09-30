@@ -6,7 +6,7 @@ public class LoginDto
 {
     [Required]
     [MaxLength(100)]
-    public string UsernameOrEmail { get; set; } = "";//username or email
+    public string UsernameOrEmail { get; set; } = "";
 
     [Required]
     [MaxLength(50)]

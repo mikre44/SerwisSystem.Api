@@ -1,4 +1,6 @@
-﻿public class PermissionsResponseDto
+﻿namespace SerwisSystem.Api.Models.DTOs;
+
+public class PermissionsResponseDto
 {
     public bool ReadRepairs { get; set; }
     public bool TakeRepairs { get; set; }

@@ -9,8 +9,6 @@ using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
 using SerwisSystem.Api.Models.Enums;
 using SerwisSystem.Api.Services;
-using System.Security.Claims;
-
 
 namespace SerwisSystem.Api.Controllers;
 
@@ -117,11 +115,11 @@ public class UsersController : ControllerBase
     [RequirePermission("ReadUsers")]
     [HttpGet]
     public async Task<IActionResult> GetUsers(
-    string? search,
-    string sortBy = "role",
-    bool descending = false,
-    int page = 1,
-    int pageSize = 10)
+        string? search,
+        string sortBy = "role",
+        bool descending = false,
+        int page = 1,
+        int pageSize = 10)
     {
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -138,8 +136,7 @@ public class UsersController : ControllerBase
                 u.Username.ToLower().Contains(search) ||
                 u.Email.ToLower().Contains(search) ||
                 u.Role.ToString().ToLower().Contains(search) ||
-                u.CreatedAt.ToString().Contains(search)
-            );
+                u.CreatedAt.ToString().Contains(search));
         }
 
         query = sortBy.ToLower() switch
@@ -183,17 +180,13 @@ public class UsersController : ControllerBase
 
         return Ok(new
         {
-            Items = users.Select(u =>
-                ToDto(u, UserResponseOption.Permissions)),
+            Items = users.Select(u => ToDto(u, UserResponseOption.Permissions)),
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling(
-                totalCount / (double)pageSize
-            )
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
         });
     }
-
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetUserById(int id)
@@ -214,7 +207,6 @@ public class UsersController : ControllerBase
         return Ok(ToDto(targetUser, UserResponseOption.All));
     }
 
-
     [HttpGet("logged")]
     public async Task<IActionResult> GetLoggedUser()
     {
@@ -231,7 +223,6 @@ public class UsersController : ControllerBase
 
         return Ok(ToDto(user, UserResponseOption.All));
     }
-
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateUser(int id, UpdateUserDto updatedUser)
@@ -280,7 +271,6 @@ public class UsersController : ControllerBase
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
-
     [HttpPut("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
     {
@@ -303,7 +293,6 @@ public class UsersController : ControllerBase
             message = "Password changed successfully."
         });
     }
-
 
     [RequirePermission("DeleteUsers")]
     [HttpDelete("{id:int}")]
@@ -331,7 +320,6 @@ public class UsersController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
-
 
     [RequirePermission("GrantUsers")]
     [HttpPut("grant/{id:int}")]
@@ -382,8 +370,6 @@ public class UsersController : ControllerBase
         return Ok(ToDto(targetUser, UserResponseOption.Permissions));
     }
 
-
-
     [HttpPut("{id:int}/promote-admin")]
     public async Task<IActionResult> PromoteToAdmin(int id)
     {
@@ -398,8 +384,7 @@ public class UsersController : ControllerBase
         if (currentUser.Id == id)
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot promote yourself.");
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
             return UserNotFound();
@@ -417,11 +402,8 @@ public class UsersController : ControllerBase
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
-
     [HttpPut("{id:int}/priority")]
-    public async Task<IActionResult> UpdateAdminPriority(
-    int id,
-    UpdatePriorityDto dto)
+    public async Task<IActionResult> UpdateAdminPriority(int id, UpdatePriorityDto dto)
     {
         var currentUser = await _userService.GetCurrentUser(User);
 
@@ -434,8 +416,7 @@ public class UsersController : ControllerBase
         if (currentUser.Id == id)
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot change your own priority.");
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
             return UserNotFound();
@@ -462,7 +443,6 @@ public class UsersController : ControllerBase
         return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
-
     [HttpGet("admins")]
     public async Task<IActionResult> GetAdmins()
     {
@@ -480,10 +460,8 @@ public class UsersController : ControllerBase
             .ThenBy(u => u.Username)
             .ToListAsync();
 
-        return Ok(admins.Select(u =>
-            ToDto(u, UserResponseOption.OnlyUser)));
+        return Ok(admins.Select(u => ToDto(u, UserResponseOption.OnlyUser)));
     }
-
 
     [HttpPut("{id:int}/demote-admin")]
     public async Task<IActionResult> DemoteAdmin(int id)
@@ -499,8 +477,7 @@ public class UsersController : ControllerBase
         if (currentUser.Id == id)
             return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "You cannot demote yourself.");
 
-        var targetUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Id == id);
+        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         if (targetUser == null)
             return UserNotFound();
@@ -516,10 +493,7 @@ public class UsersController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(ToDto(
-            targetUser,
-            UserResponseOption.OnlyUser
-        ));
+        return Ok(ToDto(targetUser, UserResponseOption.OnlyUser));
     }
 
     private ObjectResult CurrentUserMissing() =>

@@ -16,6 +16,6 @@ public class PermissionPolicyProvider : DefaultAuthorizationPolicyProvider
             .AddRequirements(new PermissionRequirement(policyName))
             .Build();
 
-        return Task.FromResult<AuthorizationPolicy?> (policy);
+        return Task.FromResult<AuthorizationPolicy?>(policy);
     }
 }

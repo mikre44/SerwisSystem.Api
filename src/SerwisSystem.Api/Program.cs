@@ -15,7 +15,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Issuer and Audience come from appsettings.json. The Key is a secret: set it with
@@ -63,7 +62,6 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
     });
 
-
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -93,16 +91,12 @@ builder.Services.AddControllers()
         };
     });
 
-
-builder.Services.AddDbContext<AppDbContext>(options =>// options for database context
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddAuthorization();
 
-builder.Services.AddSingleton<
-    IAuthorizationPolicyProvider,
-    PermissionPolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PermissionService>();
@@ -148,9 +142,9 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddOpenApi();
 
-
 var app = builder.Build();
 
+// Create the first admin from configuration when the database has none (see FirstAdminSeeder).
 using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<FirstAdminSeeder>();
@@ -178,11 +172,5 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
-
-app.MapGet("/", () =>
-{
-    return "hello world";
-});
-
 
 app.Run();
