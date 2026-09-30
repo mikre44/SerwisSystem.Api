@@ -30,6 +30,16 @@ public class FirstAdminSeeder
 
     public async Task SeedAsync()
     {
+        // The seeder runs before anyone had a chance to apply migrations (e.g. on a fresh database),
+        // and querying tables that do not exist yet would crash the whole API at startup.
+        if ((await _context.Database.GetPendingMigrationsAsync()).Any())
+        {
+            _logger.LogWarning(
+                "The database has pending migrations, so the first admin was not created. " +
+                "Apply migrations first (dotnet ef database update) and restart the API.");
+            return;
+        }
+
         if (await _context.Users.AnyAsync(u => u.Role == UserRole.Admin))
             return;
 
