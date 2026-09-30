@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SerwisSystem.Api.Authorization;
 using SerwisSystem.Api.Data;
@@ -193,8 +194,10 @@ public class RepairsController : ControllerBase
 
 
     // POST api/repairs
-    // Public endpoint used by the customer app.
+    // Public endpoint used by the customer app. Rate limited,
+    // because every call sends an email to the given address.
     [AllowAnonymous]
+    [EnableRateLimiting("public")]
     [HttpPost]
     public async Task<IActionResult> CreateRepair(CreateRepairDto dto)
     {
@@ -250,7 +253,9 @@ public class RepairsController : ControllerBase
 
     // POST api/repairs/check
     // Public repair status check used by the customer app.
+    // Rate limited to slow down guessing id and email pairs.
     [AllowAnonymous]
+    [EnableRateLimiting("public")]
     [HttpPost("check")]
     public async Task<IActionResult> CheckRepair(CheckRepairDto dto)
     {
