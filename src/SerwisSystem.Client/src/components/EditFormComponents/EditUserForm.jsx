@@ -3,6 +3,8 @@ import { updateUser } from "../../api/api";
 import FieldError from "../FieldError";
 import Message from "../Message";
 
+// Edits username and email. Headless (no card of its own) — the page that
+// uses it provides the surrounding card and title.
 function EditUserForm({ user, onUpdated }) {
   const [username, setUsername] = useState(user.username);
   const [email, setEmail] = useState(user.email);
@@ -19,7 +21,7 @@ function EditUserForm({ user, onUpdated }) {
 
       setError("");
       setFieldErrors({});
-      setSuccess("User updated successfully.");
+      setSuccess("Dane użytkownika zostały zaktualizowane.");
 
       await onUpdated();
     } catch (error) {
@@ -30,20 +32,18 @@ function EditUserForm({ user, onUpdated }) {
   }
 
   return (
-    <div>
-      <h2>Edit user</h2>
+    <form onSubmit={handleSubmit}>
+      <Message error={error} success={success} />
 
-      <Message
-        error={error}
-        success={success}
-      />
-
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="edit-user-username">Username</label>
+      <div className="row g-3">
+        <div className="col-md-6">
+          <label htmlFor="edit-user-username" className="form-label">
+            Nazwa użytkownika
+          </label>
           <input
             id="edit-user-username"
             type="text"
+            className={`form-control ${fieldErrors.username?.length ? "is-invalid" : ""}`}
             required
             value={username}
             onChange={(event) => setUsername(event.target.value)}
@@ -51,23 +51,27 @@ function EditUserForm({ user, onUpdated }) {
           <FieldError messages={fieldErrors.username} />
         </div>
 
-        <div>
-          <label htmlFor="edit-user-email">Email</label>
+        <div className="col-md-6">
+          <label htmlFor="edit-user-email" className="form-label">
+            E-mail
+          </label>
           <input
             id="edit-user-email"
             type="email"
+            className={`form-control ${fieldErrors.email?.length ? "is-invalid" : ""}`}
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
           <FieldError messages={fieldErrors.email} />
         </div>
+      </div>
 
-        <button type="submit">
-          Save
-        </button>
-      </form>
-    </div>
+      <button type="submit" className="btn btn-primary mt-3">
+        <i className="bi bi-check-lg me-2" aria-hidden="true" />
+        Zapisz zmiany
+      </button>
+    </form>
   );
 }
 

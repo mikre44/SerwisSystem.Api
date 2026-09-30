@@ -1,25 +1,37 @@
+const PERMISSION_LABELS = [
+  { key: "readRepairs", label: "Odczyt napraw" },
+  { key: "takeRepairs", label: "Przyjmowanie napraw" },
+  { key: "editRepairs", label: "Edycja napraw" },
+  { key: "deleteRepairs", label: "Usuwanie napraw" },
+  { key: "readUsers", label: "Odczyt użytkowników" },
+  { key: "editUsers", label: "Edycja użytkowników" },
+  { key: "deleteUsers", label: "Usuwanie użytkowników" },
+  { key: "grantUsers", label: "Nadawanie uprawnień" },
+  { key: "dischargeUsers", label: "Odbieranie uprawnień" },
+];
+
+// Read-only view of a user's permission flags. Headless (no card of its own)
+// so it can be dropped into any card body.
 function UserPermissions({ permissions }) {
   if (!permissions) {
-    return <p>No permissions found.</p>;
+    return <p className="text-body-secondary mb-0">Brak uprawnień.</p>;
   }
 
   return (
-    <div>
-      <h2>Privileges</h2>
-
-      <p>Read repairs: {permissions.readRepairs ? "Yes" : "No"}</p>
-      <p>Take repairs: {permissions.takeRepairs ? "Yes" : "No"}</p>
-      <p>Edit repairs: {permissions.editRepairs ? "Yes" : "No"}</p>
-      <p>Delete repairs: {permissions.deleteRepairs ? "Yes" : "No"}</p>
-
-      <p>Read users: {permissions.readUsers ? "Yes" : "No"}</p>
-      <p>Edit users: {permissions.editUsers ? "Yes" : "No"}</p>
-      <p>Delete users: {permissions.deleteUsers ? "Yes" : "No"}</p>
-      <p>Grant users: {permissions.grantUsers ? "Yes" : "No"}</p>
-      <p>
-        Discharge users: {permissions.dischargeUsers ? "Yes" : "No"}
-      </p>
-    </div>
+    <ul className="list-inline mb-0">
+      {PERMISSION_LABELS.map(({ key, label }) => (
+        <li className="list-inline-item mb-2" key={key}>
+          <span
+            className={`badge ${
+              permissions[key] ? "text-bg-success" : "text-bg-light border text-body-secondary"
+            }`}
+          >
+            {permissions[key] && <i className="bi bi-check-lg me-1" aria-hidden="true" />}
+            {label}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
