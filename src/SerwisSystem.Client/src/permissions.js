@@ -29,3 +29,8 @@ export const PERMISSION_GROUPS = [
     keys: ["readUsers", "editUsers", "deleteUsers", "grantUsers"],
   },
 ];
+
+// Mirrors PermissionService.HasPermission in the API: admins have every permission.
+export function hasPermission(user, key) {
+  return user.role === "Admin" || Boolean(user.permissions?.[key]);
+}

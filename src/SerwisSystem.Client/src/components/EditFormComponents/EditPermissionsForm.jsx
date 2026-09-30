@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { updatePermissions } from "../../api/api";
-import { PERMISSION_GROUPS, PERMISSION_KEYS, PERMISSION_LABELS } from "../../permissions";
+import { useAuth } from "../../context/AuthContext";
+import {
+  PERMISSION_GROUPS,
+  PERMISSION_KEYS,
+  PERMISSION_LABELS,
+  hasPermission,
+} from "../../permissions";
 import Message from "../Message";
 
 // The API sends permissions in camelCase ("readRepairs"), but the grant
@@ -18,10 +24,12 @@ function readPermissions(user) {
 // Edits a user's permission flags. Headless (no card of its own) — the page
 // that uses it provides the surrounding card and title.
 function EditPermissionsForm({ user, onUpdated }) {
+  const { user: loggedUser } = useAuth();
   const [permissions, setPermissions] = useState(() => readPermissions(user));
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [info, setInfo] = useState("");
 
   function handleChange(key) {
     setPermissions({
@@ -33,33 +41,38 @@ function EditPermissionsForm({ user, onUpdated }) {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    const permissionsGranted = [];
-    const permissionsRevoked = [];
+    setError("");
+    setSuccess("");
+    setInfo("");
 
-    for (const key of PERMISSION_KEYS) {
-      if (permissions[key]) {
-        permissionsGranted.push(toApiName(key));
-      } else {
-        permissionsRevoked.push(toApiName(key));
-      }
+    // Send only the switches that differ from what the user has now. The API
+    // lets you grant or revoke only permissions you hold yourself, so sending
+    // all of them would fail for anyone who is not an admin.
+    const current = readPermissions(user);
+    const changedKeys = PERMISSION_KEYS.filter((key) => permissions[key] !== current[key]);
+
+    if (changedKeys.length === 0) {
+      setInfo("Nie zmieniono żadnych uprawnień.");
+      return;
     }
+
+    const permissionsGranted = changedKeys.filter((key) => permissions[key]).map(toApiName);
+    const permissionsRevoked = changedKeys.filter((key) => !permissions[key]).map(toApiName);
 
     try {
       await updatePermissions(user.id, permissionsGranted, permissionsRevoked);
 
-      setError("");
       setSuccess("Uprawnienia zostały zaktualizowane.");
 
       await onUpdated();
     } catch (error) {
-      setSuccess("");
       setError(error.message);
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      <Message error={error} success={success} />
+      <Message error={error} success={success} info={info} />
 
       <div className="row g-4">
         {PERMISSION_GROUPS.map((group) => (
@@ -75,6 +88,8 @@ function EditPermissionsForm({ user, onUpdated }) {
                   id={`permission-${user.id}-${key}`}
                   checked={permissions[key]}
                   onChange={() => handleChange(key)}
+                  // Same rule as the API: you can change only a permission you have yourself.
+                  disabled={!hasPermission(loggedUser, key)}
                 />
                 <label className="form-check-label" htmlFor={`permission-${user.id}-${key}`}>
                   {PERMISSION_LABELS[key]}
@@ -84,6 +99,12 @@ function EditPermissionsForm({ user, onUpdated }) {
           </div>
         ))}
       </div>
+
+      {loggedUser.role !== "Admin" && (
+        <p className="form-text mb-0">
+          Możesz nadawać i odbierać tylko te uprawnienia, które sam posiadasz.
+        </p>
+      )}
 
       <button type="submit" className="btn btn-primary mt-3">
         <i className="bi bi-check-lg me-2" aria-hidden="true" />
