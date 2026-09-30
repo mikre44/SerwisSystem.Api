@@ -19,13 +19,17 @@ public class EmailService
         string recipientName,
         int repairId,
         string product,
-        string serialNumber)
+        string? serialNumber)
     {
         // Every value comes from an anonymous form. Without encoding, a name like
         // <a href="...">Pay here</a> would become a real link in our own email.
         var safeName = WebUtility.HtmlEncode(recipientName);
         var safeProduct = WebUtility.HtmlEncode(product);
-        var safeSerialNumber = WebUtility.HtmlEncode(serialNumber);
+
+        // Many products have no serial number; an empty "Numer seryjny:" line would look like a mistake.
+        var serialNumberLine = string.IsNullOrEmpty(serialNumber)
+            ? ""
+            : $"<br/><strong>Numer seryjny:</strong> {WebUtility.HtmlEncode(serialNumber)}";
 
         // Customers are Polish, so the email is in Polish.
         var subject = $"Przyjęto zgłoszenie naprawy nr {repairId}";
@@ -41,8 +45,7 @@ public class EmailService
 
             <p>
                 <strong>Numer naprawy:</strong> {repairId}<br/>
-                <strong>Produkt:</strong> {safeProduct}<br/>
-                <strong>Numer seryjny:</strong> {safeSerialNumber}
+                <strong>Produkt:</strong> {safeProduct}{serialNumberLine}
             </p>
 
             <p>

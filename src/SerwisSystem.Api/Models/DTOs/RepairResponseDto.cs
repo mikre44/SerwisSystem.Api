@@ -12,6 +12,7 @@ public class RepairResponseDto
 
     public bool IsCustomProduct { get; set; }
 
+    // Null when the repair has no serial number, like in PublicRepairResponseDto.
     public string? SerialNumber { get; set; }
 
     public string Description { get; set; } = "";
@@ -86,7 +87,9 @@ public class RepairResponseDto
 
             Product = repair.Product,
             IsCustomProduct = repair.IsCustomProduct,
-            SerialNumber = repair.SerialNumber,
+            SerialNumber = string.IsNullOrEmpty(repair.SerialNumber)
+                ? null
+                : repair.SerialNumber,
             Description = repair.Description,
 
             ReporterName = repair.ReporterName,
