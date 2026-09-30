@@ -11,6 +11,7 @@ using SerwisSystem.Api.Services;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -117,9 +118,27 @@ builder.Services.AddProblemDetails(options =>
         {
             StatusCodes.Status401Unauthorized => "You must be logged in.",
             StatusCodes.Status403Forbidden => "You do not have permission to do this.",
+            StatusCodes.Status429TooManyRequests => "Too many requests. Try again in a minute.",
             _ => null
         };
     };
+});
+
+// Anonymous endpoints (e.g. reporting a repair) are open to everyone, so limit how often
+// one client IP can call them. Endpoints opt in with [EnableRateLimiting("public")].
+builder.Services.AddRateLimiter(options =>
+{
+    // The empty 429 response gets a ProblemDetails body from UseStatusCodePages.
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("public", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1)
+            }));
 });
 
 builder.Services.AddOpenApi();
@@ -144,6 +163,8 @@ app.UseCors("ReactClient");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.MapControllers();
 
