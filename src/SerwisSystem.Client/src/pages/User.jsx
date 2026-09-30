@@ -12,6 +12,7 @@ import EditPermissionsForm from "../components/EditFormComponents/EditPermission
 import DeleteUserButton from "../components/EditFormComponents/DeleteUserButton";
 import EditAdminButton from "../components/EditFormComponents/EditAdminButton";
 import EditAdminPriority from "../components/EditFormComponents/EditAdminPriority";
+import Message from "../components/Message";
 
 function User() {
   const { id } = useParams();
@@ -51,7 +52,7 @@ function User() {
   if (error) {
     return (
       <main className="container py-4">
-        <div className="alert alert-danger">{error}</div>
+        <Message error={error} />
       </main>
     );
   }

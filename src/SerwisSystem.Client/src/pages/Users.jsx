@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getUsers } from "../api/api";
 import { PERMISSION_KEYS } from "../permissions";
+import Message from "../components/Message";
+import Pagination from "../components/Pagination";
+import SortButton from "../components/SortButton";
 
 const PAGE_SIZE = 10;
 
@@ -22,6 +25,8 @@ function countPermissions(permissions) {
 }
 
 function Users() {
+  const navigate = useNavigate();
+
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -38,6 +43,8 @@ function Users() {
 
   useEffect(() => {
     // Ignore a late response if the filters changed in the meantime.
+    // As in Repairs, `loading` is only cleared here, so the spinner is shown
+    // for the first load but a filter change does not blank out the table.
     let ignore = false;
 
     getUsers({
@@ -73,19 +80,15 @@ function Users() {
     };
   }, [page, appliedSearch, sortBy, descending]);
 
-  // `setLoading(true)` is triggered here rather than inside the effect, so the
-  // effect only ever calls setState from its async callbacks.
   function handleSearch(event) {
     event.preventDefault();
 
-    setLoading(true);
     setAppliedSearch(search.trim());
     setPage(1);
   }
 
+  // Names and e-mails read best A→Z, so a new column starts ascending.
   function handleSort(column) {
-    setLoading(true);
-
     if (sortBy === column) {
       setDescending(!descending);
     } else {
@@ -96,32 +99,8 @@ function Users() {
     setPage(1);
   }
 
-  function goToPage(newPage) {
-    setLoading(true);
-    setPage(newPage);
-  }
-
-  function renderSortableHeader(column, label) {
-    const isActive = sortBy === column;
-
-    return (
-      <th scope="col" aria-sort={isActive ? (descending ? "descending" : "ascending") : "none"}>
-        <button
-          type="button"
-          className="btn btn-link p-0 text-decoration-none text-reset fw-semibold d-inline-flex align-items-center gap-1"
-          onClick={() => handleSort(column)}
-        >
-          {label}
-          {isActive && (
-            <i
-              className={`bi bi-caret-${descending ? "down" : "up"}-fill`}
-              aria-hidden="true"
-            />
-          )}
-        </button>
-      </th>
-    );
-  }
+  const isEmpty = !loading && users.length === 0;
+  const sortProps = { sortBy, descending, onSort: handleSort };
 
   return (
     <main className="container py-4">
@@ -132,28 +111,25 @@ function Users() {
         </h1>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      <Message error={error} />
 
       <div className="card shadow-sm mb-4">
         <div className="card-body">
-          <form className="row g-2 align-items-center" onSubmit={handleSearch}>
-            <div className="col-sm-8 col-md-6">
-              <label htmlFor="users-search" className="visually-hidden">
-                Szukaj użytkowników
-              </label>
+          <form className="col-md-6" onSubmit={handleSearch}>
+            <label htmlFor="users-search" className="form-label">
+              Szukaj
+            </label>
+            <div className="input-group">
               <input
                 id="users-search"
                 type="search"
                 className="form-control"
-                placeholder="Szukaj po nazwie lub e-mailu…"
+                placeholder="Nazwa użytkownika, e-mail, rola…"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-            </div>
-
-            <div className="col-auto">
               <button type="submit" className="btn btn-primary">
-                <i className="bi bi-search me-2" aria-hidden="true" />
+                <i className="bi bi-search me-1" aria-hidden="true" />
                 Szukaj
               </button>
             </div>
@@ -162,106 +138,109 @@ function Users() {
       </div>
 
       <div className="card shadow-sm">
-        <div className="card-header">
-          Wyświetlono {users.length} z {totalCount} użytkowników
+        <div className={isEmpty || loading ? "card-body" : "card-body p-0"}>
+          {loading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Ładowanie…</span>
+              </div>
+            </div>
+          ) : isEmpty ? (
+            <p className="text-body-secondary text-center py-4 mb-0">
+              Brak użytkowników spełniających podane kryteria.
+            </p>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0 table-clickable">
+                <thead className="table-light">
+                  <tr>
+                    <th scope="col">
+                      <SortButton column="id" label="ID" {...sortProps} />
+                    </th>
+                    <th scope="col">
+                      <SortButton column="username" label="Nazwa użytkownika" {...sortProps} />
+                    </th>
+                    <th scope="col" className="d-none d-md-table-cell">
+                      <SortButton column="email" label="E-mail" {...sortProps} />
+                    </th>
+                    <th scope="col">
+                      <SortButton column="role" label="Rola" {...sortProps} />
+                    </th>
+                    <th scope="col" className="d-none d-md-table-cell">
+                      <SortButton column="priority" label="Priorytet" {...sortProps} />
+                    </th>
+                    <th scope="col" className="d-none d-md-table-cell">
+                      Uprawnienia
+                    </th>
+                    <th scope="col" className="d-none d-md-table-cell">
+                      <SortButton column="createdAt" label="Utworzono" {...sortProps} />
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id} onClick={() => navigate(`/user/${user.id}`)}>
+                      <td>{user.id}</td>
+
+                      <td>
+                        <Link
+                          to={`/user/${user.id}`}
+                          className="fw-semibold text-decoration-none"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {user.username}
+                        </Link>
+                      </td>
+
+                      <td className="d-none d-md-table-cell">{user.email}</td>
+
+                      <td>
+                        <span className={`badge ${roleBadgeClass(user.role)}`}>
+                          {roleLabel(user.role)}
+                        </span>
+                      </td>
+
+                      <td className="d-none d-md-table-cell">
+                        {user.role === "Admin" ? user.priority : "—"}
+                      </td>
+
+                      <td className="d-none d-md-table-cell">
+                        {user.role === "Admin" ? (
+                          <span className="text-body-secondary">wszystkie</span>
+                        ) : (
+                          <span className="badge text-bg-secondary">
+                            {countPermissions(user.permissions)}/{PERMISSION_KEYS.length}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="d-none d-md-table-cell">
+                        {new Date(user.createdAt).toLocaleDateString("pl-PL")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        {loading ? (
-          <div className="text-center py-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Ładowanie…</span>
-            </div>
-          </div>
-        ) : users.length === 0 ? (
-          <p className="text-body-secondary text-center py-4 mb-0">
-            Nie znaleziono żadnych użytkowników.
-          </p>
-        ) : (
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-light">
-                <tr>
-                  {renderSortableHeader("id", "ID")}
-                  {renderSortableHeader("username", "Nazwa użytkownika")}
-                  {renderSortableHeader("email", "E-mail")}
-                  {renderSortableHeader("role", "Rola")}
-                  {renderSortableHeader("priority", "Priorytet")}
-                  <th scope="col">Uprawnienia</th>
-                  {renderSortableHeader("createdAt", "Utworzono")}
-                </tr>
-              </thead>
+        {!loading && (
+          <div className="card-footer d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <span className="text-body-secondary small">
+              Wyświetlono {users.length} z {totalCount} użytkowników
+            </span>
 
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.id}</td>
-
-                    <td>
-                      <Link to={`/user/${user.id}`}>{user.username}</Link>
-                    </td>
-
-                    <td>{user.email}</td>
-
-                    <td>
-                      <span className={`badge ${roleBadgeClass(user.role)}`}>
-                        {roleLabel(user.role)}
-                      </span>
-                    </td>
-
-                    <td>{user.role === "Admin" ? user.priority : "—"}</td>
-
-                    <td>
-                      {user.role === "Admin" ? (
-                        <span className="text-body-secondary">—</span>
-                      ) : (
-                        <span className="badge text-bg-secondary">
-                          {countPermissions(user.permissions)}/{PERMISSION_KEYS.length}
-                        </span>
-                      )}
-                    </td>
-
-                    <td>{new Date(user.createdAt).toLocaleDateString("pl-PL")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              label="Strony użytkowników"
+            />
           </div>
         )}
       </div>
-
-      {totalPages > 1 && (
-        <nav aria-label="Strony użytkowników" className="d-flex justify-content-center mt-4">
-          <ul className="pagination mb-0">
-            <li className={`page-item ${page <= 1 ? "disabled" : ""}`}>
-              <button
-                type="button"
-                className="page-link"
-                disabled={page <= 1}
-                onClick={() => goToPage(page - 1)}
-              >
-                Poprzednia
-              </button>
-            </li>
-
-            <li className="page-item disabled">
-              <span className="page-link">
-                Strona {page} z {totalPages}
-              </span>
-            </li>
-
-            <li className={`page-item ${page >= totalPages ? "disabled" : ""}`}>
-              <button
-                type="button"
-                className="page-link"
-                disabled={page >= totalPages}
-                onClick={() => goToPage(page + 1)}
-              >
-                Następna
-              </button>
-            </li>
-          </ul>
-        </nav>
-      )}
     </main>
   );
 }
