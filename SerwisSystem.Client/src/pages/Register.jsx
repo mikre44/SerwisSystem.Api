@@ -27,15 +27,15 @@ function Register() {
 
   return (
     <div>
-      <h1>Register</h1>
+      <h1>Zarejestruj się</h1>
 
-      {error && <p>Error: {error}</p>}
+      {error && <p>Błąd: {error}</p>}
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Username: </label>
+          <label htmlFor="register-1">Nazwa użytkownika: </label>
 
-          <input
+          <input id="register-1"
             type="text"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
@@ -43,9 +43,9 @@ function Register() {
         </div>
 
         <div>
-          <label>Email: </label>
+          <label htmlFor="register-2">E-mail: </label>
 
-          <input
+          <input id="register-2"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -53,9 +53,9 @@ function Register() {
         </div>
 
         <div>
-          <label>Password: </label>
+          <label htmlFor="register-3">Hasło: </label>
 
-          <input
+          <input id="register-3"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -63,13 +63,13 @@ function Register() {
         </div>
 
         <button type="submit">
-          Register
+          Zarejestruj się
         </button>
       </form>
 
       <p>
-        Already have an account?{" "}
-        <Link to="/login">Login</Link>
+        Masz już konto?{" "}
+        <Link to="/login">Zaloguj się</Link>
       </p>
     </div>
   );

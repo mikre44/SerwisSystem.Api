@@ -1,48 +1,26 @@
-import { useEffect, useState } from "react";
+import { displayLabels } from "../displayLabels";
+import { useRemoteData } from "../hooks/useRemoteData";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { getUsers } from "../api/api";
 
 function Users() {
-  const [users, setUsers] = useState([]);
-  const [error, setError] = useState("");
+
 
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [sortBy, setSortBy] = useState("priority");
   const [descending, setDescending] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-
-  async function loadUsers(customPage = page) {
-    try {
-      const data = await getUsers({
-        page: customPage,
-        pageSize,
-        search,
-        sortBy,
-        descending,
-      });
-
-      setUsers(data.items);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.totalCount);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
-
-  useEffect(() => {
-    loadUsers();
-  }, [page, sortBy, descending]);
-
-  async function handleSearch(event) {
-    event.preventDefault();
-
-    setPage(1);
-    await loadUsers(1);
+  const loadUsers = useCallback(signal => getUsers({ page, pageSize, search: appliedSearch, sortBy, descending }, signal), [page, pageSize, appliedSearch, sortBy, descending]);
+  const { data, error, loading, reload } = useRemoteData(loadUsers);
+  const users = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const totalCount = data?.totalCount ?? 0;
+  function handleSearch(event) {
+    event.preventDefault(); setAppliedSearch(search); setPage(1); reload();
   }
 
   function handleSort(column) {
@@ -66,14 +44,15 @@ function Users() {
 
   return (
     <div>
-      <h1>Users</h1>
+      <h1>Użytkownicy</h1>
 
-      {error && <p>Error: {error}</p>}
+      {error && <p role="alert">{error}</p>}
+      {loading && <p role="status">Wczytywanie...</p>}
 
       <form onSubmit={handleSearch}>
         <input
           type="text"
-          placeholder="Search users..."
+          placeholder="Szukaj użytkowników..."
           value={search}
           onChange={(event) =>
             setSearch(event.target.value)
@@ -81,40 +60,40 @@ function Users() {
         />
 
         <button type="submit">
-          Search
+          Szukaj
         </button>
       </form>
 
       <p>
-        Showing {users.length} of {totalCount} users
+        Wyświetlono {users.length} z {totalCount} użytkowników
       </p>
 
       <table>
         <thead>
           <tr>
-            <th onClick={() => handleSort("id")}>
+            <th><button type="button" onClick={() => handleSort("id")}>
               ID{getSortIndicator("id")}
-            </th>
+            </button></th>
 
-            <th onClick={() => handleSort("username")}>
-              Username{getSortIndicator("username")}
-            </th>
+            <th><button type="button" onClick={() => handleSort("username")}>
+              Nazwa użytkownika{getSortIndicator("username")}
+            </button></th>
 
-            <th onClick={() => handleSort("email")}>
-              Email{getSortIndicator("email")}
-            </th>
+            <th><button type="button" onClick={() => handleSort("email")}>
+              E-mail{getSortIndicator("email")}
+            </button></th>
 
-            <th onClick={() => handleSort("role")}>
-              Role{getSortIndicator("role")}
-            </th>
+            <th><button type="button" onClick={() => handleSort("role")}>
+              Rola{getSortIndicator("role")}
+            </button></th>
 
-            <th onClick={() => handleSort("priority")}>
-              Priority{getSortIndicator("priority")}
-            </th>
+            <th><button type="button" onClick={() => handleSort("priority")}>
+              Priorytet{getSortIndicator("priority")}
+            </button></th>
 
-            <th onClick={() => handleSort("createdAt")}>
-              Created{getSortIndicator("createdAt")}
-            </th>
+            <th><button type="button" onClick={() => handleSort("createdAt")}>
+              Data utworzenia{getSortIndicator("createdAt")}
+            </button></th>
           </tr>
         </thead>
 
@@ -131,7 +110,7 @@ function Users() {
                 </Link>
               </td>
               <td>{user.email}</td>
-              <td>{user.role}</td>
+              <td>{displayLabels[user.role] ?? "Nieznana wartość"}</td>
               <td>{user.priority}</td>
               <td>{user.createdAt}</td>
             </tr>
@@ -144,19 +123,19 @@ function Users() {
           disabled={page <= 1}
           onClick={() => setPage(page - 1)}
         >
-          Previous
+          Poprzednia
         </button>
 
         <span>
           {" "}
-          Page {page} of {totalPages}{" "}
+          Strona {page} z {totalPages}{" "}
         </span>
 
         <button
           disabled={page >= totalPages}
           onClick={() => setPage(page + 1)}
         >
-          Next
+          Następna
         </button>
       </div>
     </div>

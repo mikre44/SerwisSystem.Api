@@ -1,4 +1,4 @@
 <Solution>
   <Folder Name="/SerwisSystem.Client/" />
-  <Project Path="SerwisSystem.Api.csproj" />
+  <Project Path="SerwisSystem.Api/SerwisSystem.Api.csproj" />
 </Solution>

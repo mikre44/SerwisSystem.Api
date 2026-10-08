@@ -1,0 +1,212 @@
+@SerwisSystem_Api_HostAddress = http://localhost:5000 
+### Change to your host address ^
+
+@token = YOUR_TOKEN
+@repairVersion = 1
+# Replace repairVersion with the latest version returned by GET before each change.
+
+
+
+### Initial administrator: configure FirstAdmin in User Secrets (see README).
+
+###=====================================List of Repair requests=====================================
+
+### List of all repairs
+GET {{SerwisSystem_Api_HostAddress}}/api/repairs
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### Append new repair
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "product": "Laptop",
+  "isCustomProduct": false,
+  "serialNumber": null,
+  "description": "Broken screen",
+  "reporterName": "Jan",
+  "reporterSurname": "Kowalski",
+  "reporterPhone": "123456789",
+  "reporterEmail": "jan@example.com",
+  "companyName": "Example",
+  "companyAddress": "Example 1",
+  "companyPostalCode": "00-001",
+  "companyCity": "Warszawa",
+  "companyNip": "5260250274",
+  "hasWarranty": false,
+  "hasContract": false,
+  "serviceDataConsent": true,
+  "marketingConsent": false
+}
+
+
+### assign the user to repair with id ...
+
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/18/take
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "version": {{repairVersion}} }
+
+
+### complete the repair with id ...
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/18/complete
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "version": {{repairVersion}} }
+
+
+### cancel the repair with id ...  for now users are able to discharge admins
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/21/cancel
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "version": {{repairVersion}} }
+
+
+### return the repair with id ... for now users are able to discharge admins
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/22/return
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "version": {{repairVersion}} }
+
+
+### Update repair with id ...
+PUT {{SerwisSystem_Api_HostAddress}}/api/repairs/17
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "product": "Laptop",
+  "isCustomProduct": false,
+  "serialNumber": null,
+  "description": "Broken screen",
+  "reporterName": "Jan",
+  "reporterSurname": "Kowalski",
+  "reporterPhone": "123456789",
+  "reporterEmail": "jan@example.com",
+  "companyName": "Example",
+  "companyAddress": "Example 1",
+  "companyPostalCode": "00-001",
+  "companyCity": "Warszawa",
+  "companyNip": "5260250274",
+  "hasWarranty": false,
+  "hasContract": false,
+  "serviceDataConsent": true,
+  "marketingConsent": false,
+  "status": "Pending",
+  "version": {{repairVersion}}
+}
+
+### Delete repair with id ...
+DELETE {{SerwisSystem_Api_HostAddress}}/api/repairs/20
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "version": {{repairVersion}} }
+
+
+###=====================================List of User requests=====================================
+
+### List of all users
+GET {{SerwisSystem_Api_HostAddress}}/api/users
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Selected user
+GET {{SerwisSystem_Api_HostAddress}}/api/users/17
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Logged user
+GET {{SerwisSystem_Api_HostAddress}}/api/users/logged
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Update user
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/13
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "Username": "jonh76",
+    "email": "jonh67@example.com"
+}
+
+### Delete user - here for now
+DELETE {{SerwisSystem_Api_HostAddress}}/api/users/9
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### Edit user permissions 
+# ===========================
+# All of the permissions:
+#         "ReadRepairs",
+#         "TakeRepairs",
+#         "EditRepairs",
+#         "DeleteRepairs",
+#         "ReadUsers",
+#         "EditUsers",
+#         "DeleteUsers",
+#         "GrantUsers",
+#         "DischargeUsers"
+# ===========================
+PUT {{SerwisSystem_Api_HostAddress}}/api/users/grant/17
+Content-Type: application/json
+Authorization: Bearer {{token}}
+{
+    "permissionsGranted": [
+       "GrantUsers",
+        "ReadRepairs",
+        "TakeRepairs",
+        "EditRepairs",
+        "DeleteRepairs",
+        "ReadUsers",
+        "EditUsers",
+        "DeleteUsers",
+        "DischargeUsers"
+    ],
+    "permissionsRevoked": [
+
+    ]
+}
+###
+
+###=====================================List of Authorization requests=====================================
+
+### register user
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+    "username": "Mike2",
+    "email": "Mike2@gmail.com",
+    "password": "password123"
+}
+
+### login user
+POST {{SerwisSystem_Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+    "UsernameOrEmail": "Mike1",
+    "password": "password123"
+}
+
+
+### Customer repair lookup (use the code from the receipt)
+POST {{SerwisSystem_Api_HostAddress}}/api/repairs/check
+Content-Type: application/json
+
+{ "code": "ABCDEFGH", "email": "jan@example.com", "serialNumber": null }

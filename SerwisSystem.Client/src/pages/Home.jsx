@@ -1,4 +1,5 @@
-import { useAuth } from "../context/AuthContext";
+import { displayLabels } from "../displayLabels";
+import { useAuth } from "../context/useAuth";
 
 
 function Home() {
@@ -8,15 +9,13 @@ function Home() {
     <div>
       <h1>SerwisSystem</h1>
 
-      <p>Welcome, {user.username}!</p>
-      <p>Role: {user.role}</p>
+      <p>Witaj, {user.username}!</p>
+      <p>Rola: {displayLabels[user.role] ?? "Nieznana wartość"}</p>
 
       {user.role !== "Admin" &&
-        !user.permissions?.readRepairs &&
-        !user.permissions?.readUsers && (
+        !Object.values(user.permissions ?? {}).some(Boolean) && (
           <p>
-            Your account does not have any permissions yet.
-            An administrator must grant them.
+            Twoje konto nie ma jeszcze uprawnień. Administrator musi je nadać.
           </p>
         )}
     </div>

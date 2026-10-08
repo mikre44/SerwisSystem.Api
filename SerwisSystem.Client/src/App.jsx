@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "./context/useAuth";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -16,11 +16,13 @@ import PublicRoute from "./components/PublicRoutes";
 import Navbar from "./components/Navbar";
 
 function App() {
-  const { loading, user } = useAuth();
+  const { loading, user, error } = useAuth();
 
   if (loading) {
-    return <p>Loading...</p>;
+    return <p>Wczytywanie...</p>;
   }
+
+  if (error && !user) return <main><p role="alert">{error}</p><button onClick={() => window.location.reload()}>Ponów połączenie</button></main>;
 
   return (
     <BrowserRouter>
@@ -36,7 +38,7 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Home />} />
-          
+
           <Route path="/repairs" element={<Repairs />} />
           <Route path="/repair/:id" element={<Repair />} />
 

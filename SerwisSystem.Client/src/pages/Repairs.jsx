@@ -1,54 +1,32 @@
-import { Fragment, useEffect, useState } from "react";
-import { Link, useNavigate  } from "react-router-dom";
+import { displayLabels } from "../displayLabels";
+import { useRemoteData } from "../hooks/useRemoteData";
+import { Fragment, useCallback, useState } from "react";
+import { useNavigate  } from "react-router-dom";
 import { getRepairs } from "../api/api";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
 
 function Repairs() {
   const navigate = useNavigate();
 
-  const [repairs, setRepairs] = useState([]);
-  const [error, setError] = useState("");
+
 
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [statuses, setStatuses] = useState([]);
-  const [mine, setMine] = useState(false);  
+  const [mine, setMine] = useState(false);
   const [sortBy, setSortBy] = useState("createdAt");
   const [descending, setDescending] = useState(true);
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-
-  async function loadRepairs() {
-    try {
-      const data = await getRepairs({
-        page,
-        pageSize,
-        search,
-        statuses,
-        mine,
-        sortBy,
-        descending,
-      });
-
-      setRepairs(data.items);
-      setTotalPages(data.totalPages);
-      setTotalCount(data.totalCount);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
-
-
+  const loadRepairs = useCallback(signal => getRepairs({ page, pageSize, search: appliedSearch, sortBy, descending, statuses, mine }, signal), [page, pageSize, appliedSearch, sortBy, descending, statuses, mine]);
+  const { data, error, loading, reload } = useRemoteData(loadRepairs);
+  const repairs = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 0;
+  const totalCount = data?.totalCount ?? 0;
   function handleSearch(event) {
-    event.preventDefault();
-
-    setPage(1);
-    loadRepairs();
+    event.preventDefault(); setAppliedSearch(search); setPage(1); reload();
   }
-
 
   function handleSort(column) {
     if (sortBy === column) {
@@ -62,49 +40,42 @@ function Repairs() {
   }
 
 
-  function getSortIndicator(column) {
-    if (sortBy !== column) {
-      return "";
-    }
 
-    return descending ? " ▼" : " ▲";
-  }
 
 
   function handleStatusChange(status){
     setStatuses(statuses => statuses.includes(status) // checks if changed status was on, yes - removes it, no - adds it
-    ? statuses.filter(item => item !== status) 
+    ? statuses.filter(item => item !== status)
     : [...statuses, status]);
 
     setPage(1);
   }
 
 
-  useEffect(() => {
-    loadRepairs();
-  }, [page, sortBy, descending, statuses, mine]);
+
 
 
 
   return (
     <div>
-      <h1>Repairs</h1>
+      <h1>Naprawy</h1>
 
-      {error && <p>Error: {error}</p>}
+      {error && <p role="alert">{error}</p>}
+      {loading && <p role="status">Wczytywanie...</p>}
 
       <form onSubmit={handleSearch}>
         <input
           type="text"
-          placeholder="Search repairs..."
+          placeholder="Szukaj napraw..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
 
         <button type="submit">
-          Search
+          Szukaj
         </button>
       </form>
-      
+
 
       <div>
         <p>Status:</p>
@@ -117,7 +88,7 @@ function Repairs() {
               onChange={() => handleStatusChange(status)}
             />
 
-            {status}
+            {displayLabels[status] ?? "Nieznana wartość"}
           </label>
         ))}
       </div>
@@ -134,52 +105,52 @@ function Repairs() {
             }}
           />
 
-          My repairs only
+          Tylko moje naprawy
         </label>
       </div>
 
       <p>
-        Showing {repairs.length} of {totalCount} repairs
+        Wyświetlono {repairs.length} z {totalCount} napraw
       </p>
 
       <table>
         <thead>
           <tr>
-            <th onClick={() => handleSort("id")}>
+            <th><button type="button" onClick={() => handleSort("id")}>
               ID {sortBy === "id" && (descending ? "▼" : "▲")}
-            </th>
+            </button></th>
 
-            <th onClick={() => handleSort("serialNumber")}>
-              Serial number{" "}
+            <th><button type="button" onClick={() => handleSort("serialNumber")}>
+              Numer seryjny{" "}
               {sortBy === "serialNumber" && (descending ? "▼" : "▲")}
-            </th>
+            </button></th>
 
-            <th onClick={() => handleSort("product")}>
-              Product{" "}
+            <th><button type="button" onClick={() => handleSort("product")}>
+              Produkt{" "}
               {sortBy === "product" && (descending ? "▼" : "▲")}
-            </th>
+            </button></th>
 
-            <th onClick={() => handleSort("surname")}>
-              Reporter{" "}
-              {sortBy === "surname" && (descending ? "▼" : "▲")}
-            </th>
+            <th><button type="button" onClick={() => handleSort("reporterSurname")}>
+              Osoba zgłaszająca{" "}
+              {sortBy === "reporterSurname" && (descending ? "▼" : "▲")}
+            </button></th>
 
-            <th onClick={() => handleSort("address")}>
-              Address{" "}
+            <th><button type="button" onClick={() => handleSort("address")}>
+              Adres{" "}
               {sortBy === "address" && (descending ? "▼" : "▲")}
-            </th>
+            </button></th>
 
-            <th onClick={() => handleSort("status")}>
+            <th><button type="button" onClick={() => handleSort("status")}>
               Status{" "}
               {sortBy === "status" && (descending ? "▼" : "▲")}
-            </th>
+            </button></th>
 
-            <th>Worker</th>
+            <th>Pracownik</th>
 
-            <th onClick={() => handleSort("createdAt")}>
-              Created{" "}
+            <th><button type="button" onClick={() => handleSort("createdAt")}>
+              Data utworzenia{" "}
               {sortBy === "createdAt" && (descending ? "▼" : "▲")}
-            </th>
+            </button></th>
           </tr>
         </thead>
 
@@ -187,6 +158,8 @@ function Repairs() {
           {repairs.map((repair) => (
             <Fragment key={repair.id}>
               <tr
+                tabIndex={0}
+                onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); navigate(`/repair/${repair.id}`); } }}
                 onClick={() => navigate(`/repair/${repair.id}`)}
                 style={{ cursor: "pointer" }}
               >
@@ -207,14 +180,14 @@ function Repairs() {
                   {repair.companyAddress}
                 </td>
 
-                <td>{repair.status}</td>
+                <td>{displayLabels[repair.status] ?? "Nieznana wartość"}</td>
 
                 <td>
-                  {repair.workerUsername ?? "Nobody"}
+                  {repair.workerUsername ?? "Nie przypisano"}
                 </td>
 
                 <td>
-                  {new Date(repair.createdAt).toLocaleDateString()}
+                  {new Date(repair.createdAt).toLocaleDateString("pl-PL")}
                 </td>
               </tr>
 
@@ -222,7 +195,7 @@ function Repairs() {
                 <td colSpan="8">
                   <EditRepairStatus
                     repair={repair}
-                    onUpdated={loadRepairs}
+                    onUpdated={reload}
                   />
                 </td>
               </tr>
@@ -235,18 +208,18 @@ function Repairs() {
         <button
           disabled={page <= 1}
           onClick={() => setPage(page - 1)}>
-          Previous
+          Poprzednia
         </button>
 
         <span>
           {" "}
-          Page {page} of {totalPages}{" "}
+          Strona {page} z {totalPages}{" "}
         </span>
 
         <button
           disabled={page >= totalPages}
           onClick={() => setPage(page + 1)}>
-          Next
+          Następna
         </button>
       </div>
     </div>

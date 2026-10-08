@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { promoteAdmin } from "../../api/api";
-import { useAuth } from "../../context/AuthContext";
+import { promoteAdmin, demoteAdmin } from "../../api/api";
+import { useAuth } from "../../context/useAuth";
 import ConfirmButton from "../ConfirmButton";
 
 function EditAdminButton({ user, onUpdated }) {
@@ -12,7 +12,7 @@ function EditAdminButton({ user, onUpdated }) {
   const canManage =
   loggedUser.id !== user.id &&
   loggedUser.priority <= user.priority;
-  
+
   if (
     loggedUser.role !== "Admin" ||
     loggedUser.id === user.id
@@ -25,7 +25,7 @@ function EditAdminButton({ user, onUpdated }) {
       await promoteAdmin(user.id);
 
       setError("");
-      setSuccess("User promoted to Admin.");
+      setSuccess("Nadano uprawnienia administratora.");
 
       await onUpdated();
     } catch (error) {
@@ -39,37 +39,41 @@ function EditAdminButton({ user, onUpdated }) {
       await demoteAdmin(user.id);
 
       setError("");
-      setSuccess("Admin demoted successfully.");
+      setSuccess("Odebrano uprawnienia administratora.");
 
-      await loadAdmins();
+      await onUpdated();
     } catch (error) {
       setSuccess("");
       setError(error.message);
     }
   }
-  
+
   if (user.role !== "Admin")
   return (
     <div>
-      {error && <p>Error: {error}</p>}
+      {error && <p>Błąd: {error}</p>}
       {success && <p>{success}</p>}
 
       <ConfirmButton
-        message={`Promote ${user.username} to Admin?`}
+        message={`Czy nadać użytkownikowi ${user.username} uprawnienia administratora?`}
         onConfirm={handlePromote}
       >
-        Promote to Admin
+        Nadaj uprawnienia administratora
       </ConfirmButton>
     </div>
   );
   else if(canManage)
     return(
+      <div>
+      {error && <p role="alert">{error}</p>}
+      {success && <p>{success}</p>}
       <ConfirmButton
-        message={`Demote ${user.username} to Worker?`}
+        message={`Czy odebrać użytkownikowi ${user.username} uprawnienia administratora?`}
         onConfirm={handleDemote}
       >
-        Demote
-      </ConfirmButton> 
+        Odbierz uprawnienia administratora
+      </ConfirmButton>
+      </div>
     );
   return null;
 }

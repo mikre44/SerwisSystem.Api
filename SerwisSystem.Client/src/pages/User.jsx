@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useRemoteData } from "../hooks/useRemoteData";
+import { useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { getUser, deleteUser} from "../api/api";
-import { useAuth } from "../context/AuthContext";
+import { getUser} from "../api/api";
+import { useAuth } from "../context/useAuth";
 
 import UserInfo from "../components/UserInfoComponents/UserInfo";
 import UserPermissions from "../components/UserInfoComponents/UserPermissions";
@@ -9,69 +10,58 @@ import UserRepairs from "../components/UserInfoComponents/UserRepairs";
 import EditUserForm from "../components/EditFormComponents/EditUserForm";
 import EditPermissionsForm from "../components/EditFormComponents/EditPermissionsForm";
 import DeleteUserButton from "../components/EditFormComponents/DeleteUserButton";
-import PromoteAdminButton from "../components/EditFormComponents/EditAdminButton";
+
 import EditAdminButton from "../components/EditFormComponents/EditAdminButton";
 
 function User() {
   const { id } = useParams();
 
-  const [user, setUser] = useState(null);
-  const [error, setError] = useState("");
-
   const { user: loggedUser } = useAuth();
-
-    async function loadUser() {
-      try {
-        const data = await getUser(id);
-
-        setUser(data);
-      } catch (error) {
-        setError(error.message);
-      }
-    }
-  useEffect(() => {
-    loadUser();
-  }, [id]);
+  const loadUser = useCallback(signal => getUser(id, signal), [id]);
+  const { data: user, error, loading, reload } = useRemoteData(loadUser);
+  if (loading) return <p>Wczytywanie użytkownika...</p>;
 
   if (error) {
-    return <p>Error: {error}</p>;
+    return <p>Błąd: {error}</p>;
   }
 
   if (!user) {
-    return <p>Loading user...</p>;
+    return <p>Wczytywanie użytkownika...</p>;
   }
-  
+
   return (
     <div>
-      <h1>User</h1>
+      <h1>Użytkownik</h1>
 
         <UserInfo user={user} />
         {(loggedUser.id === user.id ||
         loggedUser.role === "Admin" ||
         loggedUser.permissions?.editUsers) && (
           <EditUserForm
+            key={user.id}
             user={user}
-            onUpdated={loadUser}
+            onUpdated={reload}
           />
         )}
-        
-        <UserPermissions permissions={user.permissions} />
+
+        <UserPermissions isAdmin={user.role === "Admin"} permissions={user.permissions} />
         {(loggedUser.role === "Admin" ||
           loggedUser.permissions?.grantUsers) && (
           <EditPermissionsForm
+            key={user.id}
             user={user}
-            onUpdated={loadUser}
+            onUpdated={reload}
           />
         )}
         <EditAdminButton
           user={user}
-          onUpdated={loadUser}
+          onUpdated={reload}
         />
         <DeleteUserButton user={user} />
 
         <UserRepairs repairs={user.repairs} />
 
-        
+
     </div>
   );
 }

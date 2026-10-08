@@ -7,9 +7,9 @@ function App() {
   return (
     <BrowserRouter>
       <nav>
-        <Link to="/">Create repair</Link>
+        <Link to="/">Zgłoś naprawę</Link>
         {" | "}
-        <Link to="/check">Check repair</Link>
+        <Link to="/check">Sprawdź naprawę</Link>
       </nav>
 
       <Routes>

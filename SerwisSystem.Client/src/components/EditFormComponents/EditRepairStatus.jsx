@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import Message from "../Message";
 import ConfirmButton from "../ConfirmButton";
 
@@ -14,6 +14,7 @@ function EditRepairStatus({ repair, onUpdated }) {
   const { user } = useAuth();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   const isAdmin = user.role === "Admin";
 
@@ -28,9 +29,16 @@ function EditRepairStatus({ repair, onUpdated }) {
     repair.status === "InProgress" &&
     (isAdmin || isMyRepair);
 
+  const canCancel = repair.status !== "Completed" && repair.status !== "Cancelled"
+    && (isAdmin || (isMyRepair && user.permissions?.editRepairs));
+  const canReturn = repair.status === "InProgress"
+    && (isAdmin || isMyRepair || user.permissions?.dischargeUsers);
+
   async function runAction(action, successMessage) {
+    if (updating) return;
+    setUpdating(true);
     try {
-      await action(repair.id);
+      await action(repair.id, repair.version);
 
       setError("");
       setSuccess(successMessage);
@@ -39,7 +47,7 @@ function EditRepairStatus({ repair, onUpdated }) {
     } catch (error) {
       setSuccess("");
       setError(error.message);
-    }
+    } finally { setUpdating(false); }
   }
 
   return (
@@ -50,28 +58,32 @@ function EditRepairStatus({ repair, onUpdated }) {
       />
 
       {canTake && (
-        <button onClick={() => runAction(takeRepair, "Repair taken successfully.")}>
-          Take
+        <button disabled={updating} onClick={() => runAction(takeRepair, "Naprawa została przypisana do Ciebie.")}>
+          Przyjmij naprawę
         </button>
       )}
 
       {canWorkOnRepair && (
         <>
-          <button onClick={() => runAction(completeRepair, "Repair completed successfully.")}>
-            Complete
+          <button disabled={updating} onClick={() => runAction(completeRepair, "Naprawa została zakończona.")}>
+            Zakończ
           </button>
 
-          <ConfirmButton
-            message="Are you sure you want to cancel this repair?"
-            onConfirm={() => runAction(cancelRepair, "Repair cancelled successfully.")}
-          >
-            Cancel
-          </ConfirmButton>
-
-          <button onClick={() => runAction(returnRepair, "Repair returned successfully.")}>
-            Return
-          </button>
         </>
+      )}
+      {canCancel && (
+          <ConfirmButton
+            disabled={updating}
+            message="Czy na pewno chcesz anulować tę naprawę?"
+            onConfirm={() => runAction(cancelRepair, "Naprawa została anulowana.")}
+          >
+            Anuluj
+          </ConfirmButton>
+      )}
+      {canReturn && (
+          <button disabled={updating} onClick={() => runAction(returnRepair, "Naprawa wróciła do kolejki oczekujących.")}>
+            Zwróć do kolejki
+          </button>
       )}
     </div>
   );

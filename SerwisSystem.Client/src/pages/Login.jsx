@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import { login } from "../api/api";
 import { Link } from "react-router-dom";
 
@@ -9,9 +9,14 @@ function Login() {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
   async function handleSubmit(event) {
     event.preventDefault();
 
+    if (submitting) return;
+    setSubmitting(true); setError("");
     try {
       const data = await login(usernameOrEmail, password);
 
@@ -19,21 +24,22 @@ function Login() {
 
       await reloadUser();
 
-      console.log("Login successful!");
+
 
     } catch (error) {
-      console.error(error);
-    }
+      setError(error.message);
+    } finally { setSubmitting(false); }
   }
 
   return (
     <div>
-      <h1>Login</h1>
+      <h1>Zaloguj się</h1>
 
+      {error && <p role="alert">{error}</p>}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Username or email"
+          placeholder="Nazwa użytkownika lub e-mail"
           value={usernameOrEmail}
           onChange={(event) =>
             setUsernameOrEmail(event.target.value)
@@ -42,20 +48,20 @@ function Login() {
 
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Hasło"
           value={password}
           onChange={(event) =>
             setPassword(event.target.value)
           }
         />
 
-        <button type="submit">
-          Login
+        <button type="submit" disabled={submitting}>
+          Zaloguj się
         </button>
       </form>
         <p>
-          Don't have an account?{" "}
-          <Link to="/register">Register</Link>
+          Nie masz konta?{" "}
+          <Link to="/register">Zarejestruj się</Link>
         </p>
     </div>
   );

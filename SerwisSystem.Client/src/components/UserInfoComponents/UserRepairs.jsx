@@ -1,29 +1,30 @@
+import { displayLabels } from "../../displayLabels";
 import { Link } from "react-router-dom";
 
 function UserRepairs({ repairs }) {
   if (!repairs || repairs.length === 0) {
     return (
       <div>
-        <h2>Repairs</h2>
-        <p>No repairs assigned.</p>
+        <h2>Naprawy</h2>
+        <p>Brak przypisanych napraw.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h2>Repairs</h2>
+      <h2>Naprawy</h2>
 
       <table>
         <thead>
           <tr>
             <th>ID</th>
-            <th>Serial number</th>
-            <th>Product</th>
-            <th>Reporter</th>
-            <th>Address</th>
+            <th>Numer seryjny</th>
+            <th>Produkt</th>
+            <th>Osoba zgłaszająca</th>
+            <th>Adres</th>
             <th>Status</th>
-            <th>Created</th>
+            <th>Data utworzenia</th>
           </tr>
         </thead>
 
@@ -54,13 +55,13 @@ function UserRepairs({ repairs }) {
               </td>
 
               <td>
-                {repair.status}
+                {displayLabels[repair.status] ?? "Nieznana wartość"}
               </td>
 
               <td>
                 {new Date(
                   repair.createdAt
-                ).toLocaleDateString()}
+                ).toLocaleDateString("pl-PL")}
               </td>
             </tr>
           ))}

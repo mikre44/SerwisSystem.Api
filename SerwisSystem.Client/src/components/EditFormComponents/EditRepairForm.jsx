@@ -160,7 +160,7 @@ function EditRepairForm({ repair, onUpdated }) {
     "Systemy konferencyjne",
     "Projektory",
     "Laptop",
-  ];// product 
+  ];// product
 
 
   function isValidPhone(phone) {
@@ -194,100 +194,6 @@ function EditRepairForm({ repair, onUpdated }) {
 
     return checksum === Number(nip[9]);
   }
-
-
-  function validateSerialNumber(serialNumber, product) {
-    const serial = serialNumber.trim();
-
-    const rule = productRules[product];
-
-    if (!rule) {
-      return {
-        valid: true
-      };
-    }
-
-    // new form
-    if (rule.checkVersion === "new") {
-      const match = serial.match(
-        /^L(\d{6})(01|02|03|04|05|06)(55|65|75|86|98)(\d{5})$/
-      );
-
-      if (!match) {
-        return {
-          valid: false,
-          message:
-            "Numer seryjny ma nieprawidłowy format dla wybranego monitora."
-        };
-      }
-
-      const modelNumber = match[2];
-
-      if (modelNumber !== rule.expectedNumber) {
-        return {
-          valid: false,
-          message:
-            "Numer seryjny nie odpowiada wybranemu modelowi monitora."
-        };
-      }
-
-      return {
-        valid: true
-      };
-    }
-
-    // old form
-    if (rule.checkVersion === "old") {
-      const match = serial.match(
-        /^(\d{4})(8|11|13)\d(55|65|75|86|98)(\d{3})Z$/i
-      );
-
-      if (!match) {
-        return {
-          valid: false,
-          message:
-            "Numer seryjny ma nieprawidłowy format dla wybranego monitora."
-        };
-      }
-
-      const androidVersion = match[2];
-
-      if (androidVersion !== rule.expectedNumber) {
-        return {
-          valid: false,
-          message:
-            `Numer seryjny wskazuje Android ${androidVersion}, ` +
-            `a wybrany monitor ma Android ${rule.expectedNumber}.`
-        };
-      }
-
-      return {
-        valid: true
-      };
-    }
-
-    // default form
-    if (rule.checkVersion === "generic") {
-      if (!/^[A-Za-z0-9\-\/._]{4,40}$/.test(serial)) {
-        return {
-          valid: false,
-          message:
-            "Numer seryjny musi mieć od 4 do 40 dozwolonych znaków."
-        };
-      }
-
-      return {
-        valid: true
-      };
-    }
-
-    return {
-      valid: false,
-      message: "Nie można zweryfikować numeru seryjnego."
-    };
-  }
-
-  
 
 
   function validateForm() {
@@ -401,18 +307,8 @@ function EditRepairForm({ repair, onUpdated }) {
         errors.push(
           "Numer seryjny jest wymagany dla wybranego produktu."
         );
-      } else {
-        const serialValidation = validateSerialNumber(
-          serialNumber,
-          selectedProduct
-        );
-
-        if (!serialValidation.valid) {
-          errors.push(serialValidation.message);
-        }
       }
     }
-
 
     if (!description.trim()) {
       errors.push(
@@ -506,6 +402,7 @@ function EditRepairForm({ repair, onUpdated }) {
         repair.id,
         {
           status,
+          version: repair.version,
 
           product,
           isCustomProduct,
@@ -632,9 +529,9 @@ function EditRepairForm({ repair, onUpdated }) {
         <h3>Urządzenie</h3>
 
         <div>
-          <label>Produkt: </label>
+          <label htmlFor="editrepairform-1">Produkt: </label>
 
-          <select
+          <select id="editrepairform-1"
             required
             value={selectedProduct}
             onChange={(event) => {
@@ -666,11 +563,11 @@ function EditRepairForm({ repair, onUpdated }) {
 
         {selectedProduct === "Other" && (
           <div>
-            <label>
+            <label htmlFor="editrepairform-2">
               Nazwa urządzenia:
             </label>
 
-            <input
+            <input id="editrepairform-2"
               required
               value={customProduct}
               onChange={(event) =>
@@ -683,11 +580,11 @@ function EditRepairForm({ repair, onUpdated }) {
         )}
 
         <div>
-          <label>
+          <label htmlFor="editrepairform-3">
             Numer seryjny:
           </label>
 
-          <input
+          <input id="editrepairform-3"
             required={serialRequired}
             value={serialNumber}
             onChange={(event) =>
@@ -706,11 +603,11 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>
+          <label htmlFor="editrepairform-4">
             Opis usterki:
           </label>
 
-          <textarea
+          <textarea id="editrepairform-4"
             required
             value={description}
             onChange={(event) =>
@@ -724,9 +621,9 @@ function EditRepairForm({ repair, onUpdated }) {
         <h3>Dane osoby zgłaszającej</h3>
 
         <div>
-          <label>Imię: </label>
+          <label htmlFor="editrepairform-5">Imię: </label>
 
-          <input
+          <input id="editrepairform-5"
             required
             value={reporterName}
             onChange={(event) =>
@@ -738,9 +635,9 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>Nazwisko: </label>
+          <label htmlFor="editrepairform-6">Nazwisko: </label>
 
-          <input
+          <input id="editrepairform-6"
             required
             value={reporterSurname}
             onChange={(event) =>
@@ -752,9 +649,9 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>Telefon: </label>
+          <label htmlFor="editrepairform-7">Telefon: </label>
 
-          <input
+          <input id="editrepairform-7"
             required
             type="tel"
             value={reporterPhone}
@@ -767,9 +664,9 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>E-mail: </label>
+          <label htmlFor="editrepairform-8">E-mail: </label>
 
-          <input
+          <input id="editrepairform-8"
             required
             type="email"
             value={reporterEmail}
@@ -784,11 +681,11 @@ function EditRepairForm({ repair, onUpdated }) {
         <h3>Dane firmy</h3>
 
         <div>
-          <label>
+          <label htmlFor="editrepairform-9">
             Nazwa firmy:
           </label>
 
-          <input
+          <input id="editrepairform-9"
             required
             value={companyName}
             onChange={(event) =>
@@ -800,9 +697,9 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>Adres: </label>
+          <label htmlFor="editrepairform-10">Adres: </label>
 
-          <input
+          <input id="editrepairform-10"
             required
             value={companyAddress}
             onChange={(event) =>
@@ -814,11 +711,11 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>
+          <label htmlFor="editrepairform-11">
             Kod pocztowy:
           </label>
 
-          <input
+          <input id="editrepairform-11"
             required
             value={companyPostalCode}
             onChange={(event) =>
@@ -830,9 +727,9 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>Miasto: </label>
+          <label htmlFor="editrepairform-12">Miasto: </label>
 
-          <input
+          <input id="editrepairform-12"
             required
             value={companyCity}
             onChange={(event) =>
@@ -844,9 +741,9 @@ function EditRepairForm({ repair, onUpdated }) {
         </div>
 
         <div>
-          <label>NIP: </label>
+          <label htmlFor="editrepairform-13">NIP: </label>
 
-          <input
+          <input id="editrepairform-13"
             required
             inputMode="numeric"
             maxLength={10}
@@ -898,11 +795,11 @@ function EditRepairForm({ repair, onUpdated }) {
             </div>
 
             <div>
-              <label>
+              <label htmlFor="editrepairform-14">
                 Numer faktury:
               </label>
 
-              <input
+              <input id="editrepairform-14"
                 required
                 value={
                   purchaseInvoiceNumber

@@ -1,3 +1,5 @@
+import { displayLabels } from "../../displayLabels";
+import { useAuth } from "../../context/useAuth";
 import { useState } from "react";
 import { updatePermissions } from "../../api/api";
 import Message from "../Message";
@@ -15,26 +17,15 @@ const permissionNames = [
 ];
 
 function EditPermissionsForm({ user, onUpdated }) {
-  const [permissions, setPermissions] = useState({
-    ReadRepairs: user.permissions?.readRepairs ?? false,
-    TakeRepairs: user.permissions?.takeRepairs ?? false,
-    EditRepairs: user.permissions?.editRepairs ?? false,
-    DeleteRepairs: user.permissions?.deleteRepairs ?? false,
-    ReadUsers: user.permissions?.readUsers ?? false,
-    EditUsers: user.permissions?.editUsers ?? false,
-    DeleteUsers: user.permissions?.deleteUsers ?? false,
-    GrantUsers: user.permissions?.grantUsers ?? false,
-    DischargeUsers: user.permissions?.dischargeUsers ?? false,
-  });
-
+  const { user: loggedUser } = useAuth();
+  const [changes, setChanges] = useState({});
+  const originalValue = name => Boolean(user.permissions?.[name[0].toLowerCase() + name.slice(1)]);
+  const canChange = name => loggedUser.role === "Admin" || Boolean(loggedUser.permissions?.[name[0].toLowerCase() + name.slice(1)]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   function handleChange(permission) {
-    setPermissions({
-      ...permissions,
-      [permission]: !permissions[permission],
-    });
+    setChanges(previous => ({ ...previous, [permission]: !(previous[permission] ?? originalValue(permission)) }));
   }
 
   async function handleSubmit(event) {
@@ -44,13 +35,14 @@ function EditPermissionsForm({ user, onUpdated }) {
     const  permissionsRevoked = [];
 
     for (const permission of permissionNames) {
-      if (permissions[permission]) {
+      if (changes[permission] === undefined || changes[permission] === originalValue(permission)) continue;
+      if (changes[permission]) {
         permissionsGranted.push(permission);
       } else {
         permissionsRevoked.push(permission);
       }
     }
-    
+
     try {
       await updatePermissions(
         user.id,
@@ -59,18 +51,21 @@ function EditPermissionsForm({ user, onUpdated }) {
       );
 
       setError("");
-      setSuccess("User updated successfully.");
+      setSuccess("Dane użytkownika zostały zapisane.");
 
       await onUpdated();
+      setChanges({});
     } catch (error) {
       setSuccess("");
       setError(error.message);
     }
   }
 
+  if (loggedUser.id === user.id || (user.role === "Admin" && (loggedUser.role !== "Admin" || loggedUser.priority > user.priority))) return null;
+
   return (
     <div>
-      <h2>Edit permissions</h2>
+      <h2>Edytuj uprawnienia</h2>
 
       <Message
         error={error}
@@ -83,17 +78,18 @@ function EditPermissionsForm({ user, onUpdated }) {
             <label>
               <input
                 type="checkbox"
-                checked={permissions[permission]}
+                checked={changes[permission] ?? originalValue(permission)}
+                disabled={!canChange(permission)}
                 onChange={() => handleChange(permission)}
               />
 
-              {permission}
+              {displayLabels[permission] ?? "Nieznana wartość"}
             </label>
           </div>
         ))}
 
         <button type="submit">
-          Save permissions
+          Zapisz uprawnienia
         </button>
       </form>
     </div>

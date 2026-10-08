@@ -1,23 +1,24 @@
-function UserPermissions({ permissions }) {
+function UserPermissions({ permissions, isAdmin = false }) {
+  if (isAdmin) return <section><h2>Uprawnienia</h2><p>Administratorzy mają wszystkie uprawnienia.</p></section>;
   if (!permissions) {
-    return <p>No permissions found.</p>;
+    return <p>Brak uprawnień.</p>;
   }
 
   return (
     <div>
-      <h2>Privileges</h2>
+      <h2>Uprawnienia</h2>
 
-      <p>Read repairs: {permissions.readRepairs ? "Yes" : "No"}</p>
-      <p>Take repairs: {permissions.takeRepairs ? "Yes" : "No"}</p>
-      <p>Edit repairs: {permissions.editRepairs ? "Yes" : "No"}</p>
-      <p>Delete repairs: {permissions.deleteRepairs ? "Yes" : "No"}</p>
+      <p>Przeglądanie napraw: {permissions.readRepairs ? "Tak" : "Nie"}</p>
+      <p>Przyjmowanie napraw: {permissions.takeRepairs ? "Tak" : "Nie"}</p>
+      <p>Edycja napraw: {permissions.editRepairs ? "Tak" : "Nie"}</p>
+      <p>Usuwanie napraw: {permissions.deleteRepairs ? "Tak" : "Nie"}</p>
 
-      <p>Read users: {permissions.readUsers ? "Yes" : "No"}</p>
-      <p>Edit users: {permissions.editUsers ? "Yes" : "No"}</p>
-      <p>Delete users: {permissions.deleteUsers ? "Yes" : "No"}</p>
-      <p>Grant users: {permissions.grantUsers ? "Yes" : "No"}</p>
+      <p>Przeglądanie użytkowników: {permissions.readUsers ? "Tak" : "Nie"}</p>
+      <p>Edycja użytkowników: {permissions.editUsers ? "Tak" : "Nie"}</p>
+      <p>Usuwanie użytkowników: {permissions.deleteUsers ? "Tak" : "Nie"}</p>
+      <p>Nadawanie uprawnień: {permissions.grantUsers ? "Tak" : "Nie"}</p>
       <p>
-        Discharge users: {permissions.dischargeUsers ? "Yes" : "No"}
+        Odłączanie pracowników od napraw: {permissions.dischargeUsers ? "Tak" : "Nie"}
       </p>
     </div>
   );

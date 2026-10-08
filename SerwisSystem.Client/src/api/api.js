@@ -1,9 +1,11 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = (import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "");
 
 async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  let response;
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -14,34 +16,42 @@ async function apiFetch(endpoint, options = {}) {
     },
   });
 
+  } catch (error) {
+    if (error.name === "AbortError") throw error;
+    throw new Error("Nie udało się połączyć z serwerem. Sprawdź połączenie i spróbuj ponownie.", { cause: error });
+  }
+
   const contentType = response.headers.get("content-type");
 
   let data;
 
-  if (contentType?.includes("application/json")) {
-    data = await response.json();
+  if (contentType?.includes("json")) {
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error("Serwer zwrócił nieprawidłową odpowiedź. Spróbuj ponownie później.");
+    }
   } else {
     data = await response.text();
   }
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && endpoint !== "/auth/login") {
       localStorage.removeItem("token");
 
       window.location.href = "/login";
 
-      throw new Error("Your session has expired. Please log in again.");
+      throw new Error("Sesja wygasła. Zaloguj się ponownie.");
     }
 
     if (response.status === 403) {
-      throw new Error("You do not have permission to perform this action.");
+      throw new Error("Nie masz uprawnień do wykonania tej czynności.");
     }
 
-    throw new Error(
-      data?.message ||
-      data ||
-      "Something went wrong."
-    );
+    const details = data?.errors ? Object.values(data.errors).flat().join(" ") : "";
+    const error = new Error(details || data?.message || data?.detail || data?.title || (typeof data === "string" ? data.trim() : "") || `Żądanie nie powiodło się (${response.status}).`);
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -80,7 +90,7 @@ export function getRepairs({// repairs =========================================
   mine = false,
   sortBy = "createdAt",
   descending = true,
-} = {}) {
+} = {}, cancellationSignal) {
   const params = new URLSearchParams({
     page,
     pageSize,
@@ -94,11 +104,11 @@ export function getRepairs({// repairs =========================================
     params.append("statuses", status);
   });
 
-  return apiFetch(`/repairs?${params}`);
+  return apiFetch(`/repairs?${params}`, { signal: cancellationSignal });
 }
 
-export function getRepair(id) {
-  return apiFetch(`/repairs/${id}`);
+export function getRepair(id, cancellationSignal) {
+  return apiFetch(`/repairs/${id}`, { signal: cancellationSignal });
 }
 
 export function updateRepair(id, repair) {
@@ -108,33 +118,38 @@ export function updateRepair(id, repair) {
   });
 }
 
-export function takeRepair(id) {
+export function takeRepair(id, version) {
   return apiFetch(`/repairs/${id}/take`, {
     method: "POST",
+    body: JSON.stringify({ version }),
   });
 }
 
-export function completeRepair(id) {
+export function completeRepair(id, version) {
   return apiFetch(`/repairs/${id}/complete`, {
     method: "POST",
+    body: JSON.stringify({ version }),
   });
 }
 
-export function cancelRepair(id) {
+export function cancelRepair(id, version) {
   return apiFetch(`/repairs/${id}/cancel`, {
     method: "POST",
+    body: JSON.stringify({ version }),
   });
 }
 
-export function returnRepair(id) {
+export function returnRepair(id, version) {
   return apiFetch(`/repairs/${id}/return`, {
     method: "POST",
+    body: JSON.stringify({ version }),
   });
 }
 
-export function deleteRepair(id) {
+export function deleteRepair(id, version) {
   return apiFetch(`/repairs/${id}`, {
     method: "DELETE",
+    body: JSON.stringify({ version }),
   });
 }
 
@@ -144,7 +159,7 @@ export function getUsers({// users =============================================
   search = "",
   sortBy = "priority",
   descending = false,
-} = {}) {
+} = {}, cancellationSignal) {
   const params = new URLSearchParams({
     page,
     pageSize,
@@ -153,15 +168,15 @@ export function getUsers({// users =============================================
     descending,
   });
 
-  return apiFetch(`/users?${params}`);
+  return apiFetch(`/users?${params}`, { signal: cancellationSignal });
 }
 
-export function getUser(id) {
-  return apiFetch(`/users/${id}`);
+export function getUser(id, cancellationSignal) {
+  return apiFetch(`/users/${id}`, { signal: cancellationSignal });
 }
 
-export function getLoggedUser() {
-  return apiFetch("/users/logged");
+export function getLoggedUser(cancellationSignal) {
+  return apiFetch("/users/logged", { signal: cancellationSignal });
 }
 
 export function updateUser(id, username, email) {
@@ -175,7 +190,7 @@ export function updateUser(id, username, email) {
 }
 
 export function changePassword(currentPassword, newPassword) {
-  return apiFetch("/users/change-password", {
+  return apiFetch("/users/changePassword", {
     method: "PUT",
     body: JSON.stringify({
       currentPassword,
@@ -202,8 +217,8 @@ export function deleteUser(id) {
 
 
 
-export function getAdmins() {// admins ===============================================================
-  return apiFetch("/users/admins");
+export function getAdmins(cancellationSignal) {
+  return apiFetch("/users/admins", { signal: cancellationSignal });
 }
 
 export function promoteAdmin(id) {

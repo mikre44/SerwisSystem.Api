@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { deleteRepair } from "../../api/api";
 import ConfirmButton from "../ConfirmButton";
 
-function DeleteRepairButton({ repairId }) {
+function DeleteRepairButton({ repairId, version }) {
   const navigate = useNavigate();
 
   const [error, setError] = useState("");
@@ -15,7 +15,7 @@ function DeleteRepairButton({ repairId }) {
       setDeleting(true);
       setError("");
 
-      await deleteRepair(repairId);
+      await deleteRepair(repairId, version);
 
       navigate("/repairs");
     } catch (error) {
@@ -28,18 +28,18 @@ function DeleteRepairButton({ repairId }) {
     <div>
       {error && (
         <p>
-          Error: {error}
+          Błąd: {error}
         </p>
       )}
 
       <ConfirmButton
-        message="Are you sure you want to delete this repair?"
+        message="Czy na pewno chcesz usunąć tę naprawę?"
         onConfirm={handleDelete}
         disabled={deleting}
       >
         {deleting
-          ? "Deleting..."
-          : "Delete repair"}
+          ? "Usuwanie..."
+          : "Usuń naprawę"}
       </ConfirmButton>
     </div>
   );

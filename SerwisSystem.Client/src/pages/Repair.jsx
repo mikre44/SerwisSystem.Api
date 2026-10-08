@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { displayLabels } from "../displayLabels";
+import { useRemoteData } from "../hooks/useRemoteData";
+import { useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { getRepair } from "../api/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 import EditRepairForm from "../components/EditFormComponents/EditRepairForm";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
@@ -11,34 +13,17 @@ function Repair() {
   const { id } = useParams();
   const { user } = useAuth();
 
-  const [repair, setRepair] = useState(null);
-  const [error, setError] = useState("");
-
-  const canDelete =
-  user.role === "Admin" ||
-  user.permissions?.deleteRepairs;
-
-  async function loadRepair() {
-    try {
-      const data = await getRepair(id);
-
-      setRepair(data);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
-
-  useEffect(() => {
-    loadRepair();
-  }, [id]);
+  const loadRepair = useCallback(signal => getRepair(id, signal), [id]);
+  const { data: repair, error, loading, reload } = useRemoteData(loadRepair);
+  const canDelete = user.role === "Admin" || user.permissions?.deleteRepairs;
+  if (loading) return <p>Wczytywanie naprawy...</p>;
 
   if (error) {
-    return <p>Error: {error}</p>;
+    return <p>Błąd: {error}</p>;
   }
 
   if (!repair) {
-    return <p>Loading repair...</p>;
+    return <p>Wczytywanie naprawy...</p>;
   }
 
   const canEdit =
@@ -47,105 +32,107 @@ function Repair() {
 
   return (
     <div>
-      <h1>Repair #{repair.id}</h1>
+      <h1>Naprawa nr{repair.id}</h1>
+      <button type="button" onClick={reload}>Wczytaj aktualne dane naprawy</button>
 
-      <h2>Repair information</h2>
+      <h2>Informacje o naprawie</h2>
 
-      <p>Status: {repair.status}</p>
-      <p> Product: {repair.product} 
+      <p>Status: {displayLabels[repair.status] ?? "Nieznana wartość"}</p>
+      <p> Produkt: {repair.product}
         {repair.isCustomProduct && " (nie z listy)"}
       </p>
-      <p>Serial number: {repair.serialNumber || "None"}</p>
-      <p>Description: {repair.description}</p>
+      <p>Numer seryjny: {repair.serialNumber || "Brak"}</p>
+      <p>Opis: {repair.description}</p>
 
-      <h2>Reporting person</h2>
+      <h2>Osoba zgłaszająca</h2>
 
-      <p>Name: {repair.reporterName}</p>
-      <p>Surname: {repair.reporterSurname}</p>
-      <p>Phone: {repair.reporterPhone}</p>
-      <p>Email: {repair.reporterEmail}</p>
+      <p>Imię: {repair.reporterName}</p>
+      <p>Nazwisko: {repair.reporterSurname}</p>
+      <p>Telefon: {repair.reporterPhone}</p>
+      <p>E-mail: {repair.reporterEmail}</p>
 
-      <h2>Company</h2>
+      <h2>Firma</h2>
 
-      <p>Company name: {repair.companyName}</p>
-      <p>Address: {repair.companyAddress}</p>
-      <p>Postal code: {repair.companyPostalCode}</p>
-      <p>City: {repair.companyCity}</p>
+      <p>Nazwa firmy: {repair.companyName}</p>
+      <p>Adres: {repair.companyAddress}</p>
+      <p>Kod pocztowy: {repair.companyPostalCode}</p>
+      <p>Miasto: {repair.companyCity}</p>
       <p>NIP: {repair.companyNip}</p>
 
-      <h2>Warranty</h2>
+      <h2>Gwarancja</h2>
 
       <p>
-        Warranty repair: {repair.hasWarranty ? "Yes" : "No"}
+        Naprawa gwarancyjna: {repair.hasWarranty ? "Tak" : "Nie"}
       </p>
 
       {repair.hasWarranty && (
         <>
           <p>
-            Purchase date:{" "}
+            Data zakupu:{" "}
             {repair.purchaseDate
-              ? new Date(repair.purchaseDate).toLocaleDateString()
-              : "None"}
+              ? new Date(repair.purchaseDate).toLocaleDateString("pl-PL")
+              : "Brak"}
           </p>
 
           <p>
-            Purchase invoice number:{" "}
-            {repair.purchaseInvoiceNumber ?? "None"}
+            Numer faktury zakupu:{" "}
+            {repair.purchaseInvoiceNumber ?? "Brak"}
           </p>
         </>
       )}
 
-      <h2>Contract</h2>
+      <h2>Umowa</h2>
 
       <p>
-        Has contract: {repair.hasContract ? "Yes" : "No"}
+        Obowiązuje umowa: {repair.hasContract ? "Tak" : "Nie"}
       </p>
 
       {repair.hasContract && (
         <p>
-          Contract number: {repair.contractNumber ?? "None"}
+          Numer umowy: {repair.contractNumber ?? "Brak"}
         </p>
       )}
 
-      <h2>Consents</h2>
+      <h2>Zgody</h2>
 
       <p>
-        Service data consent:{" "}
-        {repair.serviceDataConsent ? "Yes" : "No"}
+        Zgoda na przetwarzanie danych do celów serwisowych:{" "}
+        {repair.serviceDataConsent ? "Tak" : "Nie"}
       </p>
 
       <p>
-        Marketing consent:{" "}
-        {repair.marketingConsent ? "Yes" : "No"}
+        Zgoda marketingowa:{" "}
+        {repair.marketingConsent ? "Tak" : "Nie"}
       </p>
 
-      <h2>Worker</h2>
+      <h2>Pracownik</h2>
 
       <p>
-        Worker: {repair.workerUsername ?? "Nobody"}
+        Pracownik: {repair.workerUsername ?? "Nie przypisano"}
       </p>
 
       <p>
-        Created:{" "}
-        {new Date(repair.createdAt).toLocaleString()}
+        Data utworzenia:{" "}
+        {new Date(repair.createdAt).toLocaleString("pl-PL")}
       </p>
 
       <EditRepairStatus
         repair={repair}
-        onUpdated={loadRepair}
+        onUpdated={reload}
       />
 
       {canDelete && (
         <DeleteRepairButton
           repairId={repair.id}
-          onDeleted={() => navigate("/repairs")}
+          version={repair.version}
         />
       )}
 
       {canEdit && (
         <EditRepairForm
+          key={`${repair.id}:${repair.version}`}
           repair={repair}
-          onUpdated={loadRepair}
+          onUpdated={reload}
         />
       )}
     </div>

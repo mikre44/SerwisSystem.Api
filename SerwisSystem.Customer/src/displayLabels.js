@@ -1,0 +1,17 @@
+export const displayLabels = {
+  "Pending": "Oczekująca",
+  "InProgress": "W trakcie",
+  "Completed": "Zakończona",
+  "Cancelled": "Anulowana",
+  "Admin": "Administrator",
+  "Worker": "Pracownik",
+  "ReadRepairs": "Przeglądanie napraw",
+  "TakeRepairs": "Przyjmowanie napraw",
+  "EditRepairs": "Edycja napraw",
+  "DeleteRepairs": "Usuwanie napraw",
+  "ReadUsers": "Przeglądanie użytkowników",
+  "EditUsers": "Edycja użytkowników",
+  "DeleteUsers": "Usuwanie użytkowników",
+  "GrantUsers": "Nadawanie uprawnień",
+  "DischargeUsers": "Odłączanie pracowników od napraw"
+};

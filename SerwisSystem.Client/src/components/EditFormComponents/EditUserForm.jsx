@@ -16,7 +16,7 @@ function EditUserForm({ user, onUpdated }) {
       await updateUser(user.id, username, email);
 
       setError("");
-      setSuccess("User updated successfully.");
+      setSuccess("Dane użytkownika zostały zapisane.");
 
       await onUpdated();
     } catch (error) {
@@ -28,7 +28,7 @@ function EditUserForm({ user, onUpdated }) {
 
   return (
     <div>
-      <h2>Edit user</h2>
+      <h2>Edytuj użytkownika</h2>
 
       <Message
         error={error}
@@ -37,9 +37,9 @@ function EditUserForm({ user, onUpdated }) {
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Username: </label>
+          <label htmlFor="edituserform-1">Nazwa użytkownika: </label>
 
-          <input
+          <input id="edituserform-1"
             type="text"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
@@ -47,9 +47,9 @@ function EditUserForm({ user, onUpdated }) {
         </div>
 
         <div>
-          <label>Email: </label>
+          <label htmlFor="edituserform-2">E-mail: </label>
 
-          <input
+          <input id="edituserform-2"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -57,7 +57,7 @@ function EditUserForm({ user, onUpdated }) {
         </div>
 
         <button type="submit">
-          Save
+          Zapisz
         </button>
       </form>
     </div>

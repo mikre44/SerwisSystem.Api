@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
+import { useRemoteData } from "../hooks/useRemoteData";
 import { Link } from "react-router-dom";
 import {
   getAdmins,
-  demoteAdmin,
-  updateAdminPriority,
 } from "../api/api";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 import EditAdminPriority from "../components/EditFormComponents/EditAdminPriority";
 import EditAdminButton from "../components/EditFormComponents/EditAdminButton";
@@ -14,40 +12,25 @@ import EditAdminButton from "../components/EditFormComponents/EditAdminButton";
 function Admins() {
   const { user: loggedUser } = useAuth();
 
-  const [admins, setAdmins] = useState([]);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  async function loadAdmins() {
-    try {
-      const data = await getAdmins();
-
-      setAdmins(data);
-      setError("");
-    } catch (error) {
-      setError(error.message);
-    }
-  }
-
-  useEffect(() => {
-    loadAdmins();
-  }, []);
+  const { data, error, loading, reload } = useRemoteData(getAdmins);
+  const admins = data ?? [];
+  if (loading) return <p>Wczytywanie administratorów...</p>;
 
   return (
     <div>
-      <h1>Admins</h1>
+      <h1>Administratorzy</h1>
 
-      {error && <p>Error: {error}</p>}
-      {success && <p>{success}</p>}
+      {error && <p>Błąd: {error}</p>}
+
 
       <table>
         <thead>
           <tr>
             <th>ID</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Priority</th>
-            <th>Actions</th>
+            <th>Nazwa użytkownika</th>
+            <th>E-mail</th>
+            <th>Priorytet</th>
+            <th>Działania</th>
           </tr>
         </thead>
 
@@ -69,13 +52,13 @@ function Admins() {
                   <EditAdminPriority
                     admin={admin}
                     loggedUser={loggedUser}
-                    onUpdated={loadAdmins}
+                    onUpdated={reload}
                   />
                 </td>
                 <td>
                   <EditAdminButton
                   user={admin}
-                  onUpdated={loadAdmins}
+                  onUpdated={reload}
                 />
                 </td>
               </tr>

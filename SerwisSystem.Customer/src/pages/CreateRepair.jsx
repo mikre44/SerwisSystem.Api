@@ -139,7 +139,7 @@ function CreateRepair() {
     return /^(\+)?\d{7,15}$/.test(cleaned);
   }
 
-  
+
   function validateSerialNumber(serialNumber, product) {
     const serial = serialNumber.trim();
     const rule = productRules[product];
@@ -516,7 +516,7 @@ function CreateRepair() {
           </h2>
 
           <p>
-            Numer zgłoszenia: {createdRepair.id}
+            Kod śledzenia: <strong>{createdRepair.trackingCode}</strong>
           </p>
 
           <p>
@@ -532,13 +532,13 @@ function CreateRepair() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      {!createdRepair && <form onSubmit={handleSubmit}>
         <h2>Dane osoby zgłaszającej</h2>
 
         <div>
-          <label>Imię: </label>
+          <label htmlFor="createrepair-1">Imię: </label>
 
-          <input
+          <input id="createrepair-1"
             required
             maxLength={100}
             value={reporterName}
@@ -549,9 +549,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>Nazwisko: </label>
+          <label htmlFor="createrepair-2">Nazwisko: </label>
 
-          <input
+          <input id="createrepair-2"
             required
             maxLength={100}
             value={reporterSurname}
@@ -562,9 +562,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>Telefon kontaktowy: </label>
+          <label htmlFor="createrepair-3">Telefon kontaktowy: </label>
 
-          <input
+          <input id="createrepair-3"
             required
             type="tel"
             value={reporterPhone}
@@ -575,9 +575,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>E-mail: </label>
+          <label htmlFor="createrepair-4">E-mail: </label>
 
-          <input
+          <input id="createrepair-4"
             required
             type="email"
             value={reporterEmail}
@@ -588,9 +588,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>Powtórz e-mail: </label>
+          <label htmlFor="createrepair-5">Powtórz e-mail: </label>
 
-          <input
+          <input id="createrepair-5"
             required
             type="email"
             value={confirmEmail}
@@ -603,9 +603,9 @@ function CreateRepair() {
         <h2>Dane firmy</h2>
 
         <div>
-          <label>Nazwa firmy: </label>
+          <label htmlFor="createrepair-6">Nazwa firmy: </label>
 
-          <input
+          <input id="createrepair-6"
             required
             maxLength={200}
             value={companyName}
@@ -616,9 +616,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>Adres: </label>
+          <label htmlFor="createrepair-7">Adres: </label>
 
-          <input
+          <input id="createrepair-7"
             required
             maxLength={200}
             value={companyAddress}
@@ -629,9 +629,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>Kod pocztowy: </label>
+          <label htmlFor="createrepair-8">Kod pocztowy: </label>
 
-          <input
+          <input id="createrepair-8"
             required
             placeholder="00-000"
             maxLength={6}
@@ -648,9 +648,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>Miasto: </label>
+          <label htmlFor="createrepair-9">Miasto: </label>
 
-          <input
+          <input id="createrepair-9"
             required
             maxLength={100}
             value={companyCity}
@@ -661,9 +661,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>NIP: </label>
+          <label htmlFor="createrepair-10">NIP: </label>
 
-          <input
+          <input id="createrepair-10"
             required
             inputMode="numeric"
             maxLength={10}
@@ -682,9 +682,9 @@ function CreateRepair() {
         <h2>Informacje o urządzeniu</h2>
 
         <div>
-          <label>Produkt: </label>
+          <label htmlFor="createrepair-11">Produkt: </label>
 
-          <select
+          <select id="createrepair-11"
             required
             value={selectedProduct}
             onChange={(event) => {
@@ -716,11 +716,11 @@ function CreateRepair() {
 
         {selectedProduct === "Other" && (
           <div>
-            <label>
+            <label htmlFor="createrepair-12">
               Nazwa urządzenia:
             </label>
 
-            <input
+            <input id="createrepair-12"
               required
               value={customProduct}
               onChange={(event) =>
@@ -733,9 +733,9 @@ function CreateRepair() {
         )}
 
         <div>
-          <label>Numer seryjny: </label>
+          <label htmlFor="createrepair-13">Numer seryjny: </label>
 
-          <input
+          <input id="createrepair-13"
             required={serialRequired}
             maxLength={100}
             value={serialNumber}
@@ -755,9 +755,9 @@ function CreateRepair() {
         </div>
 
         <div>
-          <label>Opis usterki: </label>
+          <label htmlFor="createrepair-14">Opis usterki: </label>
 
-          <textarea
+          <textarea id="createrepair-14"
             required
             maxLength={1000}
             value={description}
@@ -803,11 +803,11 @@ function CreateRepair() {
             </div>
 
             <div>
-              <label>
+              <label htmlFor="createrepair-15">
                 Numer faktury zakupu:
               </label>
 
-              <input
+              <input id="createrepair-15"
                 required
                 maxLength={100}
                 value={
@@ -902,7 +902,8 @@ function CreateRepair() {
               : "Wyślij zgłoszenie"}
           </button>
         </div>
-      </form>
+      </form>}
+      {createdRepair && <button onClick={() => setCreatedRepair(null)}>Zgłoś kolejne urządzenie</button>}
     </div>
   );
 }

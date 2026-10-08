@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import { updateUser } from "../api/api";
+import { useRemoteData } from "../hooks/useRemoteData";
+import { useAuth } from "../context/useAuth";
+import { getLoggedUser } from "../api/api";
 
 import UserInfo from "../components/UserInfoComponents/UserInfo";
 import UserPermissions from "../components/UserInfoComponents/UserPermissions";
@@ -10,16 +10,20 @@ import ChangePasswordForm from "../components/EditFormComponents/ChangePasswordF
 
 
 function LoggedUser() {
-  const { user, reloadUser } = useAuth();
+  const { reloadUser } = useAuth();
+  const { data: user, error, loading, reload } = useRemoteData(getLoggedUser);
+  async function refreshProfile() { await reloadUser(); reload(); }
+  if (loading) return <p>Wczytywanie profilu...</p>;
+  if (error) return <p role="alert">{error}</p>;
 
   return (
     <div>
-      <h1>My profile</h1>
+      <h1>Mój profil</h1>
 
       <UserInfo user={user} />
-      <EditUserForm user={user} onUpdated={reloadUser}/>
+      <EditUserForm user={user} onUpdated={refreshProfile}/>
       <ChangePasswordForm />
-      <UserPermissions permissions={user.permissions} />
+      <UserPermissions isAdmin={user.role === "Admin"} permissions={user.permissions} />
       <UserRepairs repairs={user.repairs} />
 
     </div>

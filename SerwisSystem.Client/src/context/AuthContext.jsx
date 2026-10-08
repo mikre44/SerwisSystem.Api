@@ -1,54 +1,28 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getLoggedUser } from "../api/api";
-
-const AuthContext = createContext(null);
+import { AuthContext } from "./authState";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  async function loadUser() {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const loggedUser = await getLoggedUser();
-      setUser(loggedUser);
-    } catch {
-      localStorage.removeItem("token");
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    setUser(null);
-  }
-
-  useEffect(() => {
-    loadUser();
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem("token")));
+  const [error, setError] = useState("");
+  const logout = useCallback(() => { localStorage.removeItem("token"); setUser(null); setError(""); }, []);
+  const reloadUser = useCallback(async () => {
+    const account = await getLoggedUser();
+    setUser(account); setError(""); setLoading(false);
+    return account;
   }, []);
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        logout,
-        reloadUser: loadUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
+  useEffect(() => {
+    if (!localStorage.getItem("token")) return;
+    const requestController = new AbortController();
+    getLoggedUser(requestController.signal).then(account => {
+      if (!requestController.signal.aborted) { setUser(account); setError(""); }
+    }).catch(error => {
+      if (!requestController.signal.aborted) setError(error.message);
+    }).finally(() => {
+      if (!requestController.signal.aborted) setLoading(false);
+    });
+    return () => requestController.abort();
+  }, []);
+  return <AuthContext.Provider value={{ user, loading, error, logout, reloadUser }}>{children}</AuthContext.Provider>;
 }

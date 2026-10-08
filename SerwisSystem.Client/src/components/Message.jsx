@@ -1,7 +1,7 @@
 function Message({ error, success }) {
   return (
     <>
-      {error && <p>Error: {error}</p>}
+      {error && <p>Błąd: {error}</p>}
       {success && <p>{success}</p>}
     </>
   );

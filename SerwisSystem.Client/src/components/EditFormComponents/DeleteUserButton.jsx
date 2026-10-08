@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { deleteUser } from "../../api/api";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/useAuth";
 import ConfirmButton from "../ConfirmButton";
 import Message from "../Message";
 
@@ -21,7 +21,7 @@ function DeleteUserButton({ user }) {
     try {
       await deleteUser(user.id);
 
-      setSuccess("User deleted successfully.");
+      setSuccess("Użytkownik został usunięty.");
       navigate("/users");
     } catch (error) {
       setSuccess("");
@@ -41,10 +41,10 @@ function DeleteUserButton({ user }) {
       />
 
       <ConfirmButton
-        message={`Are you sure you want to delete ${user.username}?`}
+        message={`Czy na pewno chcesz usunąć użytkownika ${user.username}?`}
         onConfirm={handleDelete}
       >
-        Delete user
+        Usuń użytkownika
       </ConfirmButton>
     </div>
   );

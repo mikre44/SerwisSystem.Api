@@ -20,7 +20,7 @@ function EditAdminPriority({ admin, loggedUser, onUpdated }) {
       );
 
       setError("");
-      setSuccess("Priority updated successfully.");
+      setSuccess("Priorytet został zmieniony.");
 
       await onUpdated();
     } catch (error) {
@@ -35,13 +35,14 @@ function EditAdminPriority({ admin, loggedUser, onUpdated }) {
 
   return (
     <div>
-      {error && <p>Error: {error}</p>}
+      {error && <p>Błąd: {error}</p>}
       {success && <p>{success}</p>}
 
       <form onSubmit={handleSubmit}>
         <input
           type="number"
-          min={loggedUser.priority + 1}
+          min={loggedUser.priority}
+          max={999}
           value={priority}
           onChange={(event) =>
             setPriority(event.target.value)
@@ -49,7 +50,7 @@ function EditAdminPriority({ admin, loggedUser, onUpdated }) {
         />
 
         <button type="submit">
-          Save priority
+          Zapisz priorytet
         </button>
       </form>
     </div>

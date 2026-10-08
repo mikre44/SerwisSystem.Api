@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { changePassword } from "../../api/api";
+import { useAuth } from "../../context/useAuth";
 import Message from "../Message";
 
 function ChangePasswordForm() {
+  const { logout } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -15,7 +17,7 @@ function ChangePasswordForm() {
 
     if (newPassword !== confirmPassword) {
       setSuccess("");
-      setError("New passwords do not match.");
+      setError("Nowe hasła nie są takie same.");
       return;
     }
 
@@ -25,8 +27,9 @@ function ChangePasswordForm() {
         newPassword
       );
 
+      logout();
       setError("");
-      setSuccess("Password changed successfully.");
+      setSuccess("Hasło zostało zmienione.");
 
       setCurrentPassword("");
       setNewPassword("");
@@ -39,7 +42,7 @@ function ChangePasswordForm() {
 
   return (
     <div>
-      <h2>Change password</h2>
+      <h2>Zmień hasło</h2>
 
       <Message
         error={error}
@@ -48,9 +51,9 @@ function ChangePasswordForm() {
 
       <form onSubmit={handleSubmit}>
         <div>
-          <label>Current password: </label>
+          <label htmlFor="changepasswordform-1">Obecne hasło: </label>
 
-          <input
+          <input id="changepasswordform-1"
             type="password"
             required
             value={currentPassword}
@@ -61,9 +64,9 @@ function ChangePasswordForm() {
         </div>
 
         <div>
-          <label>New password: </label>
+          <label htmlFor="changepasswordform-2">Nowe hasło: </label>
 
-          <input
+          <input id="changepasswordform-2"
             type="password"
             required
             minLength="6"
@@ -75,9 +78,9 @@ function ChangePasswordForm() {
         </div>
 
         <div>
-          <label>Confirm new password: </label>
+          <label htmlFor="changepasswordform-3">Powtórz nowe hasło: </label>
 
-          <input
+          <input id="changepasswordform-3"
             type="password"
             required
             minLength="6"
@@ -89,7 +92,7 @@ function ChangePasswordForm() {
         </div>
 
         <button type="submit">
-          Change password
+          Zmień hasło
         </button>
       </form>
     </div>
