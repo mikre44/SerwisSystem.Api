@@ -12,6 +12,37 @@ using SerwisSystem.Api.Data;
 using SerwisSystem.Api.Models;
 using SerwisSystem.Api.Models.DTOs;
 using SerwisSystem.Api.Services;
+using SerwisSystem.Api.Models.Enums;
+
+if (args.Contains("--check-email"))
+{
+    var emailConfiguration = new ConfigurationBuilder().AddUserSecrets(typeof(AppDbContext).Assembly).AddEnvironmentVariables().Build();
+    using var smtp = new MailKit.Net.Smtp.SmtpClient { Timeout = 15000 };
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+    try
+    {
+        foreach (var key in new[] { "FromEmail", "RepairNotificationRecipient" })
+            MimeKit.MailboxAddress.Parse(emailConfiguration[$"Email:{key}"] ?? "");
+        Console.WriteLine("Email addresses are valid.");
+        var port = int.Parse(emailConfiguration["Email:SmtpPort"]!);
+        await smtp.ConnectAsync(emailConfiguration["Email:SmtpHost"]!, port,
+            port == 465 ? MailKit.Security.SecureSocketOptions.SslOnConnect : MailKit.Security.SecureSocketOptions.StartTls, timeout.Token);
+        Console.WriteLine("SMTP connection established.");
+        await smtp.AuthenticateAsync(emailConfiguration["Email:Username"]!, emailConfiguration["Email:Password"]!, timeout.Token);
+        Console.WriteLine("SMTP authentication succeeded. No email was sent.");
+        await smtp.DisconnectAsync(true, timeout.Token);
+    }
+    catch (Exception exception)
+    {
+        Console.WriteLine($"Email diagnostic failed: {exception.GetType().Name}");
+        var message = exception.Message;
+        foreach (var setting in emailConfiguration.AsEnumerable().Where(setting => setting.Key.StartsWith("Email:") && !string.IsNullOrEmpty(setting.Value)))
+            message = message.Replace(setting.Value!, "[hidden]", StringComparison.OrdinalIgnoreCase);
+        Console.WriteLine(message);
+        Environment.ExitCode = 1;
+    }
+    return;
+}
 
 var checks = 0;
 void Check(bool condition, string description)
@@ -38,6 +69,13 @@ var emailHtml = emailBody.OfType<MimeKit.TextPart>().Single(part => part.IsHtml)
 Check(!emailHtml.Contains("<a href") && emailHtml.Contains("&lt;a"), "Customer text cannot inject email HTML");
 
 var configuration = new ConfigurationBuilder().AddUserSecrets(typeof(AppDbContext).Assembly).AddEnvironmentVariables().Build();
+var pdfRepair = new Repair { Id = 123, Product = "Zażółć gęślą jaźń", CompanyCity = "Łódź", Description = string.Join(" ", Enumerable.Repeat("Długi opis usterki z polskimi znakami: ą ć ę ł ń ó ś ź ż.", 100)), RepairMethod = RepairMethod.TechnicianVisit };
+var samplePdf = new RepairPdfService().CreatePdf(pdfRepair);
+Check(System.Text.Encoding.ASCII.GetString(samplePdf, 0, 5) == "%PDF-", "Repair export generates a PDF with the embedded font");
+if (Environment.GetEnvironmentVariable("SERWIS_SAMPLE_PDF") is { } samplePath)
+    await File.WriteAllBytesAsync(samplePath, samplePdf);
+var methodBody = EmailService.CreateRepairMethodBody(pdfRepair);
+Check(methodBody.Contains("Łódź") && methodBody.Contains("Numer naprawy: 123") && methodBody.Contains("Naprawa z dojazdem"), "Internal notification includes city, repair number and reason");
 var connectionString = configuration["SERWIS_TEST_CONNECTION"] ?? configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new Exception("Set SERWIS_TEST_CONNECTION to a PostgreSQL connection with permission to create a temporary test database.");
@@ -62,7 +100,11 @@ try
     var port = ((IPEndPoint)listener.LocalEndpoint).Port;
     listener.Stop();
     var serverStart = new ProcessStartInfo("dotnet") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+#if DEBUG
     serverStart.ArgumentList.Add(Path.GetFullPath("SerwisSystem.Api/bin/Debug/net10.0/SerwisSystem.Api.dll"));
+#else
+    serverStart.ArgumentList.Add(Path.GetFullPath("SerwisSystem.Api/bin/Release/net10.0/SerwisSystem.Api.dll"));
+#endif
     serverStart.WorkingDirectory = Path.GetFullPath("SerwisSystem.Api");
     serverStart.ArgumentList.Add("--urls");
     serverStart.ArgumentList.Add($"http://127.0.0.1:{port}");
@@ -143,6 +185,27 @@ try
     var repairs = await Read(await client.GetAsync("/api/repairs"));
     var repair = repairs["items"]![0]!.AsObject();
     var repairId = repair["id"]!.GetValue<int>();
+    Check(repair["repairMethod"]!.GetValue<string>() == "Shipping", "New repairs default to shipping");
+    var shippingRepairs = await Read(await client.GetAsync("/api/repairs?repairMethods=Shipping&statuses=Pending"));
+    Check(shippingRepairs["totalCount"]!.GetValue<int>() == 1, "Repair method and status filters combine");
+    var onSiteRepairs = await Read(await client.GetAsync("/api/repairs?repairMethods=OnSite&repairMethods=TechnicianVisit"));
+    Check(onSiteRepairs["totalCount"]!.GetValue<int>() == 0, "Multiple repair method filters exclude shipping repairs");
+    var pdfResponse = await client.GetAsync($"/api/repairs/{repairId}/pdf");
+    Check(pdfResponse.IsSuccessStatusCode && pdfResponse.Content.Headers.ContentType?.MediaType == "application/pdf", "Authorized staff can download repair PDFs");
+    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", workerToken);
+    Check((await client.GetAsync($"/api/repairs/{repairId}/pdf")).StatusCode == HttpStatusCode.Forbidden, "PDF download requires ReadRepairs");
+    Check((await client.PostAsJsonAsync($"/api/repairs/{repairId}/retry-notification", new { version = repair["version"]!.GetValue<uint>() })).StatusCode == HttpStatusCode.Forbidden, "Notification retry requires EditRepairs");
+    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", administratorToken);
+    repair["repairMethod"] = "UnknownMethod";
+    Check((await client.PutAsJsonAsync($"/api/repairs/{repairId}", repair)).StatusCode == HttpStatusCode.BadRequest, "Invalid repair methods are rejected");
+    repair["repairMethod"] = "TechnicianVisit";
+    repair = await Read(await client.PutAsJsonAsync($"/api/repairs/{repairId}", repair));
+    Check(repair["repairMethodNotificationPending"]!.GetValue<bool>(), "SMTP failure preserves the saved repair and pending notification");
+    repair = await Read(await client.PostAsJsonAsync($"/api/repairs/{repairId}/retry-notification", new { version = repair["version"]!.GetValue<uint>() }));
+    Check(repair["repairMethodNotificationPending"]!.GetValue<bool>(), "Failed retry remains available after reload");
+    repair["repairMethod"] = "Shipping";
+    repair = await Read(await client.PutAsJsonAsync($"/api/repairs/{repairId}", repair));
+    Check(!repair["repairMethodNotificationPending"]!.GetValue<bool>(), "Returning to shipping clears obsolete notifications");
     var version = repair["version"]!.GetValue<uint>();
     repair["description"] = "Worker correction";
     var updated = await Read(await client.PutAsJsonAsync($"/api/repairs/{repairId}", repair));

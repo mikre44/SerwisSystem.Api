@@ -1,35 +1,40 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 
 function Navbar() {
   const { user, logout } = useAuth();
 
   return (
-    <nav>
-      <Link to="/"> Strona główna </Link>{" | "}
+    <header className="site-header">
+      <a className="brand" href="/">Mentor<span>Serwis</span><small>Panel pracownika</small></a>
+      <nav aria-label="Nawigacja pracownika">
+      {user.role !== "Admin" && !user.permissions?.readRepairs && <NavLink to="/" end>Panel</NavLink>}
 
       {(user.role === "Admin" || user.permissions?.readUsers) && (
-        <><Link to="/users"> Użytkownicy </Link>{" | "}</>
+        <><NavLink to="/users"> Użytkownicy </NavLink></>
       )}
 
       {(user.role === "Admin" || user.permissions?.readRepairs) && (
-        <><Link to="/repairs"> Naprawy </Link>{" | "}</>
+        <><NavLink to="/repairs"> Naprawy </NavLink></>
       )}
 
       {user.role === "Admin" && (
-        <><Link to="/admins">Administratorzy</Link>{" | "}</>
+        <><NavLink to="/admins">Administratorzy</NavLink></>
       )}
 
-      <Link to="/user"> Twój profil </Link>{" | "}
+      <NavLink to="/user" end> Twój profil </NavLink>
 
-      <button onClick={logout}>
+      </nav>
+      <div className="account-menu">
+      <button className="button-secondary" onClick={logout}>
         Wyloguj się
       </button>
 
       <p>
         Zalogowano jako: {user.username}
       </p>
-    </nav>
+      </div>
+    </header>
     );
 }
 

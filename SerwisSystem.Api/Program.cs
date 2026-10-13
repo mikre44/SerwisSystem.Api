@@ -122,7 +122,7 @@ builder.Services.AddRateLimiter(options =>
     var rules = new[]
     {
         (Name: "login", Limit: 10, Minutes: 1),
-        (Name: "register", Limit: 5, Minutes: 60),
+        (Name: "register", Limit: 10, Minutes: 60),
         (Name: "repair-check", Limit: 20, Minutes: 1),
         (Name: "repair-create", Limit: builder.Configuration.GetValue("RateLimits:RepairCreatePermitLimit", 15),
             Minutes: builder.Configuration.GetValue("RateLimits:RepairCreateWindowMinutes", 30))

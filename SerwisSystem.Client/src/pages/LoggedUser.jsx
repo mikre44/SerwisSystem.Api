@@ -20,11 +20,13 @@ function LoggedUser() {
     <div>
       <h1>Mój profil</h1>
 
-      <UserInfo user={user} />
-      <EditUserForm user={user} onUpdated={refreshProfile}/>
-      <ChangePasswordForm />
-      <UserPermissions isAdmin={user.role === "Admin"} permissions={user.permissions} />
-      <UserRepairs repairs={user.repairs} />
+      <div className="panel-grid">
+      <section className="panel-section"><UserInfo user={user} /></section>
+      <section className="panel-section"><EditUserForm user={user} onUpdated={refreshProfile}/></section>
+      <section className="panel-section"><ChangePasswordForm /></section>
+      <section className="panel-section"><UserPermissions isAdmin={user.role === "Admin"} permissions={user.permissions} /></section>
+      <section className="panel-section full-width"><UserRepairs repairs={user.repairs} /></section>
+      </div>
 
     </div>
   );

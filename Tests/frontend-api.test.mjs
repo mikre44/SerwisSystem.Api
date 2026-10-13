@@ -10,6 +10,26 @@ async function loadApi(relativePath) {
 
 const staff = await loadApi('../SerwisSystem.Client/src/api/api.js');
 const customer = await loadApi('../SerwisSystem.Customer/src/api/api.js');
+
+test('repair method filters are combined with status filters', async () => {
+  const requests = captureRequest();
+  await staff.getRepairs({ statuses: ['Completed'], repairMethods: ['Shipping', 'OnSite'] });
+  const query = new URL(requests[0].url).searchParams;
+  assert.deepEqual(query.getAll('repairMethods'), ['Shipping', 'OnSite']);
+  assert.deepEqual(query.getAll('statuses'), ['Completed']);
+});
+
+test('PDF download preserves bytes and sends authorization', async () => {
+  let sentHeaders;
+  globalThis.fetch = async (_url, options) => {
+    sentHeaders = options.headers;
+    return new Response('%PDF-1.7 test', { headers: { 'Content-Type': 'application/pdf' } });
+  };
+  const pdf = await staff.downloadRepairPdf(123);
+  assert.ok(pdf instanceof Blob);
+  assert.equal(await pdf.text(), '%PDF-1.7 test');
+  assert.equal(sentHeaders.Authorization, 'Bearer test-token');
+});
 globalThis.localStorage = { getItem: () => 'test-token', removeItem: () => {} };
 
 function captureRequest() {

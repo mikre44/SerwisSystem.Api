@@ -20,10 +20,10 @@ function Admins() {
     <div>
       <h1>Administratorzy</h1>
 
-      {error && <p>Błąd: {error}</p>}
+      {error && <p role="alert">Błąd: {error}</p>}
 
 
-      <table>
+      <div className="table-scroll" role="region" aria-label="Tabela danych" tabIndex={0}><table>
         <thead>
           <tr>
             <th>ID</th>
@@ -65,7 +65,7 @@ function Admins() {
             );
           })}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

@@ -501,16 +501,18 @@ function CreateRepair() {
 
   return (
     <div>
+      <p className="eyebrow">Centrum obsługi serwisowej</p>
       <h1>Zgłoszenie naprawy</h1>
+      <p className="page-intro">Opisz problem i podaj dane kontaktowe. Jedno zgłoszenie dotyczy jednego urządzenia.</p>
 
       {error && (
-        <p>
+        <p role="alert">
           Błąd: {error}
         </p>
       )}
 
       {createdRepair && (
-        <div>
+        <div className="receipt" role="status">
           <h2>
             Zgłoszenie zostało wysłane
           </h2>
@@ -532,7 +534,7 @@ function CreateRepair() {
         </div>
       )}
 
-      {!createdRepair && <form onSubmit={handleSubmit}>
+      {!createdRepair && <form className="repair-form" onSubmit={handleSubmit}>
         <h2>Dane osoby zgłaszającej</h2>
 
         <div>

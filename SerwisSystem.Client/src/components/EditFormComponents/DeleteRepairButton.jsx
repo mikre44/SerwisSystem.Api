@@ -27,7 +27,7 @@ function DeleteRepairButton({ repairId, version }) {
   return (
     <div>
       {error && (
-        <p>
+        <p role="alert">
           Błąd: {error}
         </p>
       )}

@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using System.Text.Encodings.Web;
+using SerwisSystem.Api.Models;
 
 namespace SerwisSystem.Api.Services;
 
@@ -30,16 +31,49 @@ public class EmailService(IConfiguration configuration)
     public async Task SendRepairCreatedEmail(string recipientEmail, string recipientName, string trackingCode,
         string product, string serialNumber, CancellationToken cancellationToken = default)
     {
-        var host = RequiredSetting("SmtpHost");
-        if (!int.TryParse(RequiredSetting("SmtpPort"), out var port) || port is < 1 or > 65535)
-            throw new InvalidOperationException("Invalid SMTP port.");
-        var username = RequiredSetting("Username");
-        var password = RequiredSetting("Password");
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(configuration["Email:FromName"] ?? "Serwis", RequiredSetting("FromEmail")));
         message.To.Add(new MailboxAddress(recipientName, recipientEmail));
         message.Subject = $"Przyjęto zgłoszenie naprawy {trackingCode}";
         message.Body = CreateConfirmationBody(recipientName, trackingCode, product, serialNumber);
+        await SendEmail(message, cancellationToken);
+    }
+
+    public static string CreateRepairMethodBody(Repair repair) => $"""
+        Powód wiadomości: wybrano sposób realizacji „{RepairMethodLabels.GetLabel(repair.RepairMethod)}”.
+
+        Numer naprawy: {repair.Id}
+        Miejscowość: {repair.CompanyCity}
+        Firma: {repair.CompanyName}
+        Adres: {repair.CompanyAddress}
+        Kod pocztowy: {repair.CompanyPostalCode}
+
+        Produkt: {repair.Product}
+        Numer seryjny: {repair.SerialNumber}
+        Opis problemu: {repair.Description}
+
+        Osoba kontaktowa: {repair.ReporterName} {repair.ReporterSurname}
+        Telefon: {repair.ReporterPhone}
+        E-mail: {repair.ReporterEmail}
+        """;
+
+    public async Task SendRepairMethodChangedEmail(Repair repair, CancellationToken cancellationToken)
+    {
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(configuration["Email:FromName"] ?? "Serwis", RequiredSetting("FromEmail")));
+        message.To.Add(MailboxAddress.Parse(RequiredSetting("RepairNotificationRecipient")));
+        message.Subject = $"{RepairMethodLabels.GetLabel(repair.RepairMethod)} — {repair.CompanyCity} — naprawa nr {repair.Id}";
+        message.Body = new TextPart("plain") { Text = CreateRepairMethodBody(repair) };
+        await SendEmail(message, cancellationToken);
+    }
+
+    private async Task SendEmail(MimeMessage message, CancellationToken cancellationToken)
+    {
+        var host = RequiredSetting("SmtpHost");
+        if (!int.TryParse(RequiredSetting("SmtpPort"), out var port) || port is < 1 or > 65535)
+            throw new InvalidOperationException("Invalid SMTP port.");
+        var username = RequiredSetting("Username");
+        var password = RequiredSetting("Password");
         using var client = new SmtpClient { Timeout = 30000 };
         await client.ConnectAsync(host, port, port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls, cancellationToken);
         await client.AuthenticateAsync(username, password, cancellationToken);

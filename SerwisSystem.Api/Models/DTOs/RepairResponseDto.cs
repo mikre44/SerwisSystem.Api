@@ -6,6 +6,8 @@ public class RepairResponseDto
 {
     public int Id { get; set; }
     public uint Version { get; set; }
+    public RepairMethod RepairMethod { get; set; }
+    public bool RepairMethodNotificationPending { get; set; }
 
     public RepairStatus Status { get; set; }
 

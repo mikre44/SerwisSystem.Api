@@ -141,6 +141,12 @@ namespace SerwisSystem.Api.Migrations
                     b.Property<string>("PurchaseInvoiceNumber")
                         .HasColumnType("text");
 
+                    b.Property<int>("RepairMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RepairMethodNotificationPending")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ReporterEmail")
                         .IsRequired()
                         .HasColumnType("text");

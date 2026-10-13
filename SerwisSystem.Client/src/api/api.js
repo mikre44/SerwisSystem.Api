@@ -25,6 +25,10 @@ async function apiFetch(endpoint, options = {}) {
 
   let data;
 
+  if (response.ok && contentType?.includes("application/pdf")) {
+    return response.blob();
+  }
+
   if (contentType?.includes("json")) {
     try {
       data = await response.json();
@@ -87,6 +91,7 @@ export function getRepairs({// repairs =========================================
   pageSize = 10,
   search = "",
   statuses = [],
+  repairMethods = [],
   mine = false,
   sortBy = "createdAt",
   descending = true,
@@ -103,12 +108,24 @@ export function getRepairs({// repairs =========================================
   statuses.forEach((status) => {
     params.append("statuses", status);
   });
+  repairMethods.forEach(method => params.append("repairMethods", method));
 
   return apiFetch(`/repairs?${params}`, { signal: cancellationSignal });
 }
 
 export function getRepair(id, cancellationSignal) {
   return apiFetch(`/repairs/${id}`, { signal: cancellationSignal });
+}
+
+export function downloadRepairPdf(id, cancellationSignal) {
+  return apiFetch(`/repairs/${id}/pdf`, { signal: cancellationSignal });
+}
+
+export function retryRepairNotification(id, version) {
+  return apiFetch(`/repairs/${id}/retry-notification`, {
+    method: "POST",
+    body: JSON.stringify({ version }),
+  });
 }
 
 export function updateRepair(id, repair) {

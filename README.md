@@ -49,9 +49,25 @@ dotnet user-secrets set "Email:Username" "service@example.com" --project SerwisS
 dotnet user-secrets set "Email:Password" "YOUR_SMTP_PASSWORD" --project SerwisSystem.Api    # SMTP password or app password
 dotnet user-secrets set "Email:FromEmail" "service@example.com" --project SerwisSystem.Api    # Sender address
 dotnet user-secrets set "Email:FromName" "Serwis" --project SerwisSystem.Api    # Sender name
+dotnet user-secrets set "Email:RepairNotificationRecipient" "repairs@example.com" --project SerwisSystem.Api    # Internal recipient for visit and on-site repair notifications
 ```
 
 Without working SMTP settings, repairs are still saved, but emails cannot be sent.
+For Gmail, use `smtp.gmail.com`, port `587`, and your full Gmail address for the login and sender.
+Set `Email:Password` to a Google app password (requires two-step verification), not your normal account password.
+See [Google's app password instructions](https://support.google.com/mail/answer/185833).
+Check the connection without sending mail: `dotnet run --project Tests -c Release -- --check-email`.
+In production, set `Email__RepairNotificationRecipient` alongside the existing email environment variables.
+
+Staff can choose **Wysyłka** (default), **Naprawa z dojazdem** (technician visits the customer)
+or **Naprawa na miejscu** (repair at our service centre). Saving a change to either repair option
+sends the internal recipient the repair number, location, device and contact details.
+Unrelated edits do not send another message. Failed notifications remain visible after refreshing;
+staff with repair editing permission can retry from the repair details. A retry can send a duplicate
+if the mail server accepted the previous message but its response was lost.
+
+**Drukuj** in the repair table and details downloads an A4 PDF of the saved repair.
+Open the file and print it from your PDF viewer. PDF fonts are included, so no system font installation is needed.
 
 ### 3. Start the API
 
@@ -130,7 +146,7 @@ frontend uses `/api` on its own host; it does not fall back to another environme
 ```text
 Operation           | Limit per IP, per API instance
 Login                 10 per minute
-Registration          5 per hour
+Registration          10 per hour
 Customer lookup       20 per minute
 Repair creation       15 per 30 minutes
 ```

@@ -6,6 +6,9 @@ namespace SerwisSystem.Api.Models.DTOs;
 
 public class UpdateRepairDto : RepairVersionDto, IValidatableObject
 {
+    [EnumDataType(typeof(RepairMethod), ErrorMessage = "Nieprawidłowy sposób realizacji naprawy.")]
+    public RepairMethod? RepairMethod { get; set; }
+
     [EnumDataType(typeof(RepairStatus), ErrorMessage = "Nieprawidłowy status naprawy.")]
     public RepairStatus? Status { get; set; }
 

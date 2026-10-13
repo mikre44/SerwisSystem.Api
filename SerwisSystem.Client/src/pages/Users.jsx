@@ -49,7 +49,7 @@ function Users() {
       {error && <p role="alert">{error}</p>}
       {loading && <p role="status">Wczytywanie...</p>}
 
-      <form onSubmit={handleSearch}>
+      <form className="search-form" role="search" onSubmit={handleSearch}>
         <input
           type="text"
           placeholder="Szukaj użytkowników..."
@@ -68,7 +68,7 @@ function Users() {
         Wyświetlono {users.length} z {totalCount} użytkowników
       </p>
 
-      <table>
+      <div className="table-scroll" role="region" aria-label="Tabela danych" tabIndex={0}><table>
         <thead>
           <tr>
             <th><button type="button" onClick={() => handleSort("id")}>
@@ -116,7 +116,7 @@ function Users() {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
 
       <div>
         <button

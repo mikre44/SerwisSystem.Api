@@ -26,10 +26,11 @@ function Register() {
   }
 
   return (
-    <div>
+    <div className="auth-card">
+      <p className="eyebrow">Panel pracownika</p>
       <h1>Zarejestruj się</h1>
 
-      {error && <p>Błąd: {error}</p>}
+      {error && <p role="alert">Błąd: {error}</p>}
 
       <form onSubmit={handleSubmit}>
         <div>

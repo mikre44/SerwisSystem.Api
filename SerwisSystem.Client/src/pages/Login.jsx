@@ -32,12 +32,17 @@ function Login() {
   }
 
   return (
-    <div>
+    <div className="auth-card">
+      <p className="eyebrow">Panel pracownika</p>
       <h1>Zaloguj się</h1>
 
       {error && <p role="alert">{error}</p>}
+      <p className="page-intro">Zaloguj się, aby zarządzać zgłoszeniami serwisowymi.</p>
       <form onSubmit={handleSubmit}>
+        <label htmlFor="login-username">Nazwa użytkownika lub e-mail</label>
         <input
+          id="login-username"
+          autoComplete="username"
           type="text"
           placeholder="Nazwa użytkownika lub e-mail"
           value={usernameOrEmail}
@@ -46,8 +51,8 @@ function Login() {
           }
         />
 
-        <input
-          type="password"
+        <label htmlFor="login-password">Hasło</label>
+        <input id="login-password" autoComplete="current-password" type="password"
           placeholder="Hasło"
           value={password}
           onChange={(event) =>

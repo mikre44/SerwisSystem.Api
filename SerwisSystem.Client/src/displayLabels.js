@@ -1,4 +1,7 @@
 export const displayLabels = {
+  "Shipping": "Wysyłka",
+  "TechnicianVisit": "Naprawa z dojazdem",
+  "OnSite": "Naprawa na miejscu",
   "Pending": "Oczekująca",
   "InProgress": "W trakcie",
   "Completed": "Zakończona",

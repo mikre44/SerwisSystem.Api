@@ -27,8 +27,10 @@ export default function CheckRepair() {
       if (activeSearch.current === requestController) { activeSearch.current = null; setSearching(false); }
     }
   }
-  return <main>
+  return <section className="tracking-card">
+    <p className="eyebrow">Twoje zgłoszenie</p>
     <h1>Sprawdź naprawę</h1>
+    <p className="page-intro">Wpisz dane ze zgłoszenia, aby sprawdzić aktualny status urządzenia.</p>
     {error && <p role="alert">{error}</p>}
     <form onSubmit={handleSubmit}>
       <label htmlFor="tracking-code">Kod śledzenia</label>
@@ -39,6 +41,6 @@ export default function CheckRepair() {
       <input id="lookup-serial" maxLength={100} value={serialNumber} onChange={event => setSerialNumber(event.target.value)} />
       <button type="submit">{searching ? "Szukaj ponownie" : "Sprawdź naprawę"}</button>
     </form>
-    {repair && <section aria-live="polite"><h2>Informacje o naprawie</h2><p>Produkt: {repair.product}</p><p>Status: {displayLabels[repair.status] ?? "Nieznana wartość"}</p><p>Data utworzenia: {new Date(repair.createdAt).toLocaleString("pl-PL")}</p></section>}
-  </main>;
+    {repair && <section aria-live="polite"><h2>Informacje o naprawie</h2><p>Produkt: {repair.product}</p><p>Status: <span className="status-badge" data-status={repair.status}>{displayLabels[repair.status] ?? "Nieznana wartość"}</span></p><p>Data utworzenia: {new Date(repair.createdAt).toLocaleString("pl-PL")}</p></section>}
+  </section>;
 }

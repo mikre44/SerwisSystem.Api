@@ -89,6 +89,7 @@ function EditRepairForm({ repair, onUpdated }) {
     repair.contractNumber ?? ""
   );
 
+  const [repairMethod, setRepairMethod] = useState(repair.repairMethod ?? "Shipping");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -402,6 +403,7 @@ function EditRepairForm({ repair, onUpdated }) {
         repair.id,
         {
           status,
+          repairMethod,
           version: repair.version,
 
           product,
@@ -491,14 +493,14 @@ function EditRepairForm({ repair, onUpdated }) {
       <h2>Edytuj naprawę</h2>
 
       {error && (
-        <p>Błąd: {error}</p>
+        <p role="alert">Błąd: {error}</p>
       )}
 
       {success && (
         <p>{success}</p>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form className="repair-form" onSubmit={handleSubmit}>
         <h3>Status</h3>
 
         <select
@@ -525,6 +527,17 @@ function EditRepairForm({ repair, onUpdated }) {
             Anulowana
           </option>
         </select>
+
+        <h3>Sposób realizacji</h3>
+        <div>
+          <label htmlFor="repair-method">Sposób realizacji</label>
+          <select id="repair-method" value={repairMethod} onChange={event => setRepairMethod(event.target.value)}>
+            <option value="Shipping">Wysyłka</option>
+            <option value="TechnicianVisit">Naprawa z dojazdem</option>
+            <option value="OnSite">Naprawa na miejscu</option>
+          </select>
+          <small>Zmiana na naprawę z dojazdem lub na miejscu spowoduje wysłanie powiadomienia e-mail po zapisaniu.</small>
+        </div>
 
         <h3>Urządzenie</h3>
 

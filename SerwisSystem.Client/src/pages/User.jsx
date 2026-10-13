@@ -22,7 +22,7 @@ function User() {
   if (loading) return <p>Wczytywanie użytkownika...</p>;
 
   if (error) {
-    return <p>Błąd: {error}</p>;
+    return <p role="alert">Błąd: {error}</p>;
   }
 
   if (!user) {
@@ -33,7 +33,8 @@ function User() {
     <div>
       <h1>Użytkownik</h1>
 
-        <UserInfo user={user} />
+        <div className="panel-grid">
+        <section className="panel-section"><UserInfo user={user} />
         {(loggedUser.id === user.id ||
         loggedUser.role === "Admin" ||
         loggedUser.permissions?.editUsers) && (
@@ -44,7 +45,7 @@ function User() {
           />
         )}
 
-        <UserPermissions isAdmin={user.role === "Admin"} permissions={user.permissions} />
+        </section><section className="panel-section"><UserPermissions isAdmin={user.role === "Admin"} permissions={user.permissions} />
         {(loggedUser.role === "Admin" ||
           loggedUser.permissions?.grantUsers) && (
           <EditPermissionsForm
@@ -53,13 +54,14 @@ function User() {
             onUpdated={reload}
           />
         )}
-        <EditAdminButton
+        </section><section className="panel-section"><h2>Zarządzanie kontem</h2><div className="button-row"><EditAdminButton
           user={user}
           onUpdated={reload}
         />
-        <DeleteUserButton user={user} />
+        <DeleteUserButton user={user} /></div></section>
 
-        <UserRepairs repairs={user.repairs} />
+        <section className="panel-section full-width"><UserRepairs repairs={user.repairs} /></section>
+        </div>
 
 
     </div>

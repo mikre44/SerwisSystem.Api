@@ -53,6 +53,7 @@ public class RepairsController : ControllerBase
     public async Task<IActionResult> GetRepairs(
         string? search,
         [FromQuery] List<RepairStatus>? statuses,
+        [FromQuery] List<RepairMethod>? repairMethods,
         bool mine = false,
         string sortBy = "createdAt",
         bool descending = true,
@@ -111,6 +112,9 @@ public class RepairsController : ControllerBase
 
 
         // Show only repairs assigned to logged user
+        if (repairMethods is { Count: > 0 })
+            query = query.Where(repair => repairMethods.Contains(repair.RepairMethod));
+
         if (mine)
         {
             var currentUser =
@@ -205,6 +209,49 @@ public class RepairsController : ControllerBase
         return Ok(RepairResponseMapper.CreateResponse(repair, repair.User?.Username));
     }
 
+
+    [RequirePermission("ReadRepairs")]
+    [HttpGet("{id:int}/pdf")]
+    public async Task<IActionResult> DownloadRepairPdf(int id, CancellationToken cancellationToken)
+    {
+        var repair = await _context.Repairs.AsNoTracking().Include(repair => repair.User)
+            .SingleOrDefaultAsync(repair => repair.Id == id, cancellationToken);
+        if (repair is null) return NotFound(new ApiErrorResponse(404, "Nie znaleziono naprawy."));
+        Response.Headers.CacheControl = "no-store";
+        return File(new RepairPdfService().CreatePdf(repair), "application/pdf", $"naprawa-{id}.pdf");
+    }
+
+    [RequirePermission("EditRepairs")]
+    [HttpPost("{id:int}/retry-notification")]
+    public async Task<IActionResult> RetryRepairMethodNotification(int id, RepairVersionDto request)
+    {
+        var repair = await _context.Repairs.Include(repair => repair.User)
+            .SingleOrDefaultAsync(repair => repair.Id == id, HttpContext.RequestAborted);
+        if (repair is null) return NotFound(new ApiErrorResponse(404, "Nie znaleziono naprawy."));
+        if (repair.Version != request.Version)
+            return Conflict(new ApiErrorResponse(409, "Dane naprawy zostały zmienione. Wczytaj je ponownie."));
+        if (repair.RepairMethodNotificationPending && repair.RepairMethod != RepairMethod.Shipping)
+            await TrySendRepairMethodNotification(repair);
+        return Ok(RepairResponseMapper.CreateResponse(repair, repair.User?.Username));
+    }
+
+    private async Task TrySendRepairMethodNotification(Repair repair)
+    {
+        try
+        {
+            using var emailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await _emailService.SendRepairMethodChangedEmail(repair, emailTimeout.Token);
+            // Do not clear a notification belonging to a newer edit.
+            await _context.Repairs.Where(saved => saved.Id == repair.Id && saved.Version == repair.Version)
+                .ExecuteUpdateAsync(update => update.SetProperty(saved => saved.RepairMethodNotificationPending, false));
+            await _context.Entry(repair).ReloadAsync();
+            await _context.Entry(repair).Reference(saved => saved.User).LoadAsync();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Repair method notification failed for repair {RepairId}.", repair.Id);
+        }
+    }
 
     // POST api/repairs
     // Public endpoint used by customer application
@@ -408,6 +455,14 @@ public class RepairsController : ControllerBase
         }
 
 
+        var repairMethodChanged = updatedRepair.RepairMethod.HasValue &&
+            updatedRepair.RepairMethod.Value != repair.RepairMethod;
+        if (repairMethodChanged)
+        {
+            repair.RepairMethod = updatedRepair.RepairMethod!.Value;
+            repair.RepairMethodNotificationPending = repair.RepairMethod != RepairMethod.Shipping;
+        }
+
         repair.Product = updatedRepair.Product;
         repair.IsCustomProduct = updatedRepair.IsCustomProduct;
         repair.SerialNumber = updatedRepair.SerialNumber ?? "";
@@ -440,8 +495,9 @@ public class RepairsController : ControllerBase
         }
 
 
-        await _context.SaveChangesAsync();
-
+        await _context.SaveChangesAsync(HttpContext.RequestAborted);
+        if (repairMethodChanged && repair.RepairMethodNotificationPending)
+            await TrySendRepairMethodNotification(repair);
 
         return Ok(RepairResponseMapper.CreateResponse(repair, repair.User?.Username));
     }

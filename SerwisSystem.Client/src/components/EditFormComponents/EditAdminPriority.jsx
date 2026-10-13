@@ -35,7 +35,7 @@ function EditAdminPriority({ admin, loggedUser, onUpdated }) {
 
   return (
     <div>
-      {error && <p>Błąd: {error}</p>}
+      {error && <p role="alert">Błąd: {error}</p>}
       {success && <p>{success}</p>}
 
       <form onSubmit={handleSubmit}>

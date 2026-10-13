@@ -1,6 +1,7 @@
 import { displayLabels } from "../displayLabels";
+import PrintRepairButton from "../components/PrintRepairButton";
 import { useRemoteData } from "../hooks/useRemoteData";
-import { Fragment, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate  } from "react-router-dom";
 import { getRepairs } from "../api/api";
 import EditRepairStatus from "../components/EditFormComponents/EditRepairStatus";
@@ -13,13 +14,14 @@ function Repairs() {
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [statuses, setStatuses] = useState([]);
+  const [repairMethods, setRepairMethods] = useState([]);
   const [mine, setMine] = useState(false);
   const [sortBy, setSortBy] = useState("createdAt");
   const [descending, setDescending] = useState(true);
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  const loadRepairs = useCallback(signal => getRepairs({ page, pageSize, search: appliedSearch, sortBy, descending, statuses, mine }, signal), [page, pageSize, appliedSearch, sortBy, descending, statuses, mine]);
+  const loadRepairs = useCallback(signal => getRepairs({ page, pageSize, search: appliedSearch, sortBy, descending, statuses, repairMethods, mine }, signal), [page, pageSize, appliedSearch, sortBy, descending, statuses, repairMethods, mine]);
   const { data, error, loading, reload } = useRemoteData(loadRepairs);
   const repairs = data?.items ?? [];
   const totalPages = data?.totalPages ?? 0;
@@ -63,7 +65,7 @@ function Repairs() {
       {error && <p role="alert">{error}</p>}
       {loading && <p role="status">Wczytywanie...</p>}
 
-      <form onSubmit={handleSearch}>
+      <form className="search-form" role="search" onSubmit={handleSearch}>
         <input
           type="text"
           placeholder="Szukaj napraw..."
@@ -109,11 +111,24 @@ function Repairs() {
         </label>
       </div>
 
+      <fieldset className="filter-group">
+        <legend>Sposób realizacji</legend>
+        {["Shipping", "TechnicianVisit", "OnSite"].map(method => (
+          <label key={method}>
+            <input type="checkbox" checked={repairMethods.includes(method)} onChange={() => {
+              setRepairMethods(selected => selected.includes(method) ? selected.filter(value => value !== method) : [...selected, method]);
+              setPage(1);
+            }} />
+            {displayLabels[method]}
+          </label>
+        ))}
+      </fieldset>
+
       <p>
         Wyświetlono {repairs.length} z {totalCount} napraw
       </p>
 
-      <table>
+      <div className="table-scroll" role="region" aria-label="Tabela danych" tabIndex={0}><table className="repairs-table">
         <thead>
           <tr>
             <th><button type="button" onClick={() => handleSort("id")}>
@@ -145,19 +160,21 @@ function Repairs() {
               {sortBy === "status" && (descending ? "▼" : "▲")}
             </button></th>
 
+            <th>Sposób realizacji</th>
             <th>Pracownik</th>
 
             <th><button type="button" onClick={() => handleSort("createdAt")}>
               Data utworzenia{" "}
               {sortBy === "createdAt" && (descending ? "▼" : "▲")}
             </button></th>
+            <th>Czynności</th>
           </tr>
         </thead>
 
         <tbody>
           {repairs.map((repair) => (
-            <Fragment key={repair.id}>
               <tr
+                key={repair.id}
                 tabIndex={0}
                 onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); navigate(`/repair/${repair.id}`); } }}
                 onClick={() => navigate(`/repair/${repair.id}`)}
@@ -180,7 +197,8 @@ function Repairs() {
                   {repair.companyAddress}
                 </td>
 
-                <td>{displayLabels[repair.status] ?? "Nieznana wartość"}</td>
+                <td><span className="status-badge" data-status={repair.status}>{displayLabels[repair.status] ?? "Nieznana wartość"}</span></td>
+                <td>{displayLabels[repair.repairMethod] ?? "Wysyłka"}</td>
 
                 <td>
                   {repair.workerUsername ?? "Nie przypisano"}
@@ -189,20 +207,20 @@ function Repairs() {
                 <td>
                   {new Date(repair.createdAt).toLocaleDateString("pl-PL")}
                 </td>
-              </tr>
-
-              <tr>
-                <td colSpan="8">
+                <td className="repair-actions-cell" onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+                  <div className="button-row">
+                  <PrintRepairButton repairId={repair.id} />
                   <EditRepairStatus
                     repair={repair}
                     onUpdated={reload}
                   />
+                  </div>
+                  {repair.repairMethodNotificationPending && <p role="alert">Powiadomienie e-mail wymaga ponowienia w szczegółach naprawy.</p>}
                 </td>
               </tr>
-            </Fragment>
           ))}
         </tbody>
-      </table>
+      </table></div>
 
       <div>
         <button

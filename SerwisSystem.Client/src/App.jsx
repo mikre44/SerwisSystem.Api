@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 
 import Login from "./pages/Login";
@@ -26,8 +26,10 @@ function App() {
 
   return (
     <BrowserRouter>
+      <div className="app-shell staff-app">
 
-      {user && <Navbar />}
+      {user ? <Navbar /> : <header className="site-header"><a className="brand" href="/">Mentor<span>Serwis</span><small>Panel pracownika</small></a></header>}
+      <main className="app-content">
 
       <Routes>
         <Route element={<PublicRoute />}>
@@ -37,7 +39,7 @@ function App() {
         </Route>
 
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={user?.role === "Admin" || user?.permissions?.readRepairs ? <Navigate to="/repairs" replace /> : <Home />} />
 
           <Route path="/repairs" element={<Repairs />} />
           <Route path="/repair/:id" element={<Repair />} />
@@ -50,6 +52,9 @@ function App() {
         </Route>
 
       </Routes>
+      </main>
+      <footer className="site-footer">SerwisSystem <span>Panel pracownika</span></footer>
+      </div>
     </BrowserRouter>
   );
 }

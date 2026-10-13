@@ -12,6 +12,8 @@ public static class RepairResponseMapper
         {
             Id = repair.Id,
             Version = repair.Version,
+            RepairMethod = repair.RepairMethod,
+            RepairMethodNotificationPending = repair.RepairMethodNotificationPending,
 
             Status = repair.Status,
 

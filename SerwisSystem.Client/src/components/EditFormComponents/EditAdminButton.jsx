@@ -51,7 +51,7 @@ function EditAdminButton({ user, onUpdated }) {
   if (user.role !== "Admin")
   return (
     <div>
-      {error && <p>Błąd: {error}</p>}
+      {error && <p role="alert">Błąd: {error}</p>}
       {success && <p>{success}</p>}
 
       <ConfirmButton

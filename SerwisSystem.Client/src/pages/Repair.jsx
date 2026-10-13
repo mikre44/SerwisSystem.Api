@@ -1,4 +1,6 @@
 import { displayLabels } from "../displayLabels";
+import PrintRepairButton from "../components/PrintRepairButton";
+import RepairNotification from "../components/RepairNotification";
 import { useRemoteData } from "../hooks/useRemoteData";
 import { useCallback } from "react";
 import { useParams } from "react-router-dom";
@@ -19,7 +21,7 @@ function Repair() {
   if (loading) return <p>Wczytywanie naprawy...</p>;
 
   if (error) {
-    return <p>Błąd: {error}</p>;
+    return <p role="alert">Błąd: {error}</p>;
   }
 
   if (!repair) {
@@ -32,26 +34,34 @@ function Repair() {
 
   return (
     <div>
-      <h1>Naprawa nr{repair.id}</h1>
+      <h1>Naprawa nr {repair.id}</h1>
+      <div className="button-row">
+      <PrintRepairButton repairId={repair.id} />
+      <EditRepairStatus repair={repair} onUpdated={reload} />
       <button type="button" onClick={reload}>Wczytaj aktualne dane naprawy</button>
+      </div>
+      <RepairNotification repair={repair} canEdit={canEdit} onUpdated={reload} />
+      <div className="panel-grid repair-details">
+      <section className="panel-section">
 
       <h2>Informacje o naprawie</h2>
+      <p>Sposób realizacji: {displayLabels[repair.repairMethod] ?? "Wysyłka"}</p>
 
-      <p>Status: {displayLabels[repair.status] ?? "Nieznana wartość"}</p>
+      <p>Status: <span className="status-badge" data-status={repair.status}>{displayLabels[repair.status] ?? "Nieznana wartość"}</span></p>
       <p> Produkt: {repair.product}
         {repair.isCustomProduct && " (nie z listy)"}
       </p>
       <p>Numer seryjny: {repair.serialNumber || "Brak"}</p>
       <p>Opis: {repair.description}</p>
 
-      <h2>Osoba zgłaszająca</h2>
+      </section><section className="panel-section"><h2>Osoba zgłaszająca</h2>
 
       <p>Imię: {repair.reporterName}</p>
       <p>Nazwisko: {repair.reporterSurname}</p>
       <p>Telefon: {repair.reporterPhone}</p>
       <p>E-mail: {repair.reporterEmail}</p>
 
-      <h2>Firma</h2>
+      </section><section className="panel-section"><h2>Firma</h2>
 
       <p>Nazwa firmy: {repair.companyName}</p>
       <p>Adres: {repair.companyAddress}</p>
@@ -59,7 +69,7 @@ function Repair() {
       <p>Miasto: {repair.companyCity}</p>
       <p>NIP: {repair.companyNip}</p>
 
-      <h2>Gwarancja</h2>
+      </section><section className="panel-section"><h2>Gwarancja</h2>
 
       <p>
         Naprawa gwarancyjna: {repair.hasWarranty ? "Tak" : "Nie"}
@@ -81,7 +91,7 @@ function Repair() {
         </>
       )}
 
-      <h2>Umowa</h2>
+      </section><section className="panel-section"><h2>Umowa</h2>
 
       <p>
         Obowiązuje umowa: {repair.hasContract ? "Tak" : "Nie"}
@@ -93,7 +103,7 @@ function Repair() {
         </p>
       )}
 
-      <h2>Zgody</h2>
+      </section><section className="panel-section"><h2>Zgody</h2>
 
       <p>
         Zgoda na przetwarzanie danych do celów serwisowych:{" "}
@@ -105,7 +115,7 @@ function Repair() {
         {repair.marketingConsent ? "Tak" : "Nie"}
       </p>
 
-      <h2>Pracownik</h2>
+      </section><section className="panel-section"><h2>Pracownik</h2>
 
       <p>
         Pracownik: {repair.workerUsername ?? "Nie przypisano"}
@@ -116,10 +126,8 @@ function Repair() {
         {new Date(repair.createdAt).toLocaleString("pl-PL")}
       </p>
 
-      <EditRepairStatus
-        repair={repair}
-        onUpdated={reload}
-      />
+      </section>
+      </div>
 
       {canDelete && (
         <DeleteRepairButton
@@ -129,11 +137,13 @@ function Repair() {
       )}
 
       {canEdit && (
+        <section className="panel-section repair-edit-section">
         <EditRepairForm
           key={`${repair.id}:${repair.version}`}
           repair={repair}
           onUpdated={reload}
         />
+        </section>
       )}
     </div>
   );

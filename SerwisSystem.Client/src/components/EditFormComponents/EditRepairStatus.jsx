@@ -51,7 +51,7 @@ function EditRepairStatus({ repair, onUpdated }) {
   }
 
   return (
-    <div>
+    <div className="button-row repair-status-actions">
       <Message
         error={error}
         success={success}
@@ -77,7 +77,7 @@ function EditRepairStatus({ repair, onUpdated }) {
             message="Czy na pewno chcesz anulować tę naprawę?"
             onConfirm={() => runAction(cancelRepair, "Naprawa została anulowana.")}
           >
-            Anuluj
+            Anuluj naprawę
           </ConfirmButton>
       )}
       {canReturn && (

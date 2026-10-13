@@ -6,6 +6,8 @@ public class Repair
 {
     public int Id { get; set; }
     public uint Version { get; set; }
+    public RepairMethod RepairMethod { get; set; } = RepairMethod.Shipping;
+    public bool RepairMethodNotificationPending { get; set; }
     public string? TrackingCodeHash { get; set; }
     public string TrackingSerialNumber { get; set; } = "";
 

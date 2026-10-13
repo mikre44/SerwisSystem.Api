@@ -15,7 +15,7 @@ function UserRepairs({ repairs }) {
     <div>
       <h2>Naprawy</h2>
 
-      <table>
+      <div className="table-scroll" role="region" aria-label="Tabela danych" tabIndex={0}><table>
         <thead>
           <tr>
             <th>ID</th>
@@ -55,7 +55,7 @@ function UserRepairs({ repairs }) {
               </td>
 
               <td>
-                {displayLabels[repair.status] ?? "Nieznana wartość"}
+                <span className="status-badge" data-status={repair.status}>{displayLabels[repair.status] ?? "Nieznana wartość"}</span>
               </td>
 
               <td>
@@ -66,7 +66,7 @@ function UserRepairs({ repairs }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
